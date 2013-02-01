@@ -1,16 +1,18 @@
 package priv
 
+import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL12._
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
 trait Texture{
   def id : Int
   def height : Int
   def width : Int
   def bind()
+  
+  val coord = Coord2i(width, height)
 }
-
-import org.lwjgl.opengl.GL11._
-import org.lwjgl.opengl.GL12._
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 class SampleTexture(data : ByteBuffer, val width : Int, val height : Int, hasAlpha : Boolean, bytesPerPixel : Int) extends Texture {
   val buf = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asIntBuffer()

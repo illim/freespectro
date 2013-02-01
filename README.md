@@ -1,0 +1,1 @@
+started toy programming trying to copy spectromancer 

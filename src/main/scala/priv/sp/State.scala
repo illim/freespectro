@@ -53,12 +53,22 @@ object PlayerState {
         PlayerHouse.from(Houses.EarthHouse)))
   }
 }
-case class CardState(card: Card, house: PlayerHouse) {
+case class HouseCardState(card: Card, house: PlayerHouse) {
   def isAvailable = card.cost <= house.mana
 }
-case class HouseCards(house: PlayerHouse, cardStates: List[CardState])
+case class HouseCards(house: PlayerHouse, cardStates: List[HouseCardState])
 class PlayerState(houses: List[PlayerHouse]) {
   val houseCards = houses.map { h =>
-    HouseCards(h, h.cards.map(c => CardState(c, h)))
+    HouseCards(h, h.cards.map(c => HouseCardState(c, h)))
   }
 }
+
+object CardState {
+  def creature(card : Card) = {
+    card match {
+      case creature : Creature => CardState(card, creature.life, creature.attack getOrElse 0)
+      case _ => sys.error(card + " is not a creature")
+    }
+  }
+}
+case class CardState(card : Card, life : Int, attack : Int)

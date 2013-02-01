@@ -15,7 +15,7 @@ object Fonts {
   font.getEffects().asInstanceOf[java.util.List[Effect]].add(new ColorEffect())
   font.loadGlyphs()
 
-  def draw(x: Int, y: Int, s: String, color: Symbol = null) {
+  def draw(x: Int, y: Int, s: Any, color: Symbol = null) {
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)
     val c = if (color == null) Color.black else {
       color match {
@@ -25,7 +25,7 @@ object Fonts {
         case _ => Color.black
       }
     }
-    Fonts.font.drawString(x, y, s, c)
+    Fonts.font.drawString(x, y, s.toString, c)
     glColor4f(1, 1, 1, 1) // recover color
   }
 }

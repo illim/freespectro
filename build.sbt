@@ -1,11 +1,10 @@
-name := "2snake"
+name := "freespectro"
 
 version := "1.0"
 
 scalaVersion := "2.10.0"
 
-libraryDependencies ++= Seq(
- "org.apache.commons" % "commons-io" % "1.3.2",
+libraryDependencies ++= Seq( 
  "org.lwjgl.lwjgl" % "lwjgl" % "2.8.2",
  "org.lwjgl.lwjgl" % "lwjgl_util" % "2.8.2",
  "org.lwjgl.lwjgl" % "lwjgl-platform" % "2.8.2" classifier "natives-windows")

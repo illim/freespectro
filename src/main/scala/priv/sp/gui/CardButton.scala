@@ -3,15 +3,15 @@ package priv.sp.gui
 import priv._
 import priv.entity._
 import org.lwjgl.opengl.GL11._
-import priv.sp.CardState
+import priv.sp.HouseCardState
 import priv.sp.Creature
 import priv.sp.SpWorld
 import priv.sp.Spell
 
-case class CardButton(cardState: CardState, sp: SpWorld) extends GuiElem {
+case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
   private val cardTex = sp.textures.get("Images/Cards/" + cardState.card.image)
   private val (borderTex, maskTex) = sp.baseTextures.getBorder(cardState.card)
-  val size = Coord(borderTex.width, borderTex.height)
+  val size = Coord2i(borderTex.width, borderTex.height)
   private var hovered = false
   var enabled = true
 
@@ -36,16 +36,16 @@ case class CardButton(cardState: CardState, sp: SpWorld) extends GuiElem {
 
     cardState.card match {
       case spell: Spell =>
-        Fonts.draw(72, 9, spell.cost.toString, 'blue)
+        Fonts.draw(72, 9, spell.cost, 'blue)
       case creature: Creature =>
-        Fonts.draw(72, 1, creature.cost.toString, 'blue)
+        Fonts.draw(72, 1, creature.cost, 'blue)
         Fonts.draw(4, 80, creature.attack.map(_.toString) getOrElse "?", 'red)
-        Fonts.draw(70, 80, creature.life.toString, 'green)
+        Fonts.draw(70, 80, creature.life, 'green)
     }
 
     if (!isActive) {
       glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE)
-      drawTexture(maskTex.id, borderTex.width, borderTex.height)
+      drawTexture(maskTex.id, borderTex.coord)
     }
   }
 

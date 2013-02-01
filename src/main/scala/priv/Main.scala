@@ -79,8 +79,8 @@ object Main extends Application {
     var result = Option.empty[MouseEvent]
     while (Mouse.next()) {
       result = if (Mouse.getEventButton() != -1 && Mouse.isButtonDown(0)) {
-        Some(MouseClicked(Coord(Mouse.getX(), g.height - Mouse.getY())))
-      } else Some(MouseMoved(Coord(Mouse.getX(), g.height - Mouse.getY())))
+        Some(MouseClicked(Coord2i(Mouse.getX(), g.height - Mouse.getY())))
+      } else Some(MouseMoved(Coord2i(Mouse.getX(), g.height - Mouse.getY())))
     }
     result
   }

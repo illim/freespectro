@@ -1,5 +1,7 @@
 package priv.util
 
+import priv.Coord2i
+
 trait TextureHelper {
   import org.lwjgl.opengl.GL11._
 
@@ -9,12 +11,12 @@ trait TextureHelper {
   def textureRight = 1f
 
   def drawTexture(texture: priv.Texture) {
-    drawTexture(texture.id, texture.width, texture.height)
+    drawTexture(texture.id, texture.coord)
   }
-  def drawTexture(texId: Int, w: Int, h: Int) {
+  def drawTexture(texId: Int, c : Coord2i) {
     glBindTexture(GL_TEXTURE_2D, texId)
     glBegin(GL_QUADS)
-    drawTexture(w, h)
+    drawTexture(c.x, c.y)
     glEnd()
   }
   def drawTexture(w: Int, h: Int) {

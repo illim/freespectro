@@ -33,14 +33,13 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
     Column(
       List(
         Translate(
-          Coord(350, 0),
+          Coord2i(350, 0),
           Column(List(
             Row(slotPanel.topSlots),
             Row(slotPanel.bottomSlots)))),
         Translate(
-          Coord(500, 0), playerPanel.panel)))
+          Coord2i(500, 0), playerPanel.panel)))
   }
-
 
   class CardPanel(player: PlayerState) {
     private val houseCardButtons = player.houseCards.map { house =>
@@ -51,7 +50,7 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
     val cardButtons = houseCardButtons.flatMap(_._2)
     cardButtons.foreach { cardButton =>
       cardButton.on {
-        case MouseClicked(_) =>
+        case MouseClicked(_) if cardButton.enabled =>
           commandControler.setCommand(Command(owner, cardButton.cardState.card, Nil))
       }
     }
@@ -65,33 +64,28 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       cardButtons.foreach(_.enabled = flag)
     }
   }
-  
-  
+
   class SlotPanel {
-    val topSlots = (1 to 6).map(num => SlotButton(num, spWorld))
-    val bottomSlots = (1 to 6).map(num => SlotButton(num, spWorld))
+    val topSlots = (0 to 5).map(num => SlotButton(num, spWorld))
+    val bottomSlots = (0 to 5).map(num => SlotButton(num, spWorld))
     val allSlots = topSlots ++ bottomSlots
     topSlots.foreach { slotButton =>
       slotButton.on {
-        case MouseClicked(_) =>
-          if (slotButton.enabled) {
+        case MouseClicked(_) if slotButton.enabled =>
             commandControler.addInput(TargetCreature(slotButton.num))
-          }
       }
     }
     bottomSlots.foreach { slotButton =>
       slotButton.on {
-        case MouseClicked(_) =>
-          if (slotButton.enabled) {
-            commandControler.addInput(OwnerSlot(slotButton.num))
-          }
+        case MouseClicked(_) if slotButton.enabled =>
+          commandControler.addInput(OwnerSlot(slotButton.num))
       }
     }
-    
-    def enableOwnerSlots(){
-      bottomSlots.foreach(_.enabled = true)
+
+    def enableOwnerSlots() {
+      bottomSlots.foreach { slot => if (slot.isEmpty) slot.enabled = true }
     }
-    def disable(){ allSlots.foreach(_.enabled = false)}
+    def disable() { allSlots.foreach(_.enabled = false) }
   }
 
   class CommandControler {
@@ -101,10 +95,11 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       submitIfReady()
     }
     def reset() { value = None }
+    def asCardCreature = value.map(_.card).collect { case c: Creature => c }
 
     def addInput(x: CardInput) = {
       value.foreach { command =>
-        println("add input "+x)
+        println("add input " + x)
         setCommand(command.copy(inputs = (x :: command.inputs)))
       }
     }
@@ -113,6 +108,7 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       value.foreach { command =>
         if (command.card.inputSpecs.steps.size == command.inputs.size) {
           println("submit " + command.card)
+          applyEffect(command)
           gsm.goto(Running(Some(command), owner))
         } else {
           command.card.inputSpecs.steps(command.inputs.size) match {
@@ -121,6 +117,18 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
             case SelectTargetCreature =>
           }
         }
+      }
+    }
+
+    private def applyEffect(command: Command) = {
+      command.card.spec match {
+        case Summon =>
+          command.inputs.head match {
+            case OwnerSlot(num) => slotPanel.bottomSlots(num).setCard(CardState.creature(command.card))
+            case _ =>
+          }
+        // todo anim(how to find positions) and callback to change state
+        case _ =>
       }
     }
   }

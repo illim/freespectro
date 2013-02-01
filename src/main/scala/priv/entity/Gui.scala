@@ -1,27 +1,22 @@
 package priv.entity
 
 import org.lwjgl.opengl.GL11._
-import priv.util.Once
+import priv._
 
-object Coord {
-  val zero = Coord(0, 0)
-}
-
-case class Coord(x: Float, y: Float)
 
 object GuiHandler {
   type Type = PartialFunction[MouseEvent, Unit]
 }
 
 sealed trait MouseEvent {
-  def coord: Coord
+  def coord: Coord2i
 }
-case class MouseMoved(coord: Coord) extends MouseEvent
-case class MouseClicked(coord: Coord) extends MouseEvent
-case class MouseLeaved(coord: Coord) extends MouseEvent
+case class MouseMoved(coord: Coord2i) extends MouseEvent
+case class MouseClicked(coord: Coord2i) extends MouseEvent
+case class MouseLeaved(coord: Coord2i) extends MouseEvent
 
 trait GuiElem extends Entity {
-  def size: Coord
+  def size: Coord2i
   def clean() {}
   var handlers = List.empty[GuiHandler.Type]
   def on(handler: GuiHandler.Type) {
@@ -38,21 +33,21 @@ trait GuiElem extends Entity {
 
 trait GuiContainer extends GuiElem {
 
-  var elems = List.empty[(Coord, GuiElem)]
-  protected def add(coord: Coord, elem: GuiElem) {
+  var elems = List.empty[(Coord2i, GuiElem)]
+  protected def add(coord: Coord2i, elem: GuiElem) {
     elems ::= (coord, elem)
   }
   override def clean() {
     elems.foreach(_._2.clean())
   }
-  def findElem(c: Coord): Option[GuiElem] = {
+  def findElem(c: Coord2i): Option[GuiElem] = {
     (elems.collectFirst {
       case (pos, elem) if (c.x > pos.x
         && c.x < pos.x + elem.size.x
         && c.y > pos.y
         && c.y < pos.y + elem.size.y) =>
         elem match {
-          case cont: GuiContainer => cont.findElem(Coord(c.x - pos.x, c.y - pos.y)) // sucks
+          case cont: GuiContainer => cont.findElem(Coord2i(c.x - pos.x, c.y - pos.y)) // sucks
           case e => Some(e)
         }
     }).flatten
@@ -74,8 +69,8 @@ trait GuiContainer extends GuiElem {
   }
 }
 
-case class Translate(at: Coord, elt: GuiElem) extends GuiContainer {
-  val size = Coord(elt.size.x + at.x, elt.size.y + at.y)
+case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
+  val size = Coord2i(elt.size.x + at.x, elt.size.y + at.y)
   add(at, elt)
 
   def render(world: World) {
@@ -87,7 +82,7 @@ case class Translate(at: Coord, elt: GuiElem) extends GuiContainer {
 }
 
 abstract class Flow(elts: Traversable[GuiElem], dirx: Int = 0, diry: Int = 0) extends GuiContainer {
-  val last = (Coord(0, 0) /: elts) { (acc, elt) =>
+  val last = (Coord2i(0, 0) /: elts) { (acc, elt) =>
     val c = acc.copy(x = acc.x + dirx * elt.size.x, y = acc.y + diry * elt.size.y)
     add(acc, elt)
     c
