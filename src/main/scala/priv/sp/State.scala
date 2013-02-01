@@ -1,12 +1,19 @@
 package priv.sp
 
 import util.Random
+import collection._
 
 case class GameState(players: List[PlayerState], phase: Phase)
 
 trait Phase
 case class Waiting(player: PlayerId) extends Phase
-case class Running(commandOption: Option[Command], player: PlayerId) extends Phase
+case class Submitting(commandOption: Option[(Command, CardEffects)], player: PlayerId) extends Phase
+case class Running(player: PlayerId) extends Phase
+
+class StateRef[A](deref : => A){
+  def map[B](f : A => B) = new StateRef(f(deref))
+  def get = deref
+}
 
 class GameStateMachine(var state: GameState) {
   def this() = this(GameState(List(PlayerState.create(), PlayerState.create()), Waiting(owner)))
@@ -19,7 +26,15 @@ class GameStateMachine(var state: GameState) {
       if (f.isDefinedAt(next)) f(next)
     }
     state.phase match {
-      case Running(commandOption, player) =>
+      case Submitting(commandOption, player) =>
+        commandOption.foreach{ case (command, effects) =>
+          effects.effects.foreach{
+            case Summoned(card, numSlot) => state.players(player).slots(numSlot) = card
+            case _ =>
+          }          
+        }
+        goto(Running(player))
+      case Running(player) =>
         // todo
         goto(Waiting(swapPlayer(player)))
       case _ =>
@@ -27,6 +42,8 @@ class GameStateMachine(var state: GameState) {
   }
 
   def onTransition(f: TransitionHandler) { onTransitions ::= f }
+  def playerRef(player : PlayerId) = new StateRef(state.players(player))
+  def slotRef(player : PlayerId, numSlot : Int) = playerRef(player).map(_.slots.get(numSlot))
 }
 
 object PlayerHouse {
@@ -57,7 +74,7 @@ case class HouseCardState(card: Card, house: PlayerHouse) {
   def isAvailable = card.cost <= house.mana
 }
 case class HouseCards(house: PlayerHouse, cardStates: List[HouseCardState])
-class PlayerState(houses: List[PlayerHouse]) {
+class PlayerState(houses: List[PlayerHouse], val slots : mutable.Map[Int, CardState] = mutable.Map.empty) {
   val houseCards = houses.map { h =>
     HouseCards(h, h.cards.map(c => HouseCardState(c, h)))
   }
@@ -71,4 +88,4 @@ object CardState {
     }
   }
 }
-case class CardState(card : Card, life : Int, attack : Int)
+case class CardState(card : Card, life : Int, attack : Int, hasRunOnce : Boolean = false)

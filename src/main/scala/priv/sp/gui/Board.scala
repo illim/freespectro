@@ -13,9 +13,11 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
   val panel = getPanel(currentPlayerPanel) // todo be able to see opponent board
 
   gsm.onTransition {
-    case _: Running =>
+    case _: Submitting =>
       slotPanel.disable()
       playerPanels.foreach(_.setEnabled(false))
+    case _: Running =>
+      slotPanel.refresh()
     case Waiting(player) =>
       commandControler.reset()
       playerPanels(player).setEnabled(true)
@@ -62,8 +64,8 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
   }
 
   class SlotPanel {
-    val topSlots = (0 to 5).map(num => SlotButton(num, spWorld))
-    val bottomSlots = (0 to 5).map(num => SlotButton(num, spWorld))
+    val topSlots = (0 to 5).map(num => SlotButton(num, gsm.slotRef(opponent, num), spWorld))
+    val bottomSlots = (0 to 5).map(num => SlotButton(num, gsm.slotRef(owner, num), spWorld))
     val allSlots = topSlots ++ bottomSlots
     topSlots.foreach { slotButton =>
       slotButton.on {
@@ -82,6 +84,7 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       bottomSlots.foreach { slot => if (slot.isEmpty) slot.enabled = true }
     }
     def disable() { allSlots.foreach(_.enabled = false) }
+    def refresh() { allSlots.foreach(_.refresh()) }
   }
 
   class CommandControler {
@@ -103,8 +106,8 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       value.foreach { command =>
         if (command.card.inputSpecs.steps.size == command.inputs.size) {
           println("submit " + command.card)
-          applyEffect(command)
-          gsm.goto(Running(Some(command), owner))
+          val commandEffects = applyEffect(command).map(effects => command -> effects)
+          gsm.goto(Submitting(commandEffects, owner))
         } else {
           command.card.inputSpecs.steps(command.inputs.size) match {
             case SelectOwnerSlot => slotPanel.enableOwnerSlots()
@@ -115,15 +118,17 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       }
     }
 
-    private def applyEffect(command: Command) = {
+    private def applyEffect(command: Command) : Option[CardEffects]= {
       command.card.spec match {
         case Summon =>
-          command.inputs.head match {
-            case OwnerSlot(num) => slotPanel.bottomSlots(num).setCard(CardState.creature(command.card))
-            case _ =>
+          command.inputs.headOption.collect {
+            case OwnerSlot(num) =>
+              val cardState = CardState.creature(command.card)
+              // slotPanel.bottomSlots(num).setCard(cardState) // maybe set this after a sm transition?
+              CardEffects(List(Summoned(cardState, num)))
           }
         // todo anim(how to find positions) and callback to change state
-        case _ =>
+        case _ => None
       }
     }
   }
