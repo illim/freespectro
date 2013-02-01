@@ -38,5 +38,4 @@ object Repere extends Entity {
     glClearColor(0f, 0f, 0f, 0.0f)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
   }
-  def clean() {}
 }

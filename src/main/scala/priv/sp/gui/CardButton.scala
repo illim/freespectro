@@ -13,7 +13,6 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
   private val (borderTex, maskTex) = sp.baseTextures.getBorder(cardState.card)
   val size = Coord2i(borderTex.width, borderTex.height)
   private var hovered = false
-  var enabled = true
 
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)

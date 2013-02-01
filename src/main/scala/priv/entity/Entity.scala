@@ -21,8 +21,6 @@ trait Entity  {
 
   def render(world: World)
 
-  def clean()
-
   protected def deltaT(time: Long) = time - creationTime
   @inline def stdspeed = Entity.stdspeed
 

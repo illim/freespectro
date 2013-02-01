@@ -8,7 +8,7 @@ import priv.sp._
 case class SlotButton(num: Int, sp: SpWorld) extends GuiElem {
   import sp.baseTextures.slotTex
   val size = Coord2i(slotTex.width, slotTex.height)
-  var enabled = false
+  enabled = false
   private var card = Option.empty[(CardState, Texture)]
 
   def setCard(c: CardState) { card = Some((c, sp.textures.get("Images/Cards/" + c.card.image))) }

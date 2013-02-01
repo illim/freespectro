@@ -25,10 +25,6 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
     panel.render(world)
   }
 
-  def clean() {
-    playerPanels.foreach(_.panel.clean())
-  }
-
   private def getPanel(playerPanel: CardPanel) = {
     Column(
       List(
@@ -92,10 +88,9 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
     private var value = Option.empty[Command]
     def setCommand(command: Command) {
       value = Some(command)
-      submitIfReady()
+      nextStep()
     }
     def reset() { value = None }
-    def asCardCreature = value.map(_.card).collect { case c: Creature => c }
 
     def addInput(x: CardInput) = {
       value.foreach { command =>
@@ -104,7 +99,7 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
       }
     }
 
-    def submitIfReady() {
+    def nextStep() {
       value.foreach { command =>
         if (command.card.inputSpecs.steps.size == command.inputs.size) {
           println("submit " + command.card)

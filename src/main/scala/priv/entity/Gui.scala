@@ -17,8 +17,8 @@ case class MouseLeaved(coord: Coord2i) extends MouseEvent
 
 trait GuiElem extends Entity {
   def size: Coord2i
-  def clean() {}
   var handlers = List.empty[GuiHandler.Type]
+  var enabled = true
   def on(handler: GuiHandler.Type) {
     handlers ::= handler
   }
@@ -36,9 +36,6 @@ trait GuiContainer extends GuiElem {
   var elems = List.empty[(Coord2i, GuiElem)]
   protected def add(coord: Coord2i, elem: GuiElem) {
     elems ::= (coord, elem)
-  }
-  override def clean() {
-    elems.foreach(_._2.clean())
   }
   def findElem(c: Coord2i): Option[GuiElem] = {
     (elems.collectFirst {

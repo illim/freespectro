@@ -71,7 +71,6 @@ object Main extends Application {
         }
       }
     }
-    res.foreach(_.clean())
     spWorld.textures.clean()
   }
 
