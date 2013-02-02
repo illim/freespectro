@@ -1,5 +1,32 @@
 package priv.sp
 
+sealed trait Card {
+  def image: String
+  def isSpell: Boolean
+  def inputSpecs: CardInputSpecs
+  def spec: CardSpec
+  var cost = 0
+}
+case class Creature(
+  name: String,
+  attack: Option[Int],
+  life: Int,
+  inputSpecs: CardInputSpecs = CardInputSpecs(List(SelectOwnerSlot)),
+  spec: CardSpec = Summon) extends Card {
+
+  def isSpell = false
+  def image = name + ".JPG"
+}
+
+case class Spell(
+  name: String,
+  inputSpecs: CardInputSpecs = CardInputSpecs(Nil),
+  spec: CardSpec = Noop) extends Card {
+
+  def isSpell = true
+  def image = name + ".tga"
+}
+
 
 case class Command(player: PlayerId, card: Card, inputs: List[CardInput])
 

@@ -30,6 +30,7 @@ object Main extends Application {
   def mainLoop() {
     val spWorld = new SpWorld    
     val gsm = new GameStateMachine()
+    val dummyBot = new DummyBot(gsm)
     val board = new Board(gsm, spWorld)
     val res = Seq(Repere)
     val texRes = Seq(board)

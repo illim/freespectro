@@ -124,7 +124,6 @@ class Board(gsm: GameStateMachine, val spWorld: SpWorld) extends Entity {
           command.inputs.headOption.collect {
             case OwnerSlot(num) =>
               val cardState = CardState.creature(command.card)
-              // slotPanel.bottomSlots(num).setCard(cardState) // maybe set this after a sm transition?
               CardEffects(List(Summoned(cardState, num)))
           }
         // todo anim(how to find positions) and callback to change state
