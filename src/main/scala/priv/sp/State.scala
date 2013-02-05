@@ -16,7 +16,7 @@ class StateRef[A](deref : => A){
 }
 
 class GameStateMachine(var state: GameState) {
-  def this() = this(GameState(CardShuffle.create(), Waiting(owner)))
+  def this() = this(GameState(CardShuffle(), Waiting(owner)))
   private var onTransitions = List.empty[TransitionHandler]
 
   def goto(next: Phase) {

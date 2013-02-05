@@ -1,13 +1,15 @@
 package priv.sp
 
-
-case class House(name: String, cards: List[Card]) {
-  cards.zipWithIndex.foreach { case (c, i) => c.cost = i + 1 }
+case class House(name: String, cards: List[Card], costFn : Int => Int = Houses.basicCostFonction) {
+  cards.zipWithIndex.foreach { case (c, i) => c.cost = costFn(i) }
+  val isSpecial = cards.size < 10
 }
 
 object Houses {
+  
+  val basicCostFonction = { i : Int => i + 1}
 
-  val FireHouse = House("fire", List(
+  val Fire = House("fire", List(
     Creature("GoblinBerserker", Some(4), 16),
     Creature("WallofFire", Some(0), 5),
     Creature("PriestOfFire", Some(3), 13),
@@ -21,7 +23,7 @@ object Houses {
     Spell("Armageddon"),
     Creature("Dragon", Some(9), 41)))
 
-  val WaterHouse = House("water", List(
+  val Water = House("water", List(
     Spell("Meditation"),
     Creature("SeaSprite", Some(5), 22),
     Creature("MerfolkApostate", Some(3), 10),
@@ -35,7 +37,7 @@ object Houses {
     Creature("MindMaster", Some(6), 22),
     Creature("AstralGuard", Some(1), 17)))
 
-  val AirHouse = House("air", List(
+  val Air = House("air", List(
     Creature("FaerieApprentice", Some(4), 11),
     Creature("Griffin", Some(3), 15),
     Spell("CalltoThunder"),
@@ -49,7 +51,7 @@ object Houses {
     Creature("AirElemental", None, 44),
     Creature("Titan", Some(9), 40)))
 
-  val EarthHouse = House("earth", List(
+  val Earth = House("earth", List(
     Creature("ElvenHealer", Some(2), 12),
     Spell("NaturesRitual"),
     Creature("ForestSprite", Some(1), 22),
@@ -62,5 +64,17 @@ object Houses {
     Creature("EarthElemental", None, 49),
     Creature("MasterHealer", Some(3), 35),
     Creature("Hydra", Some(3), 40)))
+
+  val Mecanic = House("Mechanics", List(
+    Spell("Overtime"),
+    Creature("DwarvenRifleman", Some(4), 17),
+    Creature("DwarvenCraftsman", Some(2), 17),
+    Creature("Ornithopter", Some(4), 24),
+    Creature("SteelGolem", Some(6), 20),
+    Creature("Cannon", Some(8), 29),
+    Spell("Cannonade"),
+    Creature("SteamTank", Some(6), 60)), { i : Int =>
+      if (i == 0) i else i+1    
+  })
 
 }

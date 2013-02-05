@@ -12,7 +12,7 @@ class HouseLabel (house : PlayerHouse, sp : SpWorld) extends GuiElem {
 
   def render(world: World) {
     drawTexture(texture)
-    Fonts.draw(30, 22, house.house.name + " : " + house.mana)
+    Fonts.draw(10, 22, house.house.name + " : " + house.mana)
   }
 
 }
