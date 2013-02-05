@@ -6,6 +6,7 @@ sealed trait Card {
   def inputSpecs: CardInputSpecs
   def spec: CardSpec
   var cost = 0
+  var id = 0
 }
 case class Creature(
   name: String,

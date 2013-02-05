@@ -1,1 +1,1 @@
-started toy programming trying to copy spectromancer 
+started toy programming trying to make a fake dumbed down spectromancer
