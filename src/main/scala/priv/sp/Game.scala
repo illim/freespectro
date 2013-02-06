@@ -21,7 +21,7 @@ class Game {
   def waitPlayer(player: PlayerId) {
     reset {
       if (player == opponent) {
-        submit(bot.executeAI(state.players(player)), player)
+        submit(shiftUnit0[Any, Unit](bot.executeAI(state.players(player))), player)
       } else {        
         playerPanels(player).setEnabled(true)
         val k = commandRecorder.start()
