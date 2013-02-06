@@ -8,6 +8,4 @@ package object sp {
   type PlayerId = Int
 
   def swapPlayer(id: PlayerId) = if (id == owner) opponent else owner
-  
-  type TransitionHandler = PartialFunction[Phase, Unit]
 }

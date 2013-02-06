@@ -28,16 +28,11 @@ object Main extends Application {
   val screenTexId = 0
 
   def mainLoop() {
-    val spWorld = new SpWorld    
-    val gsm = new GameStateMachine()
-    val dummyBot = new DummyBot(gsm)
-    val board = new Board(gsm, spWorld)
-    val res = Seq(Repere)
-    val texRes = Seq(board)
+	val game = new Game
+    val res = Seq(Repere) ++ game.entities
     val world = new World()
     
     res.foreach(world.entities.add)
-    texRes.foreach(world.texEntities.add)
 
     while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested()) {
       if (Display.isVisible()) {
@@ -49,7 +44,7 @@ object Main extends Application {
         //render()
 
         //g.saveScreen()
-        pollInput().foreach(board.panel.fireEvent _)
+        pollInput().foreach(game.board.panel.fireEvent _)
         Display.update()
         Display.sync(60)
 
@@ -72,7 +67,7 @@ object Main extends Application {
         }
       }
     }
-    spWorld.textures.clean()
+    game.spWorld.textures.clean()
   }
 
   def pollInput() = {

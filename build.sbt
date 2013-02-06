@@ -12,3 +12,9 @@ libraryDependencies ++= Seq(
 fork in run := true
 
 javaOptions in run ++= Seq("-Djava.library.path=C:/Users/mdoboi/.ivy2/cache/org.lwjgl.lwjgl/lwjgl-platform/jars/", "-Dorg.lwjgl.util.Debug=true")
+
+autoCompilerPlugins := true
+
+addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.0")
+
+scalacOptions += "-P:continuations:enable"

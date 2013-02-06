@@ -13,19 +13,13 @@ class World{
   var time : Long = 0
 
   val entities = new ConcurrentLinkedQueue[Entity]
-  val texEntities = new ConcurrentLinkedQueue[Entity]
-
 
   def unspawn(entity : Entity){
     entities.remove(entity)
-    texEntities.remove(entity)
   }
 
-  def render(){
+  def render(){    
     iterate(entities.iterator)(_.render(this))
-    glEnable(GL_TEXTURE_2D)
-    iterate(texEntities.iterator)(_.render(this))
-    glDisable(GL_TEXTURE_2D)
   }
 
   def iterate[A](ite : java.util.Iterator[A])(f : A => Unit){
