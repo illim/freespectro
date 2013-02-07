@@ -1,8 +1,7 @@
-package priv.entity
+package priv
 
 import org.lwjgl.opengl.GL11._
 import priv._
-
 
 object GuiHandler {
   type Type = PartialFunction[MouseEvent, Unit]

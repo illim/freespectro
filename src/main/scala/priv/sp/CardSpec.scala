@@ -44,8 +44,3 @@ case class TargetCreature(num : Int) extends CardInput
 sealed trait CardSpec
 case object Noop extends CardSpec
 case object Summon extends CardSpec
-
-
-case class CardEffects(effects : List[CardEffect])
-sealed trait CardEffect
-case class Summoned(card : CardState, numSlot : Int) extends CardEffect

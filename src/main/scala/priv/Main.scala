@@ -15,10 +15,9 @@ import org.lwjgl.opengl.GL15._
 import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
 import org.lwjgl.opengl.Util.checkGLError
-import entity._
 import sp._
 import org.lwjgl.input.Mouse
-import priv.sp.gui.Board
+import priv.util.Repere
 
 object Main extends Application {
   val g = GInit()
@@ -28,11 +27,9 @@ object Main extends Application {
   val screenTexId = 0
 
   def mainLoop() {
-	val game = new Game
-    val res = Seq(Repere) ++ game.entities
     val world = new World()
-    
-    res.foreach(world.entities.add)
+    val game = new Game(world)
+    world.entities.add(Repere)
 
     while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested()) {
       if (Display.isVisible()) {
@@ -63,7 +60,7 @@ object Main extends Application {
         try {
           Thread.sleep(100)
         } catch {
-          case _ : Throwable =>
+          case _: Throwable =>
         }
       }
     }

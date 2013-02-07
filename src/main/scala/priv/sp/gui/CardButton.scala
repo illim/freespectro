@@ -1,12 +1,8 @@
 package priv.sp.gui
 
 import priv._
-import priv.entity._
 import org.lwjgl.opengl.GL11._
-import priv.sp.HouseCardState
-import priv.sp.Creature
-import priv.sp.SpWorld
-import priv.sp.Spell
+import priv.sp._
 
 case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
   private val cardTex = sp.textures.get("Images/Cards/" + cardState.card.image)

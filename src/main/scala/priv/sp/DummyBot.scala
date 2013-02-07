@@ -1,7 +1,6 @@
 package priv.sp
 
 import util.Random.shuffle
-import scala.util.continuations._
 
 class DummyBot {
 
@@ -16,7 +15,7 @@ class DummyBot {
       val slots = player.slots
       shuffle(0 to 5).find(!slots.contains(_)).map { num =>
         val cardState = CardState.creature(c)
-        (Command(opponent, c, List(OwnerSlot(num))), CardEffects(List(Summoned(cardState, num))))
+        Command(opponent, c, List(OwnerSlot(num)))
       }
     }
   }

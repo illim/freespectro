@@ -1,10 +1,11 @@
 package priv.sp.gui
 
 import priv._
-import priv.entity._
 import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
+import priv.World
+import priv.MouseClicked
 
 class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], val spWorld: SpWorld) extends Entity {
 
@@ -22,8 +23,8 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], val spWorld: Sp
         Translate(
           Coord2i(350, 0),
           Column(List(
-            Row(slotPanel.topSlots),
-            Row(slotPanel.bottomSlots)))),
+            Row(slotPanel.slots(opponent)),
+            Row(slotPanel.slots(owner))))),
         Translate(
           Coord2i(500, 0), playerPanel.panel)))
   }
@@ -32,15 +33,16 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], val spWorld: Sp
 
 class CommandRecorder(game: Game) {
   private var value = Option.empty[Command]
-  private var cont = { _ : Option[(Command, CardEffects)] => () }
+  private var cont = Function.const[Unit, Option[Command]]() _
   def setCommand(command: Command) {
     value = Some(command)
     nextStep()
   }
 
-  def start() = shift { k: (Option[(Command, CardEffects)] => Unit) =>
+  def startWith(f: => Unit) = shift { k: (Option[Command] => Unit) =>
     value = None
     cont = k
+    f
   }
 
   def addInput(x: CardInput) = {
@@ -54,8 +56,7 @@ class CommandRecorder(game: Game) {
     value.foreach { command =>
       if (command.card.inputSpecs.steps.size == command.inputs.size) {
         println("submit " + command.card)
-        val commandEffects = applyEffect(command).map(effects => command -> effects)
-        cont(commandEffects)
+        cont(Some(command))
       } else {
         command.card.inputSpecs.steps(command.inputs.size) match {
           case SelectOwnerSlot => game.slotPanel.enableOwnerSlots()
@@ -66,31 +67,20 @@ class CommandRecorder(game: Game) {
     }
   }
 
-  private def applyEffect(command: Command): Option[CardEffects] = {
-    command.card.spec match {
-      case Summon =>
-        command.inputs.headOption.collect {
-          case OwnerSlot(num) =>
-            val cardState = CardState.creature(command.card)
-            CardEffects(List(Summoned(cardState, num)))
-        }
-      // todo anim(how to find positions) and callback to change state
-      case _ => None
-    }
-  }
 }
 
 class SlotPanel(game: Game) {
-  val topSlots = (0 to 5).map(num => SlotButton(num, game.slotView(opponent, num), game.spWorld))
-  val bottomSlots = (0 to 5).map(num => SlotButton(num, game.slotView(owner, num), game.spWorld))
-  val allSlots = topSlots ++ bottomSlots
-  topSlots.foreach { slotButton =>
+  val slots = playerIds.map{ player =>
+    (0 to 5).map(num => SlotButton(num, game.slotView(player, num), game.spWorld)).toList
+  }
+  val allSlots = slots.flatten
+  slots(opponent).foreach { slotButton =>
     slotButton.on {
       case MouseClicked(_) if slotButton.enabled =>
         game.commandRecorder.addInput(TargetCreature(slotButton.num))
     }
   }
-  bottomSlots.foreach { slotButton =>
+  slots(owner).foreach { slotButton =>
     slotButton.on {
       case MouseClicked(_) if slotButton.enabled =>
         game.commandRecorder.addInput(OwnerSlot(slotButton.num))
@@ -98,7 +88,7 @@ class SlotPanel(game: Game) {
   }
 
   def enableOwnerSlots() {
-    bottomSlots.foreach { slot => if (slot.isEmpty) slot.enabled = true }
+    slots(owner).foreach { slot => if (slot.isEmpty) slot.enabled = true }
   }
   def disable() { allSlots.foreach(_.enabled = false) }
   def refresh() { allSlots.foreach(_.refresh()) }

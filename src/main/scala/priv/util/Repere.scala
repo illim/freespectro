@@ -1,20 +1,14 @@
-package priv.entity
+package priv.util
 
+import priv._
 import collection.JavaConversions._
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.IntBuffer
-import org.lwjgl.LWJGLException
-import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl._
-import org.lwjgl.util.vector.Vector2f
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL12._
 import org.lwjgl.opengl.GL13._
 import org.lwjgl.opengl.GL15._
 import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
-import org.lwjgl.opengl.Util.checkGLError
 
 object Repere extends Entity {
 

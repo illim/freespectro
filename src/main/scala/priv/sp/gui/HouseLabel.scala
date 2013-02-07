@@ -1,7 +1,6 @@
 package priv.sp.gui
+
 import priv._
-import priv.entity.GuiElem
-import priv.entity.World
 import priv.sp.PlayerHouse
 import priv.sp.SpWorld
 
