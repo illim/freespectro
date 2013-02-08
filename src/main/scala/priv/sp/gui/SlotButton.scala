@@ -26,18 +26,18 @@ case class SlotButton(num: Int, slotView: StateView[Option[CardState]], sp: SpWo
     glColor4f(1, 1, 1, 1)
 
     if (enabled) {
-      drawTexture(sp.baseTextures.cardGlow)
+      tex.draw(sp.baseTextures.cardGlow)
     }
 
-    drawTexture(slotTex.id, slotSize)
+    tex.draw(slotTex.id, slotSize)
 
     card.foreach {
       case (cardState, cardTex) =>
         glPushMatrix()
         glTranslatef(21, 33 + getDelta(world.time), 0)
-        drawTexture(cardTex)
+        tex.draw(cardTex)
         glTranslatef(-3, -8, 0)
-        drawTexture(sp.baseTextures.borderTex)
+        tex.draw(sp.baseTextures.borderTex)
         Fonts.draw(72, 1, cardState.card.cost, 'blue)
         Fonts.draw(4, 80, cardState.attack, 'red)
         Fonts.draw(70, 80, cardState.life, 'green)

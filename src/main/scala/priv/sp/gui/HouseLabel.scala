@@ -1,16 +1,18 @@
 package priv.sp.gui
 
 import priv._
+import org.lwjgl.opengl.GL11._
 import priv.sp.PlayerHouse
 import priv.sp.SpWorld
 
-class HouseLabel (house : PlayerHouse, sp : SpWorld) extends GuiElem {
+class HouseLabel (house : PlayerHouse, sp : SpWorld, flip : Boolean = false) extends GuiElem {
   val texture = sp.textures.get("Images/Combat/NormalItem.tga")
 
   val size = Coord2i(texture.width, texture.height)
 
   def render(world: World) {
-    drawTexture(texture)
+    glColor4f(1, 1, 1, 1)
+    tex.draw(texture.id, texture.coord, flip)
     Fonts.draw(10, 22, house.house.name + " : " + house.mana)
   }
 

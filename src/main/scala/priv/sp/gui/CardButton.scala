@@ -21,16 +21,16 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
     if (isActive && hovered) {
       glPushMatrix()
       glTranslatef(-5, -5, 0)
-      drawTexture(sp.baseTextures.cardGlow)
+      tex.draw(sp.baseTextures.cardGlow)
       glPopMatrix()
     }
 
     glPushMatrix()
     if (cardState.card.isSpell) glTranslatef(-2, 1, 0) else glTranslatef(3, 8, 0)
-    drawTexture(cardTex)
+    tex.draw(cardTex)
     glPopMatrix()
 
-    drawTexture(borderTex)
+    tex.draw(borderTex)
 
     cardState.card match {
       case spell: Spell =>

@@ -1,3 +1,4 @@
 package object priv
-  extends priv.util.TextureHelper
-  with priv.util.TextureLoader
+  extends priv.util.TextureLoader{
+  val tex = new priv.util.TextureHelper
+}
