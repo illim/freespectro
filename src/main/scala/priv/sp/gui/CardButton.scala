@@ -12,8 +12,11 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
 
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glColor4f(1, 1, 1, 1)
+    
     val isActive = cardState.isAvailable && enabled
+    if (!isActive) {
+      glColor4f(0.5f, 0.5f, 0.5f, 0.5f)
+    } else glColor4f(1, 1, 1, 1)
 
     if (isActive && hovered) {
       glPushMatrix()
@@ -36,11 +39,6 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
         Fonts.draw(72, 1, creature.cost, 'blue)
         Fonts.draw(4, 80, creature.attack.map(_.toString) getOrElse "?", 'red)
         Fonts.draw(70, 80, creature.life, 'green)
-    }
-
-    if (!isActive) {
-      glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_ONE)
-      drawTexture(maskTex.id, borderTex.coord)
     }
   }
 

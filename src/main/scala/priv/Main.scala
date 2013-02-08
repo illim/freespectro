@@ -31,7 +31,7 @@ object Main extends Application {
     val game = new Game(world)
     world.entities.add(Repere)
 
-    while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested()) {
+    while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested() && ! world.ended) {
       if (Display.isVisible()) {
         clearScreen()
         world.tick()

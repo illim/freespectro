@@ -7,7 +7,7 @@ import priv.util.StateView
 import priv.World
 import priv.GuiElem
 
-case class SlotButton(num: Int, slotView : StateView[Option[CardState]], sp: SpWorld) extends GuiElem {
+case class SlotButton(num: Int, slotView: StateView[Option[CardState]], sp: SpWorld) extends GuiElem {
   import sp.baseTextures.slotTex
   val size = Coord2i(slotTex.width, slotTex.height)
   enabled = false
@@ -16,8 +16,8 @@ case class SlotButton(num: Int, slotView : StateView[Option[CardState]], sp: SpW
 
   def refresh() { card = getCard }
   def isEmpty = card.isEmpty
-  
-  private def getCard = slotView.get.map{ c => (c, sp.textures.get("Images/Cards/" + c.card.image)) }
+
+  private def getCard = slotView.get.map { c => (c, sp.textures.get("Images/Cards/" + c.card.image)) }
 
   val slotSize = Coord2i(120, 142)
 
@@ -28,7 +28,7 @@ case class SlotButton(num: Int, slotView : StateView[Option[CardState]], sp: SpW
     if (enabled) {
       drawTexture(sp.baseTextures.cardGlow)
     }
-    
+
     drawTexture(slotTex.id, slotSize)
 
     card.foreach {
@@ -45,12 +45,15 @@ case class SlotButton(num: Int, slotView : StateView[Option[CardState]], sp: SpW
     }
   }
 
-  class AnimTask(direction : Int) extends Task {
+  case class AnimTask[A](direction: Int)(onEnd: => A) extends Task[A] {
     val duration = 1500L
     private val half = duration / 2
     private val amplitude = 2
-    def init(){ getDelta = delta _ }
-    def end(){ getDelta = Function.const[Long, Long](0) _}
-    private def delta(time : Long) = amplitude * direction * (half - math.abs(half - (time - start)))/100
+    def init() { getDelta = delta _ }
+    def end() = {
+      getDelta = Function.const[Long, Long](0) _
+      onEnd
+    }
+    private def delta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
   }
 }

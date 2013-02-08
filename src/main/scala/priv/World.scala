@@ -11,9 +11,10 @@ import org.lwjgl.util.glu.GLU._
 
 class World {
   var time: Long = 0
+  var ended = false
 
   val entities = new ConcurrentLinkedQueue[Entity]
-  private val tasks = new ConcurrentLinkedQueue[Task]
+  private val tasks = new ConcurrentLinkedQueue[Task[_]]
 
   def unspawn(entity: Entity) {
     entities.remove(entity)
@@ -24,7 +25,7 @@ class World {
     iterate(tasks.iterator()) { task =>
       if (time - task.start > task.duration) {
         tasks.remove(task)
-        task.end()
+        task.finish()
       }
     }
   }
@@ -35,7 +36,7 @@ class World {
     }
   }
 
-  def addTask(task: Task) {
+  def addTask(task: Task[_]) {
     task.start = time
     task.init()
     tasks.add(task)
@@ -45,26 +46,6 @@ class World {
     time = System.currentTimeMillis
   }
 
-  import scala.util.continuations._
-  def chain(tasks: Iterable[Task]) = shift { k: (Unit => Unit) =>
-    if (tasks.isEmpty) k()
-    else addTask(new TaskChain(tasks, k))
-  }
-  private class TaskChain(tasks: Iterable[Task], cont : Unit => Unit) extends Task {
-    val ite = tasks.iterator
-    var current = ite.next
-    val duration = current.duration
-
-    def init() { addTask(current) }
-    def end() {
-      if (ite.hasNext) {
-        current = ite.next
-        addTask(this)
-      } else {
-        cont()
-      }
-    }
-  }
 }
 
 object Entity {
@@ -83,11 +64,37 @@ trait Entity {
 
 }
 
-trait Task {
+object Task {
+  
+  import scala.util.continuations._
+  def chain[A](world : World, tasks: Iterable[Task[A]]) = shift { k: (Unit => Unit) =>
+    if (tasks.isEmpty) k()
+    else world.addTask(new TaskChain(world, tasks, k))
+  }
+  private class TaskChain[A](world : World, tasks: Iterable[Task[A]], k : Unit => Unit) extends Task[Unit] {
+    val ite = tasks.iterator
+    var current = ite.next
+    val duration = current.duration
+
+    def init() { world.addTask(current) }
+    def end() {
+      if (ite.hasNext) {
+        current = ite.next
+        world.addTask(this)
+      } else {
+        k()
+      }
+    }
+  }
+}
+
+trait Task[A] {
   var start = 0L
+  var result = Option.empty[A]
   def duration: Long
   def init()
-  def end()
+  def end() : A
+  private[priv] def finish(){result = Some(end())}
 }
 
 class TexAnim(

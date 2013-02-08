@@ -29,7 +29,7 @@ object Houses {
     Creature("MerfolkApostate", Some(3), 10),
     Creature("IceGolem", Some(4), 12),
     Creature("MerfolkElder", Some(3), 16),
-    Creature("IceGuard", Some(4), 20),
+    Creature("IceGuard", Some(3), 20),
     Creature("GiantTurtle", Some(5), 17),
     Spell("AcidicRain"),
     Creature("MerfolkOverlord", Some(7), 34),

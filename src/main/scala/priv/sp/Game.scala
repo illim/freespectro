@@ -35,6 +35,11 @@ class Game(val world: World)
     }
   }
 
+  protected def endGame(player: PlayerId) {
+    println("winner : " + player)
+    world.ended = true
+  }
+
   def playerView(player: PlayerId) = new StateView(state.players(player))
   def slotView(player: PlayerId, numSlot: Int) = playerView(player).map(_.slots.get(numSlot))
 }
@@ -50,6 +55,9 @@ trait SummonPhase { _: Game =>
   }
 
   private def applyEffect(command: Command) = {
+    state.players(command.player).houseCards.find(_.cardStates.exists(_.card == command.card)).foreach { houseCard =>
+      houseCard.house.mana -= command.card.cost
+    }
     command.card.spec match {
       case Summon =>
         command.inputs.headOption.collect {
@@ -65,20 +73,40 @@ trait SummonPhase { _: Game =>
 
 trait RunPhase { _: Game =>
 
-  protected def run(player: PlayerId) {
-    println("run" + player)
+  protected def run(playerId: PlayerId) {
+    println("run" + playerId)
     slotPanel.refresh()
-    val slots = state.players(player).slots
-    val tasks = slots.collect {
+    val player = state.players(playerId)
+    val otherPlayerId = other(playerId)
+    val otherPlayer = state.players(otherPlayerId)
+    val tasks = player.slots.collect {
       case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
-        val slotButton = slotPanel.slots(player)(numSlot)
-        new slotButton.AnimTask(if (player == owner) -1 else 1)
+        val slotButton = slotPanel.slots(playerId)(numSlot)
+
+        slotButton.AnimTask(if (playerId == owner) -1 else 1) {
+          otherPlayer.slots.get(numSlot) match {
+            case None =>
+              otherPlayer.life -= slot.attack
+              if (otherPlayer.life <= 0) {
+                endGame(playerId)
+              }
+            case Some(oppositeSlot) =>
+              oppositeSlot.life -= slot.attack
+              if (oppositeSlot.life <= 0) {
+                otherPlayer.slots -= numSlot
+                slotPanel.refresh()
+              }
+          }
+        }
     }
     reset {
-      val k = world.chain(tasks)
+      val k = Task.chain(world, tasks)
       k
-      slots.foreach{ case (_, slot) => if (! slot.hasRunOnce) slot.hasRunOnce = true}
-      waitPlayer(swapPlayer(player))
+      player.slots.foreach(_._2.toggleRunOnce())
+      state.players(otherPlayerId).houseCards.foreach { houseCard =>
+        houseCard.house.mana += 1
+      }
+      waitPlayer(otherPlayerId)
     }
   }
 

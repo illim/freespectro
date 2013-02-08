@@ -31,7 +31,10 @@ object CardShuffle {
     r
   }
 
-  private def from(house: House) = PlayerHouse(house, randomize(house).sortBy(_.cost), Random.nextInt(3) + 3)
+  private def from(house: House) = {
+    val mana = if (house.isSpecial) 2 else Random.nextInt(3) + 3
+    PlayerHouse(house, randomize(house).sortBy(_.cost), mana)
+  }
 
   private def randomize(house: House) = {
     import Random.shuffle
