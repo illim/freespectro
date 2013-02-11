@@ -1,21 +1,8 @@
-package priv
+package priv.util
 
 import org.lwjgl.opengl.GL11
-import java.nio.ByteBuffer
-import java.nio.IntBuffer
-import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.ARBShaderObjects
-import org.lwjgl.opengl.ARBVertexShader
-import org.lwjgl.opengl.ARBFragmentShader
-import org.lwjgl.opengl.Util
 import collection.JavaConversions._
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.IntBuffer
-import org.lwjgl.LWJGLException
-import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl._
-import org.lwjgl.util.vector.Vector2f
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
@@ -73,9 +60,9 @@ object GShader {
   def printShaderLogInfo(obj : Int) = {
     val log = glGetShaderInfoLog(obj, 65536)
     if (log.length() != 0) {
-      System.err.println("Program link log:\n" + log)
+      System.err.println("Program link log for :\n" + log)
     }
-    log.length() == 0
+    log != "No errors." || log.length() > 0
   }
 
   def printLogInfo(obj : Int) = {
