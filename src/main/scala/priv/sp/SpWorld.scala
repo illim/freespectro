@@ -8,8 +8,8 @@ class SpWorld {
   val textures = new Textures
   val baseTextures = new BaseTextures(textures)
   val shaders = new Shaders
-  
-  def clean(){
+
+  def clean() {
     textures.clean()
     shaders.clean()
   }
@@ -50,12 +50,13 @@ trait Shader {
   def end() {
     assert(started)
     glUseProgram(0)
+    started = false
   }
 }
 
 class Shaders extends ResourceCache[String, Shader] {
 
-  def load(path : String) = new BasicShader(path)
+  def load(path: String) = new BasicShader(path)
 
   def clean() {
     resources.values.foreach(res => glDeleteProgram(res.program))
