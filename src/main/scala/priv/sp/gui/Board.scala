@@ -7,7 +7,7 @@ import scala.util.continuations._
 import priv.World
 import priv.MouseClicked
 
-class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val spWorld: SpWorld) extends Entity {
+class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
 
   private val currentPlayerPanel = playerPanels(owner)
 
@@ -127,3 +127,4 @@ class TopCardPanel(player: PlayerState, game: Game) {
     new HouseLabel(houseCard.house, game.spWorld, flip = true)
   })
 }
+

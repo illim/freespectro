@@ -9,7 +9,7 @@ import org.lwjgl.util.glu.GLU._
 import javax.imageio.stream._
 
 object Utils {
-  
+
   trait Bufferable[A] {
     def bufferData(target: Int, data: Array[A], usage: Int)
   }
@@ -53,7 +53,7 @@ object Utils {
       }
       Some(code)
     } catch {
-      case e : Throwable =>
+      case e: Throwable =>
         e.printStackTrace
         None
     } finally {
@@ -74,30 +74,35 @@ object Utils {
       }
       Some(code)
     } catch {
-      case e : Throwable  =>
+      case e: Throwable =>
         e.printStackTrace
         None
     } finally {
       reader.close()
     }
   }
+
+  def floatRand[N](n : N)(implicit num : Numeric[N]) = {
+    val fl = scala.util.Random.nextFloat
+    if (fl == 0) fl else num.toFloat(n) * math.abs(1 / fl)
+  }
 }
 
-class StateView[A](read : => A){
-  def map[B](f : A => B) = new StateView(f(read))
+class StateView[A](read: => A) {
+  def map[B](f: A => B) = new StateView(f(read))
   def get = read
 }
-
 
 trait ResourceCache[A, B] {
   import collection._
 
   val resources = mutable.Map.empty[A, B]
+
   def get(path: A): B = resources.getOrElseUpdate(path, {
     load(path)
   })
   def gets(path: A*): List[B] = path.map(get)(breakOut)
-
+  def getOrElseUpdate[C <: B](path: A, create: A => C): C = resources.getOrElseUpdate(path, create(path)).asInstanceOf[C]
   def load(path: A): B
   def clean()
 }

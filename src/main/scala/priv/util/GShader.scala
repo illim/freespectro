@@ -9,7 +9,17 @@ import org.lwjgl.util.glu.GLU._
 
 object GShader {
 
-  def createShaderProgram(vertCode : => Option[String], fragCode : => Option[String]) : Either[String, (Int, Int, Int)] = {
+  def createProgram(vert: String, frag: String) = createShaderProgram(
+    Utils.codeFromResource(vert + ".vert"),
+    Utils.codeFromResource(frag + ".frag")).left.map(sys.error).right.toOption.get
+
+  def getUniformLocation(program: Int, name: String) = {
+    val res = glGetUniformLocation(program, name)
+    assert(res != -1, name + " doesn't exists")
+    res
+  }
+
+  def createShaderProgram(vertCode: => Option[String], fragCode: => Option[String]): Either[String, (Int, Int, Int)] = {
     val shader = glCreateProgram()
     if (shader != 0) {
       val v = createVertShader(vertCode _)
@@ -19,14 +29,14 @@ object GShader {
         glAttachShader(shader, f)
         glLinkProgram(shader)
         glValidateProgram(shader)
-        if (printLogInfo(shader)){
+        if (printLogInfo(shader)) {
           Right((shader, v, f))
         } else Left("Error in shader log")
       } else Left("vert/frag shader " + v + ", " + f)
     } else Left("shader " + shader)
   }
 
-  def usingShader[A](shader : Int)(f : => A) = {
+  def usingShader[A](shader: Int)(f: => A) = {
     glUseProgram(shader)
     try {
       f
@@ -36,18 +46,18 @@ object GShader {
   val createVertShader = loadAndCheckObject(GL_VERTEX_SHADER)
   val createFragShader = loadAndCheckObject(GL_FRAGMENT_SHADER)
 
-  def loadAndCheckObject(shaderType : Int) = { (getCode : () => Option[String]) =>
+  def loadAndCheckObject(shaderType: Int) = { (getCode: () => Option[String]) =>
     val shader = glCreateShader(shaderType)
-    if(shader==0){
+    if (shader == 0) {
       0
     } else {
-      getCode().map{ code =>
+      getCode().map { code =>
         glShaderSource(shader, code)
         glCompileShader(shader)
-        if (glGetShader(shader, GL_COMPILE_STATUS) == GL11.GL_FALSE){
+        if (glGetShader(shader, GL_COMPILE_STATUS) == GL11.GL_FALSE) {
           println("err in shader")
         }
-        if(printShaderLogInfo(shader)){
+        if (printShaderLogInfo(shader)) {
           shader
         } else {
           glDeleteShader(shader)
@@ -57,7 +67,7 @@ object GShader {
     }
   }
 
-  def printShaderLogInfo(obj : Int) = {
+  def printShaderLogInfo(obj: Int) = {
     val log = glGetShaderInfoLog(obj, 65536)
     if (log.length() != 0) {
       System.err.println("Program link log for :\n" + log)
@@ -65,7 +75,7 @@ object GShader {
     log != "No errors." || log.length() > 0
   }
 
-  def printLogInfo(obj : Int) = {
+  def printLogInfo(obj: Int) = {
     val log = glGetProgramInfoLog(obj, 65536)
     if (log.length() != 0) {
       System.err.println("Program link log:\n" + log)
@@ -73,24 +83,24 @@ object GShader {
     log.length() == 0
   }
 
-  def debugAttributes(program : Int){
+  def debugAttributes(program: Int) {
     val numAttributes = glGetProgram(program, GL_ACTIVE_ATTRIBUTES)
     val maxAttributeLength = glGetProgram(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
     for (i <- 0 until numAttributes) {
       val name = glGetActiveAttrib(program, i, maxAttributeLength)
       val location = glGetAttribLocation(program, name)
       println(name + ":" + location)
-        //attributeLocations.put(name, location)
+      //attributeLocations.put(name, location)
     }
   }
 
-  def debugUniforms(program : Int){
+  def debugUniforms(program: Int) {
     val numUniforms = glGetProgram(program, GL_ACTIVE_UNIFORMS)
     val maxUniformLength = glGetProgram(program, GL_ACTIVE_UNIFORM_MAX_LENGTH)
     for (i <- 0 until numUniforms) {
       val name = glGetActiveUniform(program, i, maxUniformLength)
       val location = glGetUniformLocation(program, name)
-//        uniformLocations.put(name, location)
+      //        uniformLocations.put(name, location)
       println(name + ":" + location)
     }
   }

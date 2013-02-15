@@ -2,28 +2,8 @@ package priv.util
 
 import java.nio.{ByteBuffer,IntBuffer,FloatBuffer}
 import java.nio.ByteOrder
-//------------------------------------------------------------------------------------
-//	We need to go through this builder utility to ensure the native endian data format
-//	----------------------------------------------------------------------------------
+
 object GBufferUtils {
-
-  final def floatArrayCopy(src : Array[Float]) : Array[Float] = {
-    if (src != null) {
-      val num = src.length
-      val dst = new Array[Float](num)
-      System.arraycopy(src, 0, dst, 0, src.length)
-      dst
-    } else null
-  }
-
-  final def intArrayCopy(src : Array[Int]) : Array[Int] = {
-    if (src != null) {
-      val num = src.length
-      val dst = new Array[Int](num)
-      System.arraycopy(src, 0, dst, 0, src.length)
-      dst
-    } else null
-  }
 
   final def packedIntArrayToByteArray(array : Array[Int]) : Array[Byte] = {
     val numInts = array.length
@@ -76,11 +56,6 @@ object GBufferUtils {
   val floatSize = 4
   val intSize = (Integer.SIZE/8)
 
-  /**
-   * Create a new FloatBuffer of the specified size.
-   * @param size required number of floats to store.
-   * @return the new FloatBuffer
-   */
   final def createFloatBuffer(size : Int) : FloatBuffer = {
     createByteBuffer(size * floatSize).asFloatBuffer()
   }
