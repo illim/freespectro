@@ -28,7 +28,7 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], topCardPanel: T
           Column(List(
             Row(slotPanel.slots(opponent)),
             Translate(
-              Coord2i(0, -30), Row(slotPanel.slots(owner)))))),
+              Coord2i(0, -30), Row(/**TestButton(sp) :: */slotPanel.slots(owner)))))),
         Translate(
           Coord2i(500, 0), playerPanel.panel)))
   }

@@ -19,7 +19,7 @@ import sp._
 import org.lwjgl.input.Mouse
 import priv.util.Repere
 
-object Main extends Application {
+object Main extends App {
   val g = GInit()
   mainLoop()
   g.cleanUp()

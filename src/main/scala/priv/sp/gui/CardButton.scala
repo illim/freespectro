@@ -28,7 +28,7 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
       glTranslatef(-5, -5, 0)
       hoverGlow.used {
         val deltax = deltaT(world.time) / 100f
-        val animLength = 10
+        val animLength = 50
         val animationCursor = deltax.intValue % animLength
         glUniform1i(hoverGlow.cursor, animationCursor)
         tex.draw(sp.baseTextures.cardGlow)
@@ -70,8 +70,9 @@ case class TestButton(sp: SpWorld) extends GuiElem {
     glColor4f(1, 1, 1, 1)
     hoverGlow.used {
       val deltax = deltaT(world.time) / 100f
-      val animLength = 10
+      val animLength = 50
       val animationCursor = deltax.intValue % animLength
+      println(animationCursor)
       glUniform1i(hoverGlow.cursor, animationCursor)
       tex.draw(sp.baseTextures.blank)
     }

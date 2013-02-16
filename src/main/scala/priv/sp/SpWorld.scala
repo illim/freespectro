@@ -88,16 +88,34 @@ class HoverShader(name: String, texture: Texture) extends Shader {
   val width = GShader.getUniformLocation(program, "width")
   val height = GShader.getUniformLocation(program, "height")
   val fbuffer = GBufferUtils.createFloatBuffer(200)
-  Array.fill(100)(Utils.floatRand(math.Pi * 2)).foreach { a =>
-    fbuffer.put(math.cos(a).floatValue)
-    fbuffer.put(math.sin(a).floatValue)
-  }
-  fbuffer.rewind()
+  fillBuffer(fbuffer)
   val cursor = GShader.getUniformLocation(program, "cursor")
   used {
     glUniform2(grad, fbuffer)
     glUniform1f(width, texture.width)
     glUniform1f(height, texture.height)
+  }
+
+  private def fillBuffer(fbuffer: java.nio.FloatBuffer) {
+    //useless cr*p
+    def radial(cx: Int, cy: Int)(x: Int, y: Int, vx: Float, vy: Float) : (Float, Float)= {
+      @inline def pow2(v: Int) = v * v
+
+      val dist = pow2(x - cx) + pow2(y - cy)
+      val fac = 2f / (1 + dist/10)
+      (vx * fac, vy * fac)
+    }
+
+    val arr = Array.fill(100)(Utils.floatRand(math.Pi * 2))
+    val rad = radial(5, 5) _
+    for (i <- 0 until arr.length) {
+      val y = i / 10
+      val x = i - 10 * y
+      val (gx, gy) = rad(x, y, math.cos(arr(i)).floatValue, math.sin(arr(i)).floatValue)
+      fbuffer.put(gx)
+      fbuffer.put(gy)
+    }
+    fbuffer.rewind()
   }
 
 }
