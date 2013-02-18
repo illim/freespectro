@@ -5,6 +5,7 @@ sealed trait Card {
   def isSpell: Boolean
   def inputSpecs: CardInputSpecs
   def spec: CardSpec
+  def isAvailable(house : HouseState) = cost <= house.mana
   var cost = 0
   var id = 0
 }

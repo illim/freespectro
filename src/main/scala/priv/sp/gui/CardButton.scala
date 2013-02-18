@@ -6,10 +6,10 @@ import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.util._
 
-case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
+class CardButton(val card : Card, house: => HouseState, sp: SpWorld) extends GuiElem {
 
-  private val cardTex = sp.textures.get("Images/Cards/" + cardState.card.image)
-  private val (borderTex, maskTex) = sp.baseTextures.getBorder(cardState.card)
+  private val cardTex = sp.textures.get("Images/Cards/" + card.image)
+  private val (borderTex, maskTex) = sp.baseTextures.getBorder(card)
   val size = Coord2i(borderTex.width, borderTex.height)
   private var hovered = false
   private val grey = sp.shaders.get("grey")
@@ -18,7 +18,7 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    val isActive = cardState.isAvailable && enabled
+    val isActive = card.isAvailable(house) && enabled
     glColor4f(1, 1, 1, 1)
 
     if (!isActive) {
@@ -37,13 +37,13 @@ case class CardButton(cardState: HouseCardState, sp: SpWorld) extends GuiElem {
     }
 
     glPushMatrix()
-    if (cardState.card.isSpell) glTranslatef(-2, 1, 0) else glTranslatef(3, 8, 0)
+    if (card.isSpell) glTranslatef(-2, 1, 0) else glTranslatef(3, 8, 0)
     tex.draw(cardTex)
     glPopMatrix()
 
     tex.draw(borderTex)
 
-    cardState.card match {
+    card match {
       case spell: Spell =>
         Fonts.draw(72, 9, spell.cost, 'blue)
       case creature: Creature =>

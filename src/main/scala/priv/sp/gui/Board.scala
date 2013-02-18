@@ -74,8 +74,8 @@ class CommandRecorder(game: Game) {
 }
 
 class SlotPanel(game: Game) {
-  val slots = playerIds.map { player =>
-    (0 to 5).map(num => SlotButton(num, game.slotView(player, num), game.spWorld)).toList
+  val slots = game.playersLs.map { playerLs =>
+    (0 to 5).map(num => new SlotButton(num, playerLs.slots.get(game.state).get(num), game.spWorld)).toList
   }
   val allSlots = slots.flatten
   slots(opponent).foreach { slotButton =>
@@ -98,23 +98,25 @@ class SlotPanel(game: Game) {
   def refresh() { allSlots.foreach(_.refresh()) }
 }
 
-class CardPanel(player: PlayerState, game: Game) {
-  private val houseCardButtons = player.houseCards.map { house =>
-    house -> house.cardStates.map { cardState =>
-      CardButton(cardState, game.spWorld)
+class CardPanel(playerLs : PlayerStateLenses, game: Game) {
+  private val houseCardButtons = playerLs.houses.get(game.state).zipWithIndex.map { case (house, idx) =>
+    def getHouse = playerLs.houses.get(game.state).apply(idx)
+    
+    new HouseLabel(getHouse, game.spWorld) -> house.cards.map { card =>
+      new CardButton(card, getHouse, game.spWorld)
     }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
   cardButtons.foreach { cardButton =>
     cardButton.on {
       case MouseClicked(_) if cardButton.enabled =>
-        game.commandRecorder.setCommand(Command(owner, cardButton.cardState.card, Nil))
+        game.commandRecorder.setCommand(Command(owner, cardButton.card, Nil))
     }
   }
 
   val panel = Row(houseCardButtons.map {
-    case (house, cardButons) =>
-      Column(new HouseLabel(house.house, game.spWorld) :: cardButons)
+    case (houseLabel, cardButons) =>
+      Column(houseLabel :: cardButons)
   })
 
   def setEnabled(flag: Boolean) {
@@ -122,9 +124,9 @@ class CardPanel(player: PlayerState, game: Game) {
   }
 }
 
-class TopCardPanel(player: PlayerState, game: Game) {
-  val panel = Row(player.houseCards.map { houseCard =>
-    new HouseLabel(houseCard.house, game.spWorld, flip = true)
+class TopCardPanel(playerLs: PlayerStateLenses, game: Game) {
+  val panel = Row(playerLs.houses.get(game.state).zipWithIndex.map { case (_, idx) =>
+    new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.spWorld, flip = true)
   })
 }
 

@@ -15,7 +15,7 @@ object CardShuffle {
     val p1 = createOnePlayer(baseHouses)
     val p2 = createOnePlayer(baseHouses.zipWithIndex.map {
       case (h, idx) =>
-        val p1Cards = p1.houseCards(idx).cardStates.map(_.card)
+        val p1Cards = p1.houses(idx).cards
         houseFilter(h) { c => !p1Cards.contains(c) }
     })
     List(p1, p2)
@@ -33,7 +33,7 @@ object CardShuffle {
 
   private def from(house: House) = {
     val mana = if (house.isSpecial) 2 else Random.nextInt(3) + 3
-    PlayerHouse(house, randomize(house).sortBy(_.cost), mana)
+    HouseState(house, randomize(house).sortBy(_.cost), mana)
   }
 
   private def randomize(house: House) = {
@@ -47,13 +47,13 @@ object CardShuffle {
   private val fwipes = List(6, 9)
   private val awipes = List(8)
   private def hasOneWipe(player: PlayerState) = {
-    (player.houseCards(0).cardStates.count(cs => fwipes.contains(cs.card.cost))
-      + player.houseCards(2).cardStates.count(cs => awipes.contains(cs.card.cost))) == 1
+    (player.houses(0).cards.count(card => fwipes.contains(card.cost))
+      + player.houses(2).cards.count(card => awipes.contains(card.cost))) == 1
   }
 
   private def hasOneManaGen(player: PlayerState) = {
     def toi(b: Boolean) = if (b) 1 else 0
-    def hasCard(house: Int, cost: Int) = toi(player.houseCards(house).cardStates.exists(cs => cs.card.cost == cost))
+    def hasCard(house: Int, cost: Int) = toi(player.houses(house).cards.exists(card => card.cost == cost))
     (hasCard(0, 3) + hasCard(1, 5) + hasCard(3, 5)) == 1
   }
 

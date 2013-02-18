@@ -88,11 +88,6 @@ object Utils {
   }
 }
 
-class StateView[A](read: => A) {
-  def map[B](f: A => B) = new StateView(f(read))
-  def get = read
-}
-
 trait ResourceCache[A, B] {
   import collection._
 

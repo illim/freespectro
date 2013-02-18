@@ -4,10 +4,14 @@ version := "1.0"
 
 scalaVersion := "2.10.0"
 
-libraryDependencies ++= Seq( 
+resolvers ++= Seq(
+ "Sonatype Repository" at "http://oss.sonatype.org/content/repositories/releases")
+
+libraryDependencies ++= Seq(
  "org.lwjgl.lwjgl" % "lwjgl" % "2.8.2",
  "org.lwjgl.lwjgl" % "lwjgl_util" % "2.8.2",
- "org.lwjgl.lwjgl" % "lwjgl-platform" % "2.8.2" classifier "natives-windows")
+ "org.lwjgl.lwjgl" % "lwjgl-platform" % "2.8.2" classifier "natives-windows",
+ "org.scalaz"      % "scalaz-core_2.10" % "7.0.0-M7")
 
 fork in run := true
 

@@ -4,31 +4,40 @@ import util.Random
 import collection._
 
 case class GameState(players: List[PlayerState])
+case class PlayerState(
+  houses: List[HouseState],
+  slots: immutable.TreeMap[Int, SlotState] = immutable.TreeMap.empty,
+  life: Int = 60)
+case class HouseState(house: House, cards: List[Card], mana: Int)
+case class SlotState(card: Creature, life: Int, attack: Int, hasRunOnce: Boolean = false)
 
 
-case class PlayerHouse(house: House, cards: List[Card], var mana: Int)
-
-case class HouseCardState(card: Card, house: PlayerHouse) {
-  def isAvailable = card.cost <= house.mana
+import scalaz._
+object PlayerState {
+  val housesL = Lens.lensu[PlayerState, List[HouseState]]((p, h) => p.copy(houses = h), _.houses)
+  val slotsL = Lens.lensu[PlayerState, immutable.TreeMap[Int, SlotState]]((p, s) => p.copy(slots = s), _.slots)
+  val lifeL = Lens.lensu[PlayerState, Int]((p, l) => p.copy(life = l), _.life)
 }
-case class HouseCards(house: PlayerHouse, cardStates: List[HouseCardState])
-class PlayerState(
-    houses: List[PlayerHouse],
-    var slots : immutable.TreeMap[Int, CardState] = immutable.TreeMap.empty,
-    var life : Int = 60) {
-  val houseCards = houses.map { h =>
-    HouseCards(h, h.cards.map(c => HouseCardState(c, h)))
-  }
+object HouseState{
+  val manaL = Lens.lensu[HouseState, Int]((p, x) => p.copy(mana = x), _.mana)
 }
-
-object CardState {
-  def creature(card : Card) = {
+object SlotState {
+  def creature(card: Card) = {
     card match {
-      case creature : Creature => CardState(creature, creature.life, creature.attack getOrElse 0)
+      case creature: Creature => SlotState(creature, creature.life, creature.attack getOrElse 0)
       case _ => sys.error(card + " is not a creature")
     }
   }
+  val lifeL = Lens.lensu[SlotState, Int]((p, l) => p.copy(life = l), _.life)
+  val hasRunOnceL = Lens.lensu[SlotState, Boolean]((p, x) => p.copy(hasRunOnce = x), _.hasRunOnce)
+  val toggleRunOnce = hasRunOnceL =>= (_ => true)
 }
-case class CardState(card : Creature, var life : Int, attack : Int, var hasRunOnce : Boolean = false){
-  def toggleRunOnce(){if (! hasRunOnce) hasRunOnce = true}
+class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
+  val houses = player andThen PlayerState.housesL
+  val slots  = player andThen PlayerState.slotsL
+  val life   = player andThen PlayerState.lifeL
+}
+object GameState {
+  val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
+  def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id)))
 }

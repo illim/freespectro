@@ -13,12 +13,6 @@ object GShader {
     Utils.codeFromResource(vert + ".vert"),
     Utils.codeFromResource(frag + ".frag")).left.map(sys.error).right.toOption.get
 
-  def getUniformLocation(program: Int, name: String) = {
-    val res = glGetUniformLocation(program, name)
-    assert(res != -1, name + " doesn't exists")
-    res
-  }
-
   def createShaderProgram(vertCode: => Option[String], fragCode: => Option[String]): Either[String, (Int, Int, Int)] = {
     val shader = glCreateProgram()
     if (shader != 0) {

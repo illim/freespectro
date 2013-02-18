@@ -35,33 +35,10 @@ class BaseTextures(textures: Textures) {
     "blank.png")
 
   def getBorder(card: Card) = if (card.isSpell) (borderTexSpell, maskTex) else (borderTex, maskTex)
-
 }
 
 import org.lwjgl.opengl.GL20._
 import priv.util._
-
-trait Shader {
-  private var started = false
-  def program: Int
-  def begin() {
-    glUseProgram(program)
-    started = true
-  }
-
-  def used[A](f: => A) = {
-    begin()
-    val res = f
-    end()
-    res
-  }
-
-  def end() {
-    assert(started)
-    glUseProgram(0)
-    started = false
-  }
-}
 
 class Shaders extends ResourceCache[String, Shader] {
 
@@ -83,13 +60,10 @@ class BaseShaders(shaders: Shaders, sp: SpWorld) {
 
 class HoverShader(name: String, texture: Texture) extends Shader {
   val (program, _, _) = GShader.createProgram(name, name)
-
-  val grad = GShader.getUniformLocation(program, "grads")
-  val width = GShader.getUniformLocation(program, "width")
-  val height = GShader.getUniformLocation(program, "height")
+  val grad :: width :: height :: cursor :: _= getUniformLocations("grads", "width", "height", "cursor")
   val fbuffer = GBufferUtils.createFloatBuffer(200)
+  
   fillBuffer(fbuffer)
-  val cursor = GShader.getUniformLocation(program, "cursor")
   used {
     glUniform2(grad, fbuffer)
     glUniform1f(width, texture.width)
@@ -117,5 +91,4 @@ class HoverShader(name: String, texture: Texture) extends Shader {
     }
     fbuffer.rewind()
   }
-
 }

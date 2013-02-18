@@ -1,9 +1,11 @@
+
 package priv.sp
 
+import collection._
 import priv._
 import priv.sp.gui._
 import scala.util.continuations._
-import priv.util.StateView
+import scalaz._
 
 class Game(val world: World)
   extends SummonPhase
@@ -11,13 +13,14 @@ class Game(val world: World)
 
   val spWorld = new SpWorld
   var state = GameState(CardShuffle())
+  val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new DummyBot
 
   // gui
   val commandRecorder = new CommandRecorder(this)
   val slotPanel = new SlotPanel(this)
-  val playerPanels = state.players.map(new CardPanel(_, this))
-  val topCardPanel = new TopCardPanel(state.players(opponent), this)
+  val playerPanels = playersLs.map(new CardPanel(_, this))
+  val topCardPanel = new TopCardPanel(playersLs(opponent), this)
   val board = new Board(slotPanel, playerPanels, topCardPanel, spWorld)
   world.entities.add(board)
 
@@ -41,32 +44,43 @@ class Game(val world: World)
     world.ended = true
   }
 
-  def playerView(player: PlayerId) = new StateView(state.players(player))
-  def slotView(player: PlayerId, numSlot: Int) = playerView(player).map(_.slots.get(numSlot))
+  protected def persist(stateFunc : State[GameState, _]) = {
+    val (newState, _) = stateFunc run state
+    state = newState
+    stateFunc
+  }
 }
+
 
 trait SummonPhase { _: Game =>
 
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     slotPanel.disable()
     playerPanels.foreach(_.setEnabled(false))
-    commandOption.foreach(applyEffect)
+    commandOption.foreach(c => persist(getCommandEffect(c)))
+    // todo anim
     println("submitted" + commandOption)
     run(player)
   }
 
-  private def applyEffect(command: Command) = {
-    state.players(command.player).houseCards.find(_.cardStates.exists(_.card == command.card)).foreach { houseCard =>
-      houseCard.house.mana -= command.card.cost
-    }
-    command.card.spec match {
-      case Summon =>
-        command.inputs.headOption.collect {
-          case OwnerSlot(num) =>
-            state.players(command.player).slots += num -> CardState.creature(command.card)
-        }
-      // todo anim(how to find positions) and callback to change state
-      case _ => None
+  private def getCommandEffect(command: Command): State[GameState, Unit] = {
+    val playerLs = playersLs(command.player)
+
+    playerLs.houses.%== { houses =>
+      val index = houses.indexWhere(_.cards.exists(_ == command.card))
+      val house = houses(index)
+      houses.updated(index, HouseState.manaL.mod(_ - command.card.cost, house))
+    }.flatMap { _ =>
+      def noop = playerLs.slots %== identity
+
+      command.card.spec match {
+        case Summon =>
+          command.inputs.headOption match {
+            case Some(OwnerSlot(num)) => playerLs.slots.%==(_ + (num -> SlotState.creature(command.card)))
+            case _ => noop
+          }
+        case _ => noop
+      }
     }
   }
 
@@ -85,32 +99,44 @@ trait RunPhase { _: Game =>
         val slotButton = slotPanel.slots(playerId)(numSlot)
 
         slotButton.AnimTask(if (playerId == owner) -1 else 1) {
-          otherPlayer.slots.get(numSlot) match {
-            case None =>
-              otherPlayer.life -= slot.attack
-              if (otherPlayer.life <= 0) {
-                endGame(playerId)
-              }
-            case Some(oppositeSlot) =>
-              oppositeSlot.life -= slot.attack
-              if (oppositeSlot.life <= 0) {
-                otherPlayer.slots -= numSlot
-                slotPanel.refresh()
-              }
-          }
+          persist(runSlot(playerId, numSlot, slot))
+          slotPanel.refresh()
         }
     }
     reset {
       val k = Task.chain(world, tasks)
       k
-      player.slots.foreach(_._2.toggleRunOnce())
-      state.players(otherPlayerId).houseCards.foreach { houseCard =>
-        houseCard.house.mana += 1
-      }
+      persist(playersLs(otherPlayerId).slots.%==(_.map{ case (i, slot) => i -> SlotState.toggleRunOnce(slot) }).flatMap { _ =>
+        playersLs(otherPlayerId).houses.%== (_.map(house => HouseState.manaL.mod(_ + 1, house)))
+      })
       waitPlayer(otherPlayerId)
     }
   }
 
+  def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Unit] = {
+    val otherPlayerLs = playersLs(other(playerId))
+
+    otherPlayerLs.slots.flatMap { slots =>
+      slots.get(numSlot) match {
+        case None =>
+          (otherPlayerLs.life -= slot.attack).map { life =>
+            if (life <= 0) {
+              endGame(playerId)
+            }
+          }
+        case Some(oppositeSlot) =>
+          otherPlayerLs.slots.%= { slots =>
+            slots + (numSlot -> SlotState.lifeL.mod(_ - slot.attack, oppositeSlot))
+          }.flatMap { slots =>
+            if (slots(numSlot).life <= 0) {
+              otherPlayerLs.slots %== (_ - numSlot)
+            } else {
+              otherPlayerLs.slots %== (identity) // TODO refactor
+            }
+          }
+      }
+    }
+  }
 }
 
 

@@ -3,11 +3,10 @@ package priv.sp.gui
 import priv._
 import org.lwjgl.opengl.GL11._
 import priv.sp._
-import priv.util.StateView
 import priv.World
 import priv.GuiElem
 
-case class SlotButton(num: Int, slotView: StateView[Option[CardState]], sp: SpWorld) extends GuiElem {
+class SlotButton(val num: Int, slot: => Option[SlotState], sp: SpWorld) extends GuiElem {
   import sp.baseTextures.slotTex
   val size = Coord2i(slotTex.width, slotTex.height)
   enabled = false
@@ -17,7 +16,7 @@ case class SlotButton(num: Int, slotView: StateView[Option[CardState]], sp: SpWo
   def refresh() { card = getCard }
   def isEmpty = card.isEmpty
 
-  private def getCard = slotView.get.map { c => (c, sp.textures.get("Images/Cards/" + c.card.image)) }
+  private def getCard = slot.map { c => (c, sp.textures.get("Images/Cards/" + c.card.image)) }
 
   val slotSize = Coord2i(120, 142)
 
