@@ -7,7 +7,7 @@ import scala.util.continuations._
 import priv.World
 import priv.MouseClicked
 
-class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
+class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: List[LifeLabel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
 
   private val currentPlayerPanel = playerPanels(owner)
 
@@ -24,11 +24,11 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], topCardPanel: T
           Coord2i(500, 0),
           topCardPanel.panel),
         Translate(
-          Coord2i(350, 0),
+          Coord2i(320, 0),
           Column(List(
-            Row(slotPanel.slots(opponent)),
+            Row(lifeLabels(opponent) :: slotPanel.slots(opponent)),
             Translate(
-              Coord2i(0, -30), Row(/**TestButton(sp) :: */slotPanel.slots(owner)))))),
+              Coord2i(0, -30), Row(lifeLabels(owner) :: /**TestButton(sp) :: */slotPanel.slots(owner)))))),
         Translate(
           Coord2i(500, 0), playerPanel.panel)))
   }

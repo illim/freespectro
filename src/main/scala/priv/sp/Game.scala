@@ -20,8 +20,9 @@ class Game(val world: World)
   val commandRecorder = new CommandRecorder(this)
   val slotPanel = new SlotPanel(this)
   val playerPanels = playersLs.map(new CardPanel(_, this))
+  val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state) : Int))
   val topCardPanel = new TopCardPanel(playersLs(opponent), this)
-  val board = new Board(slotPanel, playerPanels, topCardPanel, spWorld)
+  val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, spWorld)
   world.entities.add(board)
 
   waitPlayer(owner)
@@ -44,13 +45,12 @@ class Game(val world: World)
     world.ended = true
   }
 
-  protected def persist(stateFunc : State[GameState, _]) = {
+  protected def persist(stateFunc: State[GameState, _]) = {
     val (newState, _) = stateFunc run state
     state = newState
     stateFunc
   }
 }
-
 
 trait SummonPhase { _: Game =>
 
@@ -71,15 +71,13 @@ trait SummonPhase { _: Game =>
       val house = houses(index)
       houses.updated(index, HouseState.manaL.mod(_ - command.card.cost, house))
     }.flatMap { _ =>
-      def noop = playerLs.slots %== identity
-
       command.card.spec match {
         case Summon =>
           command.inputs.headOption match {
             case Some(OwnerSlot(num)) => playerLs.slots.%==(_ + (num -> SlotState.creature(command.card)))
-            case _ => noop
+            case _ => GameState.unit
           }
-        case _ => noop
+        case _ => GameState.unit
       }
     }
   }
@@ -106,9 +104,10 @@ trait RunPhase { _: Game =>
     reset {
       val k = Task.chain(world, tasks)
       k
-      persist(playersLs(otherPlayerId).slots.%==(_.map{ case (i, slot) => i -> SlotState.toggleRunOnce(slot) }).flatMap { _ =>
-        playersLs(otherPlayerId).houses.%== (_.map(house => HouseState.manaL.mod(_ + 1, house)))
-      })
+      persist(
+        playersLs(otherPlayerId).slotsToggleRun.flatMap { _ =>
+          playersLs(otherPlayerId).housesIncrMana
+        })
       waitPlayer(otherPlayerId)
     }
   }
@@ -131,7 +130,7 @@ trait RunPhase { _: Game =>
             if (slots(numSlot).life <= 0) {
               otherPlayerLs.slots %== (_ - numSlot)
             } else {
-              otherPlayerLs.slots %== (identity) // TODO refactor
+              GameState.unit
             }
           }
       }

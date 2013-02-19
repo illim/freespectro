@@ -84,9 +84,9 @@ abstract class Flow(elts: Traversable[GuiElem], dirx: Int = 0, diry: Int = 0) ex
     c
   }
   val size = if (dirx == 0) {
-    last.copy(x = elts.headOption.map(_.size.x) getOrElse 0)
+    last.copy(x = if (elts.isEmpty) 0 else elts.maxBy(_.size.x).size.x)
   } else {
-    last.copy(y = elts.headOption.map(_.size.y) getOrElse 0)
+    last.copy(y = if (elts.isEmpty) 0 else elts.maxBy(_.size.y).size.y)
   }
 
   def render(world: World) {

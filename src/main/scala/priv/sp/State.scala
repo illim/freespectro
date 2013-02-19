@@ -36,8 +36,11 @@ class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
   val houses = player andThen PlayerState.housesL
   val slots  = player andThen PlayerState.slotsL
   val life   = player andThen PlayerState.lifeL
+  def slotsToggleRun = slots.%==(_.map{ case (i, slot) => i -> SlotState.toggleRunOnce(slot) })
+  def housesIncrMana = houses.%== (_.map(house => HouseState.manaL.mod(_ + 1, house)))
 }
 object GameState {
   val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id)))
+  val unit = State[GameState, Unit](gs => (gs, ()))
 }
