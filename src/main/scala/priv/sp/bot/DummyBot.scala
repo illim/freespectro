@@ -7,10 +7,12 @@ import priv.sp.PlayerState
 import scala.util.continuations._
 import priv.util.Utils
 
-// stupid bot very slow and using a stupid heuristic on life ratio
+// stupid bot very slow, reason forward and using a stupid heuristic on life ratio
+// todo : 
+// - maximize fake player move instead of minimizing it lol
+// - update the fakeplayer
 class DummyBot(botPlayerId: PlayerId, game: Game) extends Bot {
 
-  // todo update the fakeplayer
   private val fakePlayer = CardShuffle.createOnePlayer(CardShuffle.filterHouses(game.state.players(botPlayerId))(CardShuffle.baseHouses))
   private val maxDepth = 2
 
@@ -78,17 +80,9 @@ class DummyBot(botPlayerId: PlayerId, game: Game) extends Bot {
     def isUndecided = lifeDeltas != Nil
   }
 
-  def getHouses(state: GameState, playerId: PlayerId) = {
-    if (playerId == botPlayerId) {
-      state.players(playerId).houses
-    } else {
-      fakePlayer.houses
-    }
-  }
-
   class Simu(playerId: PlayerId, path: Path) {
     val initState = path.steps.headOption.map(_._2) getOrElse path.start
-    val cards = getHouses(initState, playerId).flatMap { house => house.cards.filter(_.isAvailable(house)) }
+    val cards = initState.players(playerId).houses.flatMap { house => house.cards.filter(_.isAvailable(house)) }
 
     val commands: Stream[Command] = {
       cards.toStream.flatMap { card =>
