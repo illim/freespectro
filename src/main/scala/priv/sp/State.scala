@@ -3,7 +3,9 @@ package priv.sp
 import util.Random
 import collection._
 
-case class GameState(players: List[PlayerState])
+case class GameState(players: List[PlayerState]){
+  val version = GameState.currentVersion.incrementAndGet()
+}
 case class PlayerState(
   houses: List[HouseState],
   slots: immutable.TreeMap[Int, SlotState] = immutable.TreeMap.empty,
@@ -38,9 +40,11 @@ class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
   val life   = player andThen PlayerState.lifeL
   def slotsToggleRun = slots.%==(_.map{ case (i, slot) => i -> SlotState.toggleRunOnce(slot) })
   def housesIncrMana = houses.%== (_.map(house => HouseState.manaL.mod(_ + 1, house)))
+  def replaceCards(newHouses: List[HouseState]) = houses.%== (_.zipWithIndex.map{case (house, i) => house.copy(cards = newHouses(i).cards) })
 }
 object GameState {
   val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id)))
   val unit = State[GameState, Unit](gs => (gs, ()))
+  val currentVersion = new java.util.concurrent.atomic.AtomicInteger(0)
 }

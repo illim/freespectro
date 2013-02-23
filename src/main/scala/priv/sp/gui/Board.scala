@@ -58,14 +58,14 @@ class CommandRecorder(game: Game) {
 
   def nextStep() {
     value.foreach { command =>
-      if (command.card.inputSpecs.steps.size == command.inputs.size) {
+      if (command.card.inputSpec.size == command.inputs.size) {
         println("submit " + command.card)
         cont(Some(command))
       } else {
-        command.card.inputSpecs.steps(command.inputs.size) match {
-          case SelectOwnerSlot => game.slotPanel.enableOwnerSlots()
-          case SelectOwnerCreature =>
-          case SelectTargetCreature =>
+        command.card.inputSpec.get match {
+          case SelectOwnerSlot => game.slotPanel.setSlotEnabled(owner, empty = true)
+          case SelectOwnerCreature => game.slotPanel.setSlotEnabled(owner, empty = false)
+          case SelectTargetCreature => game.slotPanel.setSlotEnabled(opponent, empty = false)
         }
       }
     }
@@ -75,7 +75,7 @@ class CommandRecorder(game: Game) {
 
 class SlotPanel(game: Game) {
   val slots = game.playersLs.map { playerLs =>
-    (0 to 5).map(num => new SlotButton(num, playerLs.slots.get(game.state).get(num), game.spWorld)).toList
+    slotRange.map(num => new SlotButton(num, playerLs.slots.get(game.state).get(num), game.spWorld)).toList
   }
   val allSlots = slots.flatten
   slots(opponent).foreach { slotButton =>
@@ -91,8 +91,8 @@ class SlotPanel(game: Game) {
     }
   }
 
-  def enableOwnerSlots() {
-    slots(owner).foreach { slot => if (slot.isEmpty) slot.enabled = true }
+  def setSlotEnabled(player : PlayerId, empty : Boolean) {
+    slots(player).foreach { slot => if (slot.isEmpty == empty) slot.enabled = true }
   }
   def disable() { allSlots.foreach(_.enabled = false) }
   def refresh() { allSlots.foreach(_.refresh()) }

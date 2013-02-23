@@ -6,6 +6,7 @@ import priv._
 import priv.sp.gui._
 import scala.util.continuations._
 import scalaz._
+import priv.sp.bot.DummyBot
 
 class Game(val world: World)
   extends SummonPhase
@@ -14,13 +15,13 @@ class Game(val world: World)
   val spWorld = new SpWorld
   var state = GameState(CardShuffle())
   val playersLs = playerIds.map(GameState.playerLens(_))
-  private val bot = new DummyBot
+  private val bot = new DummyBot(opponent, this)
 
   // gui
   val commandRecorder = new CommandRecorder(this)
   val slotPanel = new SlotPanel(this)
   val playerPanels = playersLs.map(new CardPanel(_, this))
-  val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state) : Int))
+  val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state)))
   val topCardPanel = new TopCardPanel(playersLs(opponent), this)
   val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, spWorld)
   world.entities.add(board)
@@ -28,15 +29,15 @@ class Game(val world: World)
   waitPlayer(owner)
 
   protected def waitPlayer(player: PlayerId) {
-    if (player == opponent) {
-      reset0(submit(bot.executeAI(state.players(player)), player))
-    } else {
-      reset {
-        val k = commandRecorder.startWith {
+    reset {
+      val k = if (player == opponent) {
+        bot.executeAI(state)
+      } else {
+        commandRecorder.startWith {
           playerPanels(player).setEnabled(true)
-        }
-        submit(k, player)
+        }        
       }
+      submit(k, player)
     }
   }
 
@@ -63,7 +64,7 @@ trait SummonPhase { _: Game =>
     run(player)
   }
 
-  private def getCommandEffect(command: Command): State[GameState, Unit] = {
+  def getCommandEffect(command: Command): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
 
     playerLs.houses.%== { houses =>
@@ -104,10 +105,7 @@ trait RunPhase { _: Game =>
     reset {
       val k = Task.chain(world, tasks)
       k
-      persist(
-        playersLs(otherPlayerId).slotsToggleRun.flatMap { _ =>
-          playersLs(otherPlayerId).housesIncrMana
-        })
+      persist(prepareNextTurn(otherPlayerId))
       waitPlayer(otherPlayerId)
     }
   }
@@ -134,6 +132,12 @@ trait RunPhase { _: Game =>
             }
           }
       }
+    }
+  }
+
+  def prepareNextTurn(playerId: PlayerId): State[GameState, Unit] = {
+    playersLs(playerId).slotsToggleRun.flatMap { _ =>
+      playersLs(playerId).housesIncrMana
     }
   }
 }

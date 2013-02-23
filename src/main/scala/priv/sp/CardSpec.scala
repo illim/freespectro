@@ -3,7 +3,7 @@ package priv.sp
 sealed trait Card {
   def image: String
   def isSpell: Boolean
-  def inputSpecs: CardInputSpecs
+  def inputSpec: Option[CardInputSpec]
   def spec: CardSpec
   def isAvailable(house : HouseState) = cost <= house.mana
   var cost = 0
@@ -13,7 +13,7 @@ case class Creature(
   name: String,
   attack: Option[Int],
   life: Int,
-  inputSpecs: CardInputSpecs = CardInputSpecs(List(SelectOwnerSlot)),
+  inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
   spec: CardSpec = Summon) extends Card {
 
   def isSpell = false
@@ -22,7 +22,7 @@ case class Creature(
 
 case class Spell(
   name: String,
-  inputSpecs: CardInputSpecs = CardInputSpecs(Nil),
+  inputSpec: Option[CardInputSpec] = None,
   spec: CardSpec = Noop) extends Card {
 
   def isSpell = true
@@ -32,7 +32,6 @@ case class Spell(
 
 case class Command(player: PlayerId, card: Card, inputs: List[CardInput])
 
-case class CardInputSpecs(steps : List[CardInputSpec])
 sealed trait CardInputSpec
 case object SelectOwnerSlot extends CardInputSpec
 case object SelectOwnerCreature extends CardInputSpec

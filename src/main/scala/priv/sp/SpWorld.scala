@@ -92,3 +92,7 @@ class HoverShader(name: String, texture: Texture) extends Shader {
     fbuffer.rewind()
   }
 }
+
+trait Bot {
+  def executeAI(state: GameState) : Option[Command] @scala.util.continuations.cpsParam[Unit,Unit]
+}
