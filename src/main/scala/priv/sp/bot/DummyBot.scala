@@ -4,26 +4,23 @@ import priv.sp._
 import util.Random.shuffle
 import priv.sp.Creature
 import priv.sp.PlayerState
-import scala.util.continuations._
 import priv.util.Utils
 
 // stupid bot very slow, reason forward and using a stupid heuristic on life ratio
 // todo : 
 // - maximize fake player move instead of minimizing it lol
 // - update the fakeplayer
-class DummyBot(botPlayerId: PlayerId, game: Game) extends Bot {
-
-  private val fakePlayer = CardShuffle.createOnePlayer(CardShuffle.filterHouses(game.state.players(botPlayerId))(CardShuffle.baseHouses))
+class DummyBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
+  
   private val maxDepth = 2
 
-  def executeAI(start: GameState) = shift { k: (Option[Command] => Unit) =>
-    val ripped = (game.playersLs(other(botPlayerId)).replaceCards(fakePlayer.houses) run start)._1
-    Utils.threaded {
-      val s = System.currentTimeMillis()
-      k(loop(Path(Nil, ripped)).map { path =>
-        println("ai spent " + (System.currentTimeMillis() - s) + " sc: " + path.score + ", depth:" + path.steps.size)
-        path.steps.last._1
-      })
+  def executeAI(start: GameState) = {
+    val ripped = ripPlayerState.exec(start)
+
+    val s = System.currentTimeMillis()
+    loop(Path(Nil, ripped)).map { path =>
+      println("ai spent " + (System.currentTimeMillis() - s) + " sc: " + path.score + ", depth:" + path.steps.size)
+      path.steps.last._1
     }
   }
 
@@ -82,30 +79,9 @@ class DummyBot(botPlayerId: PlayerId, game: Game) extends Bot {
 
   class Simu(playerId: PlayerId, path: Path) {
     val initState = path.steps.headOption.map(_._2) getOrElse path.start
-    val cards = initState.players(playerId).houses.flatMap { house => house.cards.filter(_.isAvailable(house)) }
-
-    val commands: Stream[Command] = {
-      cards.toStream.flatMap { card =>
-        card.inputSpec match {
-          case None => List(Command(playerId, card, Nil))
-          case Some(SelectOwnerSlot) =>
-            slotRange.filterNot(s => initState.players(playerId).slots.exists(_._1 == s)).map { num =>
-              Command(playerId, card, List(OwnerSlot(num)))
-            }
-          case Some(SelectOwnerCreature) => Nil
-          case Some(SelectTargetCreature) => Nil
-        }
-      }
-    }
-
+    val commands: Stream[Command] = getCommandChoices(initState, playerId)
     val nexts: Stream[Path] = commands.map { command =>
-      val commandState = (game.getCommandEffect(command) run initState)._1
-      val runState = (commandState /: commandState.players(playerId).slots) {
-        case (st, (numSlot, slot)) =>
-          (game.runSlot(playerId, numSlot, slot) run st)._1
-      }
-      val nextState = (game.prepareNextTurn(other(playerId)) run runState)._1
-      path.add(command, nextState)
+      path.add(command, simulateCommand(initState, command))
     }
   }
 }

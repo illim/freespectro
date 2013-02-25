@@ -6,7 +6,7 @@ import priv._
 import priv.sp.gui._
 import scala.util.continuations._
 import scalaz._
-import priv.sp.bot.DummyBot
+import priv.sp.bot._
 
 class Game(val world: World)
   extends SummonPhase
@@ -15,7 +15,7 @@ class Game(val world: World)
   val spWorld = new SpWorld
   var state = GameState(CardShuffle())
   val playersLs = playerIds.map(GameState.playerLens(_))
-  private val bot = new DummyBot(opponent, this)
+  private val bot = new DummyBot2(opponent, this)
 
   // gui
   val commandRecorder = new CommandRecorder(this)
@@ -31,11 +31,15 @@ class Game(val world: World)
   protected def waitPlayer(player: PlayerId) {
     reset {
       val k = if (player == opponent) {
-        bot.executeAI(state)
+        shift { k: (Option[Command] => Unit) =>
+          util.Utils.threaded {
+            k(bot.executeAI(state))
+          }
+        }
       } else {
         commandRecorder.startWith {
           playerPanels(player).setEnabled(true)
-        }        
+        }
       }
       submit(k, player)
     }
@@ -47,8 +51,7 @@ class Game(val world: World)
   }
 
   protected def persist(stateFunc: State[GameState, _]) = {
-    val (newState, _) = stateFunc run state
-    state = newState
+    state = stateFunc.exec(state)
     stateFunc
   }
 }
