@@ -18,7 +18,7 @@ class RandomBot(playerId: PlayerId) extends Bot {
     firstCreature.flatMap { c =>
       val slots = player.slots
       shuffle(0 to 5).find(!slots.contains(_)).map { num =>
-        Command(opponent, c, List(OwnerSlot(num)))
+        Command(opponent, c, Some(SlotInput(num)))
       }
     }
   }

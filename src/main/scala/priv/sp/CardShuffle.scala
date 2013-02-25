@@ -7,27 +7,25 @@ package priv.sp
 
 import util.Random
 
-object CardShuffle {
-  val baseHouses = List(Houses.Fire, Houses.Water, Houses.Air, Houses.Earth, Houses.Mecanic)
+class CardShuffle(sp: SpWorld) {
+  import sp.houses._
 
-  def apply() = {
-    val p1 = createOnePlayer(baseHouses)
-    val p2 = createOnePlayer(filterHouses(p1)(baseHouses))
+  def get() = {
+    val p1 = createOnePlayer(list)
+    val p2 = createOnePlayer(filterHouses(p1)(list))
     List(p1, p2)
   }
 
   def filterHouses(p: PlayerState)(houses: List[House]) = {
-    def houseFilter(house: House)(f: Card => Boolean) = house.copy(cards = house.cards.filter(f))
     houses.zipWithIndex.map {
       case (h, idx) =>
         val p1Cards = p.houses(idx).cards
-        houseFilter(h) { c => !p1Cards.contains(c) }
+        h.copy(cards = h.cards.filter { c => !p1Cards.contains(c) })
     }
   }
 
   def createOnePlayer(houses: List[House]) = {
     def eval = new PlayerState((0 to 4).map(i => from(houses(i))).toList)
-
     var r = eval
     while (!(hasOneWipe(r) && hasOneManaGen(r))) {
       r = eval
@@ -36,13 +34,13 @@ object CardShuffle {
   }
 
   private def from(house: House) = {
-    val mana = if (house.isSpecial) 2 else Random.nextInt(3) + 3
+    val mana = if (isSpecial(house)) 2 else Random.nextInt(3) + 3
     HouseState(house, randomize(house).sortBy(_.cost), mana)
   }
 
   private def randomize(house: House) = {
     import Random.shuffle
-    val (cut1, cut2) = if (house.isSpecial) (5, 7) else (7, 11)
+    val (cut1, cut2) = if (isSpecial(house)) (5, 7) else (7, 11)
     val (c1, ctemp) = house.cards.partition(_.cost < cut1)
     val (c2, c3) = ctemp.partition(_.cost < cut2)
     shuffle(c1).take(2) ++ shuffle(c2).take(1) ++ shuffle(c3).take(1)

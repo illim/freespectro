@@ -13,17 +13,17 @@ trait ExtBot {
   
   // stupid stuff, ai don't know what we have so we create a fake player
   // todo give him all possible cards
-  protected val fakePlayer = CardShuffle.createOnePlayer(CardShuffle.filterHouses(game.state.players(botPlayerId))(CardShuffle.baseHouses))
+  protected val fakePlayer = game.shuffle.createOnePlayer(game.shuffle.filterHouses(game.state.players(botPlayerId))(game.spWorld.houses.list))
   protected val ripPlayerState = game.playersLs(other(botPlayerId)).replaceCards(fakePlayer.houses)
   
   def getCommandChoices(state: GameState, playerId: PlayerId): Stream[Command] = {
     val cards = state.players(playerId).houses.flatMap { house => house.cards.filter(_.isAvailable(house)) }
     cards.toStream.flatMap { card =>
       card.inputSpec match {
-        case None => List(Command(playerId, card, Nil))
+        case None => List(Command(playerId, card, None))
         case Some(SelectOwnerSlot) =>
           slotRange.filterNot(s => state.players(playerId).slots.exists(_._1 == s)).map { num =>
-            Command(playerId, card, List(OwnerSlot(num)))
+            Command(playerId, card, Some(SlotInput(num)))
           }
         case Some(SelectOwnerCreature) => Nil
         case Some(SelectTargetCreature) => Nil

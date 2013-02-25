@@ -8,7 +8,7 @@ case class GameState(players: List[PlayerState]){
 }
 case class PlayerState(
   houses: List[HouseState],
-  slots: immutable.TreeMap[Int, SlotState] = immutable.TreeMap.empty,
+  slots: PlayerState.SlotsType = immutable.Map.empty,
   life: Int = 60)
 case class HouseState(house: House, cards: List[Card], mana: Int)
 case class SlotState(card: Creature, life: Int, attack: Int, hasRunOnce: Boolean = false)
@@ -16,8 +16,9 @@ case class SlotState(card: Creature, life: Int, attack: Int, hasRunOnce: Boolean
 
 import scalaz._
 object PlayerState {
+  type SlotsType = immutable.Map[Int, SlotState]
   val housesL = Lens.lensu[PlayerState, List[HouseState]]((p, h) => p.copy(houses = h), _.houses)
-  val slotsL = Lens.lensu[PlayerState, immutable.TreeMap[Int, SlotState]]((p, s) => p.copy(slots = s), _.slots)
+  val slotsL = Lens.lensu[PlayerState, SlotsType]((p, s) => p.copy(slots = s), _.slots)
   val lifeL = Lens.lensu[PlayerState, Int]((p, l) => p.copy(life = l), _.life)
 }
 object HouseState{

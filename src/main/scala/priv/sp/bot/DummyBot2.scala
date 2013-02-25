@@ -1,15 +1,12 @@
 package priv.sp.bot
 
 import priv.sp._
-import util.Random.shuffle
-import priv.sp.Creature
-import priv.sp.PlayerState
-import priv.util.Utils
 import scalaz._
 import annotation.tailrec
 import scala.util.control.TailCalls._
 
-// another dumb bot with stupid heuristic who minimize life loss :(
+// another slow dumb bot with stupid heuristic who minimize life loss :(
+// todo optim prune
 class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   private val maxDepth = 3
@@ -85,6 +82,7 @@ class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   class Stats {
     val value = playerIds.map(_ => new Stat)
     var count = 0
+    
     def apply(playerId: PlayerId) = value(playerId)
     def score(playerId: PlayerId) = {
       val v = value(playerId)

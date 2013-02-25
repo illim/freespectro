@@ -13,7 +13,8 @@ class Game(val world: World)
   with RunPhase {
 
   val spWorld = new SpWorld
-  var state = GameState(CardShuffle())
+  val shuffle = new CardShuffle(spWorld)
+  var state = GameState(shuffle.get())
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new DummyBot2(opponent, this)
 
@@ -69,21 +70,27 @@ trait SummonPhase { _: Game =>
 
   def getCommandEffect(command: Command): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
-
-    playerLs.houses.%== { houses =>
+    val debitMana = playerLs.houses.%== { houses =>
       val index = houses.indexWhere(_.cards.exists(_ == command.card))
       val house = houses(index)
       houses.updated(index, HouseState.manaL.mod(_ - command.card.cost, house))
-    }.flatMap { _ =>
-      command.card.spec match {
-        case Summon =>
-          command.inputs.headOption match {
-            case Some(OwnerSlot(num)) => playerLs.slots.%==(_ + (num -> SlotState.creature(command.card)))
-            case _ => GameState.unit
-          }
-        case _ => GameState.unit
-      }
     }
+    val summonIfCreature =
+      if (command.card.spec.summon) {
+        command.input match {
+          case Some(SlotInput(num)) => playerLs.slots.%==(_ + (num -> SlotState.creature(command.card)))
+          case _ => GameState.unit
+        }
+      } else GameState.unit
+
+    val env = new GameCardEffect.Env(command.player, this)
+    command.input foreach { slotInput => env.selected = slotInput.num }
+    val directEffects =
+      command.card.spec.effects.foldLeft(GameState.unit) {
+        case (acc, (CardSpec.Direct, effect)) => acc.flatMap(_ => GameCardEffect.getCardEffect(effect, env))
+        case (acc, _) => acc
+      }
+    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => directEffects)
   }
 
 }

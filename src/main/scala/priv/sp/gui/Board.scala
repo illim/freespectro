@@ -49,16 +49,16 @@ class CommandRecorder(game: Game) {
     f
   }
 
-  def addInput(x: CardInput) = {
+  def addInput(x: SlotInput) = {
     value.foreach { command =>
       println("add input " + x)
-      setCommand(command.copy(inputs = (x :: command.inputs)))
+      setCommand(command.copy(input = Some(x)))
     }
   }
 
   def nextStep() {
     value.foreach { command =>
-      if (command.card.inputSpec.size == command.inputs.size) {
+      if (command.card.inputSpec.size == command.input.size) {
         println("submit " + command.card)
         cont(Some(command))
       } else {
@@ -78,19 +78,14 @@ class SlotPanel(game: Game) {
     slotRange.map(num => new SlotButton(num, playerLs.slots.get(game.state).get(num), game.spWorld)).toList
   }
   val allSlots = slots.flatten
-  slots(opponent).foreach { slotButton =>
-    slotButton.on {
-      case MouseClicked(_) if slotButton.enabled =>
-        game.commandRecorder.addInput(TargetCreature(slotButton.num))
-    }
-  }
-  slots(owner).foreach { slotButton =>
-    slotButton.on {
-      case MouseClicked(_) if slotButton.enabled =>
-        game.commandRecorder.addInput(OwnerSlot(slotButton.num))
-    }
-  }
+  allSlots.foreach(listenEvent)
 
+  def listenEvent(slotButton : SlotButton){
+    slotButton.on {
+      case MouseClicked(_) if slotButton.enabled =>
+        game.commandRecorder.addInput(SlotInput(slotButton.num))
+    }
+  }
   def setSlotEnabled(player : PlayerId, empty : Boolean) {
     slots(player).foreach { slot => if (slot.isEmpty == empty) slot.enabled = true }
   }
@@ -110,7 +105,7 @@ class CardPanel(playerLs : PlayerStateLenses, game: Game) {
   cardButtons.foreach { cardButton =>
     cardButton.on {
       case MouseClicked(_) if cardButton.enabled =>
-        game.commandRecorder.setCommand(Command(owner, cardButton.card, Nil))
+        game.commandRecorder.setCommand(Command(owner, cardButton.card, None))
     }
   }
 

@@ -9,7 +9,8 @@ class SpWorld {
   val baseTextures = new BaseTextures(textures)
   val shaders = new Shaders
   val baseShaders = new BaseShaders(shaders, this)
-
+  val houses = new Houses
+  
   def clean() {
     textures.clean()
     shaders.clean()

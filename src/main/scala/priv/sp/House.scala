@@ -1,24 +1,32 @@
 package priv.sp
 
-case class House(name: String, cards: List[Card], costFn : Int => Int = Houses.basicCostFonction) {
-  cards.zipWithIndex.foreach { case (c, i) => c.cost = costFn(i) }
-  val isSpecial = cards.size < 10
-}
+case class House(name: String, cards: List[Card])
 
-object Houses {
-  
-  val basicCostFonction = { i : Int => i + 1}
+class Houses {
+  import CardSpec._
+  import GameCardEffect._
 
   val Fire = House("fire", List(
     Creature("GoblinBerserker", Some(4), 16),
-    Creature("WallofFire", Some(0), 5),
+    Creature("WallofFire", Some(0), 5, spec = creature(Direct -> DamageCreatures(5))),
     Creature("PriestOfFire", Some(3), 13),
     Creature("FireDrake", Some(4), 18),
     Creature("OrcChieftain", Some(3), 16),
-    Spell("FlameWave"),
+    Spell("FlameWave", spec = spell(Direct -> DamageCreatures(9))),
     Creature("MinotaurCommander", Some(6), 20),
-    Creature("Bargul", Some(8), 25),
-    Spell("Inferno"),
+    Creature("Bargul", Some(8), 25, spec = creature(Direct -> MassDamageCreatures(4))),
+    Spell("Inferno",
+      inputSpec = Some(SelectTargetCreature),
+      spec = spell(Direct -> Custom { env: Env =>
+        import env._
+
+        otherPlayer.slots.%== {
+          _.map {
+            case (num, slot) =>
+              num -> SlotState.lifeL.mod(_ - (if (num == selected) 18 else 10), slot)
+          }
+        }
+      })),
     Creature("FireElemental", None, 36),
     Spell("Armageddon"),
     Creature("Dragon", Some(9), 41)))
@@ -31,7 +39,7 @@ object Houses {
     Creature("MerfolkElder", Some(3), 16),
     Creature("IceGuard", Some(3), 20),
     Creature("GiantTurtle", Some(5), 17),
-    Spell("AcidicRain"),
+    Spell("AcidicRain", spec = spell(Direct -> MassDamageCreatures(15))),
     Creature("MerfolkOverlord", Some(7), 34),
     Creature("WaterElemental", None, 38),
     Creature("MindMaster", Some(6), 22),
@@ -40,12 +48,14 @@ object Houses {
   val Air = House("air", List(
     Creature("FaerieApprentice", Some(4), 11),
     Creature("Griffin", Some(3), 15),
-    Spell("CalltoThunder"),
+    Spell("CalltoThunder",
+      inputSpec = Some(SelectTargetCreature),
+      spec = spell(Direct -> MassDamageCreatures(6), Direct -> Damage(6))),
     Creature("FaerieSage", Some(4), 19),
     Creature("WallOfLightning", Some(0), 28),
     Spell("LightningBolt"),
     Creature("Phoenix", Some(6), 18),
-    Spell("ChainLightning"),
+    Spell("ChainLightning", spec = spell(Direct -> DamageCreatures(9), Direct -> Damage(9))),
     Creature("LightningCloud", Some(4), 20),
     Spell("Tornado"),
     Creature("AirElemental", None, 44),
@@ -73,8 +83,25 @@ object Houses {
     Creature("SteelGolem", Some(6), 20),
     Creature("Cannon", Some(8), 29),
     Spell("Cannonade"),
-    Creature("SteamTank", Some(6), 60)), { i : Int =>
-      if (i == 0) i else i+1    
-  })
+    Creature("SteamTank", Some(6), 60)))
 
+  private def initCost(costFn: Int => Int)(house: House) {
+    house.cards.zipWithIndex.foreach {
+      case (c, i) =>
+        c.cost = costFn(i)
+    }
+  }
+
+  val base = List(Fire, Water, Air, Earth)
+  val special = List(Mecanic)
+  val specialNames = special.map(_.name).to[Set]
+  val list = base ++ special
+  
+  def isSpecial(house : House)= specialNames.contains(house.name)
+
+  val basicCostFonction = { i: Int => i + 1 }
+  base.foreach(initCost(basicCostFonction))
+  special.foreach(initCost({ i: Int =>
+    if (i == 0) i else i + 1
+  }))
 }
