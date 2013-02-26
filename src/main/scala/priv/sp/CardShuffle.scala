@@ -12,11 +12,11 @@ class CardShuffle(sp: SpWorld) {
 
   def get() = {
     val p1 = createOnePlayer(list)
-    val p2 = createOnePlayer(filterHouses(p1)(list))
+    val p2 = createOnePlayer(filterHouses(p1._1)(list))
     List(p1, p2)
   }
 
-  def filterHouses(p: PlayerState)(houses: List[House]) = {
+  def filterHouses(p: PlayerDesc)(houses: List[House]) = {
     houses.zipWithIndex.map {
       case (h, idx) =>
         val p1Cards = p.houses(idx).cards
@@ -25,17 +25,20 @@ class CardShuffle(sp: SpWorld) {
   }
 
   def createOnePlayer(houses: List[House]) = {
-    def eval = new PlayerState((0 to 4).map(i => from(houses(i))).toList)
-    var r = eval
-    while (!(hasOneWipe(r) && hasOneManaGen(r))) {
-      r = eval
+    def eval = {
+      val fromHouses = (0 to 4).map(i => from(houses(i))).toList
+      (PlayerDesc(fromHouses.map(_._1)), fromHouses.map(_._2))
     }
-    r
+    var s = eval
+    while (!(hasOneWipe(s._1) && hasOneManaGen(s._1))) {
+      s = eval
+    }
+    s
   }
 
   private def from(house: House) = {
     val mana = if (isSpecial(house)) 2 else Random.nextInt(3) + 3
-    HouseState(house, randomize(house).sortBy(_.cost), mana)
+    (PlayerHouseDesc(house, randomize(house).sortBy(_.cost)), HouseState(mana))
   }
 
   private def randomize(house: House) = {
@@ -48,12 +51,12 @@ class CardShuffle(sp: SpWorld) {
 
   private val fwipes = List(6, 9)
   private val awipes = List(8)
-  private def hasOneWipe(player: PlayerState) = {
+  private def hasOneWipe(player: PlayerDesc) = {
     (player.houses(0).cards.count(card => fwipes.contains(card.cost))
       + player.houses(2).cards.count(card => awipes.contains(card.cost))) == 1
   }
 
-  private def hasOneManaGen(player: PlayerState) = {
+  private def hasOneManaGen(player: PlayerDesc) = {
     def toi(b: Boolean) = if (b) 1 else 0
     def hasCard(house: Int, cost: Int) = toi(player.houses(house).cards.exists(card => card.cost == cost))
     (hasCard(0, 3) + hasCard(1, 5) + hasCard(3, 5)) == 1

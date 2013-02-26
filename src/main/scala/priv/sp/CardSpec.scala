@@ -8,6 +8,7 @@ sealed trait Card {
   def isAvailable(house: HouseState) = cost <= house.mana
   var cost = 0
   var id = 0
+  var houseIndex = 0
 }
 case class Creature(
   name: String,
@@ -36,7 +37,7 @@ case object SelectOwnerSlot extends CardInputSpec
 case object SelectOwnerCreature extends CardInputSpec
 case object SelectTargetCreature extends CardInputSpec
 
-case class SlotInput(num: Int)
+class SlotInput(val num: Int) extends AnyVal
 
 object CardSpec {
   sealed trait Phase
@@ -44,15 +45,9 @@ object CardSpec {
   case object OnTurn extends Phase
   case object OnRun extends Phase
 
-  sealed trait Effect
-  case class Damage(amount: Int) extends Effect
-  case class DamageCreature(amount: Int) extends Effect
-  case class DamageCreatures(amount: Int) extends Effect
-  case class MassDamageCreatures(amount: Int) extends Effect
-  case class Custom(env: GameCardEffect.Env => scalaz.State[GameState, Unit]) extends Effect
-  
+  type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
-  
+
   def creature(effects: PhaseEffect*) = CardSpec(true, effects.to[List])
   def spell(effects: PhaseEffect*) = CardSpec(false, effects.to[List])
 }

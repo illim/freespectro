@@ -9,24 +9,16 @@ object GameCardEffect {
     @inline def otherPlayer = game.playersLs(other(playerId))
   }
 
-  def getCardEffect(effect: CardSpec.Effect, env: Env): State[GameState, Unit] = {
-    import CardSpec._
-    import env._
-
-    effect match {
-      case Damage(amount) =>
-        otherPlayer.life.%==(_ - amount)
-      case DamageCreature(amount) =>
-        otherPlayer.slots.%== { slots =>
-          slots + (selected -> SlotState.lifeL.mod(_ - amount, slots(selected)))
-        }
-      case DamageCreatures(amount) =>
-        otherPlayer.slots.%==(damageSlots(amount) _)
-      case MassDamageCreatures(amount) =>
-        player.slots.%==(damageSlots(amount) _).flatMap(_ =>
-          otherPlayer.slots.%==(damageSlots(amount) _))
-      case Custom(f) => f(env)
+  def damage(amount : Int) = { env : Env => env.otherPlayer.life.%==(_ - amount) }
+  def damageCreatures(amount : Int) = { env : Env => env.otherPlayer.slots.%==(damageSlots(amount) _) }
+  def damageCreature(amount : Int) = { env : Env =>
+    env.otherPlayer.slots.%== { slots =>
+      slots + (env.selected -> SlotState.lifeL.mod(_ - amount, slots(env.selected)))
     }
+  }
+  def massDamage(amount : Int) = { env : Env =>
+    env.player.slots.%==(damageSlots(amount) _).flatMap(_ =>
+      env.otherPlayer.slots.%==(damageSlots(amount) _))
   }
 
   def damageSlots(amount: Int)(slots: PlayerState.SlotsType) = {

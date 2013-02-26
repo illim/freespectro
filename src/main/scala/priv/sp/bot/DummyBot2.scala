@@ -9,12 +9,11 @@ import scala.util.control.TailCalls._
 // todo optim prune
 class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
-  private val maxDepth = 3
+  private val maxDepth = 4
 
   def executeAI(start: GameState) = {
-    val ripped = ripPlayerState.exec(start)
     val s = System.currentTimeMillis()
-    val node = Node(ripped, maxDepth, botPlayerId)
+    val node = Node(start, 0, botPlayerId)
     val loc = loop(Tree(node).loc).result
     val root = loc.root.tree
     val result = root.subForest.foldLeft(Option.empty[Node]) {
@@ -46,15 +45,22 @@ class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
 
     val node = treeLoc.getLabel
-    if (node.depth > 0 && !treeLoc.hasChildren) {
+    if (node.depth < maxDepth && !treeLoc.hasChildren) {
       val nextNodes = node.commandChoices.map { command =>
-        Tree(Node(node.state, node.depth - 1, other(node.playerId), Some(command)))
+        Tree(Node(node.state, node.depth + 1, other(node.playerId), Some(command)))
       }
       loopOrGoUp(treeLoc.setTree(Tree.node(node, nextNodes)).firstChild)
     } else {
-      val right = treeLoc.right
+      val right = if (node.depth > 1) deleteThenRight(treeLoc) else treeLoc.right
       for (child <- right; parent <- treeLoc.parent) updateParentStat(child.getLabel, parent.getLabel)
       loopOrGoUp(right)
+    }
+  }
+
+  def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
+    treeLoc.rights match {
+      case Stream.cons(t, ts) => Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
+      case _ => None
     }
   }
 
@@ -82,7 +88,7 @@ class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   class Stats {
     val value = playerIds.map(_ => new Stat)
     var count = 0
-    
+
     def apply(playerId: PlayerId) = value(playerId)
     def score(playerId: PlayerId) = {
       val v = value(playerId)

@@ -14,17 +14,20 @@ class Game(val world: World)
 
   val spWorld = new SpWorld
   val shuffle = new CardShuffle(spWorld)
-  var state = GameState(shuffle.get())
+  val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
+  var state = GameState(List(PlayerState(p1State), PlayerState(p2State)))
+  val desc = GameDesc(List(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new DummyBot2(opponent, this)
 
   // gui
   val commandRecorder = new CommandRecorder(this)
   val slotPanel = new SlotPanel(this)
-  val playerPanels = playersLs.map(new CardPanel(_, this))
+  val playerPanels = playerIds.map(new CardPanel(_, this))
   val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state)))
-  val topCardPanel = new TopCardPanel(playersLs(opponent), this)
+  val topCardPanel = new TopCardPanel(playerIds(opponent), this)
   val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, spWorld)
+  val gameCard = new GameCard(desc, this)
   world.entities.add(board)
 
   waitPlayer(owner)
@@ -62,35 +65,10 @@ trait SummonPhase { _: Game =>
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     slotPanel.disable()
     playerPanels.foreach(_.setEnabled(false))
-    commandOption.foreach(c => persist(getCommandEffect(c)))
+    commandOption.foreach(c => persist(gameCard.getCommandEffect(c)))
     // todo anim
     println("submitted" + commandOption)
     run(player)
-  }
-
-  def getCommandEffect(command: Command): State[GameState, Unit] = {
-    val playerLs = playersLs(command.player)
-    val debitMana = playerLs.houses.%== { houses =>
-      val index = houses.indexWhere(_.cards.exists(_ == command.card))
-      val house = houses(index)
-      houses.updated(index, HouseState.manaL.mod(_ - command.card.cost, house))
-    }
-    val summonIfCreature =
-      if (command.card.spec.summon) {
-        command.input match {
-          case Some(SlotInput(num)) => playerLs.slots.%==(_ + (num -> SlotState.creature(command.card)))
-          case _ => GameState.unit
-        }
-      } else GameState.unit
-
-    val env = new GameCardEffect.Env(command.player, this)
-    command.input foreach { slotInput => env.selected = slotInput.num }
-    val directEffects =
-      command.card.spec.effects.foldLeft(GameState.unit) {
-        case (acc, (CardSpec.Direct, effect)) => acc.flatMap(_ => GameCardEffect.getCardEffect(effect, env))
-        case (acc, _) => acc
-      }
-    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => directEffects)
   }
 
 }
@@ -152,4 +130,31 @@ trait RunPhase { _: Game =>
   }
 }
 
+// separated from game for ai to hack the description
+class GameCard(desc : GameDesc, game : Game) {
+  import game._
 
+  def getCommandEffect(command: Command): State[GameState, Unit] = {
+    val playerLs = playersLs(command.player)
+    val debitMana = playerLs.houses.%== { houses =>
+      val house = houses(command.card.houseIndex)
+      houses.updated(command.card.houseIndex, HouseState.manaL.mod(_ - command.card.cost, house))
+    }
+    val summonIfCreature =
+      if (command.card.spec.summon) {
+        command.input match {
+          case Some(slotInput) => playerLs.slots.%==(_ + (slotInput.num -> SlotState.creature(command.card)))
+          case _ => GameState.unit
+        }
+      } else GameState.unit
+
+    val env = new GameCardEffect.Env(command.player, game)
+    command.input foreach { slotInput => env.selected = slotInput.num }
+    val directEffects =
+      command.card.spec.effects.foldLeft(GameState.unit) {
+        case (acc, (CardSpec.Direct, effect)) => acc.flatMap(_ => effect(env))
+        case (acc, _) => acc
+      }
+    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => directEffects)
+  }
+}

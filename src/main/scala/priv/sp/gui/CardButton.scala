@@ -6,7 +6,7 @@ import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.util._
 
-class CardButton(val card : Card, house: => HouseState, sp: SpWorld) extends GuiElem {
+class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extends GuiElem {
 
   private val cardTex = sp.textures.get("Images/Cards/" + card.image)
   private val (borderTex, maskTex) = sp.baseTextures.getBorder(card)
@@ -18,7 +18,7 @@ class CardButton(val card : Card, house: => HouseState, sp: SpWorld) extends Gui
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    val isActive = card.isAvailable(house) && enabled
+    val isActive = card.isAvailable(houseState) && enabled
     glColor4f(1, 1, 1, 1)
 
     if (!isActive) {

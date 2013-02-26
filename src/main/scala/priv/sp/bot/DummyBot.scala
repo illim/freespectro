@@ -15,10 +15,8 @@ class DummyBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   private val maxDepth = 2
 
   def executeAI(start: GameState) = {
-    val ripped = ripPlayerState.exec(start)
-
     val s = System.currentTimeMillis()
-    loop(Path(Nil, ripped)).map { path =>
+    loop(Path(Nil, start)).map { path =>
       println("ai spent " + (System.currentTimeMillis() - s) + " sc: " + path.score + ", depth:" + path.steps.size)
       path.steps.last._1
     }

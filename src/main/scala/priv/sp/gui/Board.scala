@@ -28,7 +28,7 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: Lis
           Column(List(
             Row(lifeLabels(opponent) :: slotPanel.slots(opponent)),
             Translate(
-              Coord2i(0, -30), Row(lifeLabels(owner) :: /**TestButton(sp) :: */slotPanel.slots(owner)))))),
+              Coord2i(0, -30), Row(lifeLabels(owner) :: /**TestButton(sp) :: */ slotPanel.slots(owner)))))),
         Translate(
           Coord2i(500, 0), playerPanel.panel)))
   }
@@ -51,7 +51,6 @@ class CommandRecorder(game: Game) {
 
   def addInput(x: SlotInput) = {
     value.foreach { command =>
-      println("add input " + x)
       setCommand(command.copy(input = Some(x)))
     }
   }
@@ -59,7 +58,6 @@ class CommandRecorder(game: Game) {
   def nextStep() {
     value.foreach { command =>
       if (command.card.inputSpec.size == command.input.size) {
-        println("submit " + command.card)
         cont(Some(command))
       } else {
         command.card.inputSpec.get match {
@@ -80,26 +78,28 @@ class SlotPanel(game: Game) {
   val allSlots = slots.flatten
   allSlots.foreach(listenEvent)
 
-  def listenEvent(slotButton : SlotButton){
+  def listenEvent(slotButton: SlotButton) {
     slotButton.on {
       case MouseClicked(_) if slotButton.enabled =>
-        game.commandRecorder.addInput(SlotInput(slotButton.num))
+        game.commandRecorder.addInput(new SlotInput(slotButton.num))
     }
   }
-  def setSlotEnabled(player : PlayerId, empty : Boolean) {
+  def setSlotEnabled(player: PlayerId, empty: Boolean) {
     slots(player).foreach { slot => if (slot.isEmpty == empty) slot.enabled = true }
   }
   def disable() { allSlots.foreach(_.enabled = false) }
   def refresh() { allSlots.foreach(_.refresh()) }
 }
 
-class CardPanel(playerLs : PlayerStateLenses, game: Game) {
-  private val houseCardButtons = playerLs.houses.get(game.state).zipWithIndex.map { case (house, idx) =>
-    def getHouse = playerLs.houses.get(game.state).apply(idx)
-    
-    new HouseLabel(getHouse, game.spWorld) -> house.cards.map { card =>
-      new CardButton(card, getHouse, game.spWorld)
-    }
+class CardPanel(playerId: PlayerId, game: Game) {
+  private val playerLs = game.playersLs(playerId)
+  private val houseCardButtons = playerLs.houses.get(game.state).zipWithIndex.map { case (_, idx) =>
+      def getHouseState = playerLs.houses.get(game.state).apply(idx)
+      val house = game.desc.players(playerId).houses(idx)
+
+      new HouseLabel(getHouseState, house.house, game.spWorld) -> house.cards.map { card =>
+        new CardButton(card, getHouseState, game.spWorld)
+      }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
   cardButtons.foreach { cardButton =>
@@ -119,9 +119,11 @@ class CardPanel(playerLs : PlayerStateLenses, game: Game) {
   }
 }
 
-class TopCardPanel(playerLs: PlayerStateLenses, game: Game) {
-  val panel = Row(playerLs.houses.get(game.state).zipWithIndex.map { case (_, idx) =>
-    new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.spWorld, flip = true)
+class TopCardPanel(playerId: PlayerId, game: Game) {
+  private val playerLs = game.playersLs(playerId)
+  val panel = Row(playerLs.houses.get(game.state).zipWithIndex.map {
+    case (_, idx) =>
+      new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.desc.players(playerId).houses(idx).house, game.spWorld, flip = true)
   })
 }
 
