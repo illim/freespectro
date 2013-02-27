@@ -21,8 +21,8 @@ class Houses {
         import env._
 
         otherPlayer.slots.%== {
-          _.map {
-            case (num, slot) =>
+          _.collect {
+            case (num, slot) if (num == selected && slot.life > 18) || slot.life > 10 =>
               num -> SlotState.lifeL.mod(_ - (if (num == selected) 18 else 10), slot)
           }
         }
@@ -58,7 +58,7 @@ class Houses {
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(9), Direct -> damage(9))),
     Creature("LightningCloud", Some(4), 20),
     Spell("Tornado"),
-    Creature("AirElemental", None, 44),
+    Creature("AirElemental", None, 44, spec = creature(Direct -> damage(8))),
     Creature("Titan", Some(9), 40)))
 
   val Earth = House("earth", List(

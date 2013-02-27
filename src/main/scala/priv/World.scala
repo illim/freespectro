@@ -65,13 +65,13 @@ trait Entity {
 }
 
 object Task {
-  
+  import collection._
   import scala.util.continuations._
-  def chain[A](world : World, tasks: Iterable[Task[A]]) = shift { k: (Unit => Unit) =>
-    if (tasks.isEmpty) k()
+  def chain[A](world : World, tasks: Iterable[Task[A]]) = shift { k: (List[A] => Unit) =>
+    if (tasks.isEmpty) k(Nil)
     else world.addTask(new TaskChain(world, tasks, k))
   }
-  private class TaskChain[A](world : World, tasks: Iterable[Task[A]], k : Unit => Unit) extends Task[Unit] {
+  private class TaskChain[A](world : World, tasks: Iterable[Task[A]], k : List[A] => Unit) extends Task[Unit] {
     val ite = tasks.iterator
     var current = ite.next
     val duration = current.duration
@@ -82,7 +82,7 @@ object Task {
         current = ite.next
         world.addTask(this)
       } else {
-        k()
+        k(tasks.map(_.result.get)(breakOut))
       }
     }
   }

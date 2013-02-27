@@ -50,6 +50,7 @@ object GameState {
   val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id)))
   val unit = State[GameState, Unit](gs => (gs, ()))
+  def none[A] = State[GameState, Option[A]](gs => (gs, None))
   val currentVersion = new java.util.concurrent.atomic.AtomicInteger(0)
 }
 // ai hacks

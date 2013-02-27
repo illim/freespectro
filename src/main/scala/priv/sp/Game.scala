@@ -18,7 +18,7 @@ class Game(val world: World)
   var state = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(List(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
-  private val bot = new DummyBot2(opponent, this)
+  private val bot = new MMBot(opponent, this)
 
   // gui
   val commandRecorder = new CommandRecorder(this)
@@ -54,9 +54,10 @@ class Game(val world: World)
     world.ended = true
   }
 
-  protected def persist(stateFunc: State[GameState, _]) = {
-    state = stateFunc.exec(state)
-    stateFunc
+  protected def persist[A](stateFunc: State[GameState, A]) : A = {
+    val result = stateFunc run state
+    state = result._1
+    result._2
   }
 }
 
@@ -81,24 +82,26 @@ trait RunPhase { _: Game =>
     val player = state.players(playerId)
     val otherPlayerId = other(playerId)
     val otherPlayer = state.players(otherPlayerId)
-    val tasks = player.slots.collect {
+    val tasks = player.slots.toList.sortBy(_._1).collect {
       case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
         val slotButton = slotPanel.slots(playerId)(numSlot)
 
         slotButton.AnimTask(if (playerId == owner) -1 else 1) {
-          persist(runSlot(playerId, numSlot, slot))
+          val result = persist(runSlot(playerId, numSlot, slot))
           slotPanel.refresh()
+          result
         }
     }
     reset {
       val k = Task.chain(world, tasks)
-      k
+      val result = k
+      result.foreach(_.foreach(endGame _))
       persist(prepareNextTurn(otherPlayerId))
       waitPlayer(otherPlayerId)
     }
   }
 
-  def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Unit] = {
+  def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Option[PlayerId]] = {
     val otherPlayerLs = playersLs(other(playerId))
 
     otherPlayerLs.slots.flatMap { slots =>
@@ -106,17 +109,17 @@ trait RunPhase { _: Game =>
         case None =>
           (otherPlayerLs.life -= slot.attack).map { life =>
             if (life <= 0) {
-              endGame(playerId)
-            }
+              Some(playerId)
+            } else None
           }
         case Some(oppositeSlot) =>
           otherPlayerLs.slots.%= { slots =>
             slots + (numSlot -> SlotState.lifeL.mod(_ - slot.attack, oppositeSlot))
           }.flatMap { slots =>
             if (slots(numSlot).life <= 0) {
-              otherPlayerLs.slots %== (_ - numSlot)
+              (otherPlayerLs.slots %== (_ - numSlot)) map( _ => None)
             } else {
-              GameState.unit
+              GameState.none[PlayerId]
             }
           }
       }

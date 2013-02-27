@@ -13,7 +13,9 @@ object GameCardEffect {
   def damageCreatures(amount : Int) = { env : Env => env.otherPlayer.slots.%==(damageSlots(amount) _) }
   def damageCreature(amount : Int) = { env : Env =>
     env.otherPlayer.slots.%== { slots =>
-      slots + (env.selected -> SlotState.lifeL.mod(_ - amount, slots(env.selected)))
+      if (slots(env.selected).life > amount) {
+        slots + (env.selected -> SlotState.lifeL.mod(_ - amount, slots(env.selected)))
+      } else slots - env.selected
     }
   }
   def massDamage(amount : Int) = { env : Env =>
@@ -22,8 +24,8 @@ object GameCardEffect {
   }
 
   def damageSlots(amount: Int)(slots: PlayerState.SlotsType) = {
-    slots.map {
-      case (num, slot) =>
+    slots.collect {
+      case (num, slot) if slot.life > amount =>
         num -> SlotState.lifeL.mod(_ - amount, slot)
     }
   }
