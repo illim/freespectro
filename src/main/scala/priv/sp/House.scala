@@ -22,7 +22,7 @@ class Houses {
 
         otherPlayer.slots.%== {
           _.collect {
-            case (num, slot) if (num == selected && slot.life > 18) || slot.life > 10 =>
+            case (num, slot) if (num != selected && slot.life > 10) || slot.life > 18 =>
               num -> SlotState.lifeL.mod(_ - (if (num == selected) 18 else 10), slot)
           }
         }

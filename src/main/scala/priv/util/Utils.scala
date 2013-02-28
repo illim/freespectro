@@ -7,6 +7,7 @@ import org.lwjgl.opengl._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.util.glu.GLU._
 import javax.imageio.stream._
+import scalaz._
 
 object Utils {
 
@@ -90,6 +91,13 @@ object Utils {
   def threaded(f: => Unit) = {
     val t = new Thread(new Runnable() { def run() = f  })
     t.start()
+  }
+
+  def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
+    treeLoc.rights match {
+      case Stream.cons(t, ts) => Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
+      case _ => None
+    }
   }
 }
 

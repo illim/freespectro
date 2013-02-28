@@ -68,7 +68,6 @@ trait SummonPhase { _: Game =>
     playerPanels.foreach(_.setEnabled(false))
     commandOption.foreach(c => persist(gameCard.getCommandEffect(c)))
     // todo anim
-    println("submitted" + commandOption)
     run(player)
   }
 

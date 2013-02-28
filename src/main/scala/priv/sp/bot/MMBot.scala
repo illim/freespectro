@@ -1,6 +1,7 @@
 package priv.sp.bot
 
 import priv.sp._
+import priv.util._
 import scalaz._
 import annotation.tailrec
 import scala.util.control.TailCalls._
@@ -8,14 +9,13 @@ import scala.util.control.TailCalls._
 // another very stupid bot, but faster using minmax with pruning, horrible mess pretty sure it doesn't work :)
 class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
-  private val maxDepth = 4
+  private val loop = new Loop()
 
   def executeAI(start: GameState) = {
     val s = System.currentTimeMillis()
-    val node = Node(start, 0, botPlayerId)
-    val loc = loop(Tree(node).loc).result
-    val root = loc.root.tree
-    val result = root.subForest.foldLeft(Option.empty[Node]) {
+    val node = Node(start, botPlayerId)
+    val loc = loop(Tree(node).loc)
+    val result = loc.subForest.foldLeft(Option.empty[Node]) {
       case (None, childTree) => Some(childTree.rootLabel)
       case (acc @ Some(node), childTree) =>
         if (node.score.get < childTree.rootLabel.score.get)
@@ -29,56 +29,30 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
   }
 
-  private final def loop(treeLoc: TreeLoc[Node]): TailRec[TreeLoc[Node]] = {
-    def loopOrGoUp(treeLocOpt: Option[TreeLoc[Node]]): TailRec[TreeLoc[Node]] = {
-      treeLocOpt match {
-        case None =>
-          treeLoc.parent match {
-            case None => done(treeLoc)
-            case Some(parent) =>
-              updateParentStat(treeLoc.getLabel, parent.getLabel)
-              tailcall(loop(parent))
+  class Loop extends BotTreeLoop[Node] {
+    val maxDepth = 4
+
+    def getNextsLabel(label : Node) : Stream[Tree[Node]] = label.commandChoices.map { command =>
+      Tree(Node(label.state, other(label.playerId), Some(command)))
+    }
+
+    def isPrunable(treeLoc : TreeLoc[Node]) : Boolean = {
+      treeLoc.parent.flatMap(_.parent).flatMap(_.getLabel.score).flatMap{ pscore =>
+        treeLoc.parent.flatMap(_.getLabel.score).map{ score =>
+          if (treeLoc.getLabel.playerId == botPlayerId) {
+            score > pscore
+          } else {
+            score < pscore
           }
-        case Some(loc) => tailcall(loop(loc))
-      }
-    }
-
-    val node = treeLoc.getLabel
-    val prune = treeLoc.parent.flatMap(_.parent).flatMap(_.getLabel.score).flatMap{ pscore =>
-      node.score.map{ score =>
-        if (node.playerId == botPlayerId) {
-          score > pscore
-        } else {
-          score < pscore
         }
-      }
-    } getOrElse false
-    if (node.depth < maxDepth && !treeLoc.hasChildren) {
-      val nextNodes = node.commandChoices.map { command =>
-        Tree(Node(node.state, node.depth + 1, other(node.playerId), Some(command)))
-      }
-      loopOrGoUp(treeLoc.setTree(Tree.node(node, nextNodes)).firstChild)
-    } else if (prune) {
-      loopOrGoUp(None)
-    } else {
-      val right = if (node.depth > 1) deleteThenRight(treeLoc) else treeLoc.right
-      for (child <- right; parent <- treeLoc.parent) updateParentStat(child.getLabel, parent.getLabel)
-      loopOrGoUp(right)
+      } getOrElse false
     }
+
+
+    def updateLabelOnLeave(label : Node, parentLabel : Node) = parentLabel.updateScore(label.score.getOrElse(label.getScore))
   }
 
-  def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
-    treeLoc.rights match {
-      case Stream.cons(t, ts) => Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
-      case _ => None
-    }
-  }
-
-  def updateParentStat(node: Node, parent: Node) = {
-    parent.updateScore(node.score.getOrElse(node.getScore))
-  }
-
-  case class Node(initState: GameState, depth: Int, playerId: PlayerId, commandOpt: Option[Command] = None) {
+  case class Node(initState: GameState, playerId: PlayerId, commandOpt: Option[Command] = None) {
     lazy val state = commandOpt.map(cmd => simulateCommand(initState, cmd)) getOrElse initState
     var score = Option.empty[Double]
 
@@ -107,12 +81,63 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
   }
 
-
-  case class MinMax(min : Double, max : Double)
-
   class Stat {
     var kill = 0
     var damage = 0
   }
+
+}
+
+// full of side effect horror
+trait BotTreeLoop[A] {
+  def maxDepth:Int
+
+  var depth = 0
+
+  final def apply(start: TreeLoc[A]) : Tree[A] = {
+    var treeLoc = start
+    var end = false
+    while (!end) {
+      val label = treeLoc.getLabel
+      val prune = isPrunable(treeLoc)
+      if (depth == maxDepth) {
+        for (parent <- treeLoc.parent) updateLabelOnLeave(label, parent.getLabel)
+      }
+      val nextTreeLoc = {
+        if (depth < maxDepth && !treeLoc.hasChildren) {
+          val nextLabels = getNextsLabel(label)
+          if (nextLabels.nonEmpty) {
+            depth += 1
+          }
+          treeLoc.setTree(Tree.node(label, nextLabels)).firstChild
+        } else if (prune) {
+          None
+        } else {
+          val right = if (depth > 1) Utils.deleteThenRight(treeLoc) else treeLoc.right
+          right
+        }
+      }
+
+      nextTreeLoc match {
+        case None =>
+          treeLoc.parent match {
+            case None => end = true
+            case Some(parent) =>
+              depth -= 1
+              treeLoc = parent
+              for (parent <- treeLoc.parent) updateLabelOnLeave(treeLoc.getLabel, parent.getLabel)
+          }
+        case Some(loc) => treeLoc = loc
+      }
+    }
+    treeLoc.root.tree
+  }
+
+
+  def getNextsLabel(label : A) : Stream[Tree[A]]
+
+  def isPrunable(treeLoc : TreeLoc[A]) : Boolean
+
+  def updateLabelOnLeave(label : A, parentLabel : A)
 
 }
