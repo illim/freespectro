@@ -6,7 +6,7 @@ import scalaz._
 import annotation.tailrec
 import scala.util.control.TailCalls._
 
-// another very stupid bot, but faster using minmax with pruning, horrible mess pretty sure it doesn't work :)
+// another very stupid bot, but a bit less slow using minmax with pruning, horrible mess pretty sure it doesn't work :)
 class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   private val loop = new Loop()
@@ -32,7 +32,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   class Loop extends BotTreeLoop[Node] {
     val maxDepth = 4
 
-    def getNextsLabel(label : Node) : Stream[Tree[Node]] = label.commandChoices.map { command =>
+    def getNexts(label : Node) : Stream[Tree[Node]] = label.commandChoices.map { command =>
       Tree(Node(label.state, other(label.playerId), Some(command)))
     }
 
@@ -49,7 +49,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
 
 
-    def updateLabelOnLeave(label : Node, parentLabel : Node) = parentLabel.updateScore(label.score.getOrElse(label.getScore))
+    def propagate(label : Node, parentLabel : Node) = parentLabel.updateScore(label.score.getOrElse(label.getScore))
   }
 
   case class Node(initState: GameState, playerId: PlayerId, commandOpt: Option[Command] = None) {
@@ -67,30 +67,30 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
     def getScore = {
       val stats = playerIds.map{ playerId =>
-        val stat= new Stat
-        if (state.players(other(playerId)).life <= 0) stat.kill += 1
-        else {
-          stat.damage = state.players(playerId).life - initState.players(playerId).life
-        }
-        stat
+        if (state.players(other(playerId)).life <= 0) new Stat(kill = 1)
+        else new Stat(damage = state.players(playerId).life - initState.players(playerId).life)
       }
-
       val v = stats(botPlayerId)
       val v2 = stats(other(botPlayerId))
-      ((v.kill - v2.kill) + (v.damage - v2.damage) * 0.1) // stupid heuristic
+
+      ((v.kill - v2.kill) + (v.damage - v2.damage) * 0.01) // stupid heuristic
     }
-  }
 
-  class Stat {
-    var kill = 0
-    var damage = 0
+    private class Stat(val kill:Int = 0, val damage : Int = 0)
   }
-
 }
 
 // full of side effect horror
 trait BotTreeLoop[A] {
+
   def maxDepth:Int
+
+  def getNexts(label : A) : Stream[Tree[A]]
+
+  def isPrunable(treeLoc : TreeLoc[A]) : Boolean
+
+  // used to propagate the min/max values when evaluating a leaf or going up
+  def propagate(label : A, parentLabel : A)
 
   var depth = 0
 
@@ -101,11 +101,11 @@ trait BotTreeLoop[A] {
       val label = treeLoc.getLabel
       val prune = isPrunable(treeLoc)
       if (depth == maxDepth) {
-        for (parent <- treeLoc.parent) updateLabelOnLeave(label, parent.getLabel)
+        for (parent <- treeLoc.parent) propagate(label, parent.getLabel)
       }
       val nextTreeLoc = {
         if (depth < maxDepth && !treeLoc.hasChildren) {
-          val nextLabels = getNextsLabel(label)
+          val nextLabels = getNexts(label)
           if (nextLabels.nonEmpty) {
             depth += 1
           }
@@ -113,8 +113,7 @@ trait BotTreeLoop[A] {
         } else if (prune) {
           None
         } else {
-          val right = if (depth > 1) Utils.deleteThenRight(treeLoc) else treeLoc.right
-          right
+          if (depth > 1) Utils.deleteThenRight(treeLoc) else treeLoc.right
         }
       }
 
@@ -125,19 +124,11 @@ trait BotTreeLoop[A] {
             case Some(parent) =>
               depth -= 1
               treeLoc = parent
-              for (parent <- treeLoc.parent) updateLabelOnLeave(treeLoc.getLabel, parent.getLabel)
+              for (parent <- treeLoc.parent) propagate(treeLoc.getLabel, parent.getLabel)
           }
         case Some(loc) => treeLoc = loc
       }
     }
     treeLoc.root.tree
   }
-
-
-  def getNextsLabel(label : A) : Stream[Tree[A]]
-
-  def isPrunable(treeLoc : TreeLoc[A]) : Boolean
-
-  def updateLabelOnLeave(label : A, parentLabel : A)
-
 }

@@ -59,11 +59,23 @@ class Game(val world: World)
     state = result._1
     result._2
   }
+
+  protected def getSlotPhaseEffect(playerId : PlayerId, phase : CardSpec.Phase) = {
+    val playerLs = playersLs(playerId)
+    val env = new GameCardEffect.Env(playerId, this)
+    playerLs.slots.flatMap{ slots =>
+      slots.values.map{ slotState =>
+        slotState.card.spec.effectByPhase(phase)(env)
+      }.reduceLeft{ (x, y) => x flatMap (_ => y)}
+    }
+
+  }
 }
 
 trait SummonPhase { _: Game =>
 
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
+    println(player + " submit " + commandOption)
     slotPanel.disable()
     playerPanels.foreach(_.setEnabled(false))
     commandOption.foreach(c => persist(gameCard.getCommandEffect(c)))
@@ -78,6 +90,8 @@ trait RunPhase { _: Game =>
   protected def run(playerId: PlayerId) {
     println("run" + playerId)
     slotPanel.refresh()
+    persist(getSlotPhaseEffect(playerId, CardSpec.OnTurn))
+
     val player = state.players(playerId)
     val otherPlayerId = other(playerId)
     val otherPlayer = state.players(otherPlayerId)
@@ -103,24 +117,24 @@ trait RunPhase { _: Game =>
   def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Option[PlayerId]] = {
     val otherPlayerLs = playersLs(other(playerId))
 
-    otherPlayerLs.slots.flatMap { slots =>
-      slots.get(numSlot) match {
-        case None =>
-          (otherPlayerLs.life -= slot.attack).map { life =>
-            if (life <= 0) {
-              Some(playerId)
-            } else None
-          }
-        case Some(oppositeSlot) =>
-          otherPlayerLs.slots.%= { slots =>
-            slots + (numSlot -> SlotState.lifeL.mod(_ - slot.attack, oppositeSlot))
-          }.flatMap { slots =>
-            if (slots(numSlot).life <= 0) {
-              (otherPlayerLs.slots %== (_ - numSlot)) map( _ => None)
-            } else {
-              GameState.none[PlayerId]
-            }
-          }
+    def damageLife = (otherPlayerLs.life -= slot.attack).map { life =>
+      if (life <= 0) {
+        Some(playerId)
+      } else None
+    }
+
+    if (slot.card.multipleTarget){
+      damageLife.flatMap{ result =>
+        GameCardEffect.damageCreatures(otherPlayerLs, slot.attack).map( _ => result)
+      }
+    } else {
+      otherPlayerLs.slots.flatMap { slots =>
+        slots.get(numSlot) match {
+          case None => damageLife
+          case Some(oppositeSlot) =>
+            GameCardEffect.damageCreature(
+              otherPlayerLs, numSlot, slot.attack).map( _ => None)
+        }
       }
     }
   }
@@ -131,6 +145,7 @@ trait RunPhase { _: Game =>
     }
   }
 }
+
 
 // separated from game for ai to hack the description
 class GameCard(desc : GameDesc, game : Game) {
@@ -152,11 +167,6 @@ class GameCard(desc : GameDesc, game : Game) {
 
     val env = new GameCardEffect.Env(command.player, game)
     command.input foreach { slotInput => env.selected = slotInput.num }
-    val directEffects =
-      command.card.spec.effects.foldLeft(GameState.unit) {
-        case (acc, (CardSpec.Direct, effect)) => acc.flatMap(_ => effect(env))
-        case (acc, _) => acc
-      }
-    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => directEffects)
+    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => command.card.spec.directEffects(env))
   }
 }

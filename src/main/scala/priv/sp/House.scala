@@ -33,7 +33,8 @@ class Houses {
 
   val Water = House("water", List(
     Spell("Meditation"),
-    Creature("SeaSprite", Some(5), 22),
+    Creature("SeaSprite", Some(5), 22,
+      spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - 4) })),
     Creature("MerfolkApostate", Some(3), 10),
     Creature("IceGolem", Some(4), 12),
     Creature("MerfolkElder", Some(3), 16),
@@ -52,19 +53,21 @@ class Houses {
       inputSpec = Some(SelectTargetCreature),
       spec = spell(Direct -> damageCreature(6), Direct -> damage(6))),
     Creature("FaerieSage", Some(4), 19),
-    Creature("WallOfLightning", Some(0), 28),
+    Creature("WallOfLightning", Some(0), 28, spec = creature(OnTurn -> damage(4))),
     Spell("LightningBolt"),
     Creature("Phoenix", Some(6), 18),
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(9), Direct -> damage(9))),
-    Creature("LightningCloud", Some(4), 20),
-    Spell("Tornado"),
+    Creature("LightningCloud", Some(4), 20, multipleTarget = true),
+    Spell("Tornado",
+      spec = spell(Direct -> { env: Env => env.otherPlayer.slots.%==( _ - env.selected) })),
     Creature("AirElemental", None, 44, spec = creature(Direct -> damage(8))),
-    Creature("Titan", Some(9), 40)))
+    Creature("Titan", Some(9), 40,
+      spec = creature(Direct -> { env : Env => damageCreature(env.otherPlayer, env.selected, 15)}))))
 
   val Earth = House("earth", List(
     Creature("ElvenHealer", Some(2), 12),
     Spell("NaturesRitual"),
-    Creature("ForestSprite", Some(1), 22),
+    Creature("ForestSprite", Some(1), 22, multipleTarget = true),
     Spell("Rejuvenation"),
     Creature("elfHermit", Some(1), 13),
     Spell("NaturesFury"),
@@ -73,13 +76,13 @@ class Houses {
     Spell("StoneRain", spec = spell(Direct -> massDamage(25))),
     Creature("EarthElemental", None, 49),
     Creature("MasterHealer", Some(3), 35),
-    Creature("Hydra", Some(3), 40)))
+    Creature("Hydra", Some(3), 40, multipleTarget = true)))
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime"),
     Creature("DwarvenRifleman", Some(4), 17),
     Creature("DwarvenCraftsman", Some(2), 17),
-    Creature("Ornithopter", Some(4), 24),
+    Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(2))),
     Creature("SteelGolem", Some(6), 20),
     Creature("Cannon", Some(8), 29),
     Spell("Cannonade", spec = spell(Direct -> damageCreatures(19))),

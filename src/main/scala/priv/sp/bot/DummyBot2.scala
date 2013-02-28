@@ -1,6 +1,7 @@
 package priv.sp.bot
 
 import priv.sp._
+import priv.util._
 import scalaz._
 import annotation.tailrec
 import scala.util.control.TailCalls._
@@ -51,16 +52,9 @@ class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
       }
       loopOrGoUp(treeLoc.setTree(Tree.node(node, nextNodes)).firstChild)
     } else {
-      val right = if (node.depth > 1) deleteThenRight(treeLoc) else treeLoc.right
+      val right = if (node.depth > 1) Utils.deleteThenRight(treeLoc) else treeLoc.right
       for (child <- right; parent <- treeLoc.parent) updateParentStat(child.getLabel, parent.getLabel)
       loopOrGoUp(right)
-    }
-  }
-
-  def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
-    treeLoc.rights match {
-      case Stream.cons(t, ts) => Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
-      case _ => None
     }
   }
 

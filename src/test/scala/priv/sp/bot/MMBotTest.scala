@@ -27,7 +27,7 @@ class MMBotSpec extends FlatSpec with ShouldMatchers {
   class TestLoop extends BotTreeLoop[Node] {
     val maxDepth = 2
 
-    def getNextsLabel(label : Node) : Stream[Tree[Node]] = data(label.id).map{ id => Tree(Node(id)) }.toStream
+    def getNexts(label : Node) : Stream[Tree[Node]] = data(label.id).map{ id => Tree(Node(id)) }.toStream
 
     def isPrunable(treeLoc : TreeLoc[Node]) : Boolean = {
       treeLoc.parent.flatMap(_.parent).flatMap(_.getLabel.score).flatMap{ pscore =>
@@ -41,7 +41,7 @@ class MMBotSpec extends FlatSpec with ShouldMatchers {
       } getOrElse false
     }
 
-    def updateLabelOnLeave(label : Node, parentLabel : Node) = parentLabel.updateScore(depth ,label.score.getOrElse(label.getScore))
+    def propagate(label : Node, parentLabel : Node) = parentLabel.updateScore(depth ,label.score.getOrElse(label.getScore))
   }
 
   case class Node(id : Int){

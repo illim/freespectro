@@ -6,6 +6,7 @@ sealed trait Card {
   def inputSpec: Option[CardInputSpec]
   def spec: CardSpec
   def isAvailable(house: HouseState) = cost <= house.mana
+
   var cost = 0
   var id = 0
   var houseIndex = 0
@@ -14,6 +15,7 @@ case class Creature(
   name: String,
   attack: Option[Int],
   life: Int,
+  multipleTarget : Boolean = false,
   inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
   spec: CardSpec = CardSpec.creature()) extends Card {
 
@@ -43,7 +45,6 @@ object CardSpec {
   sealed trait Phase
   case object Direct extends Phase
   case object OnTurn extends Phase
-  case object OnRun extends Phase
 
   type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
@@ -51,6 +52,17 @@ object CardSpec {
   def creature(effects: PhaseEffect*) = CardSpec(true, effects.to[List])
   def spell(effects: PhaseEffect*) = CardSpec(false, effects.to[List])
 }
-case class CardSpec(summon: Boolean, effects: List[CardSpec.PhaseEffect])
+import CardSpec._
+
+case class CardSpec(summon: Boolean, effects: List[PhaseEffect]){
+  val directEffects = effectByPhase(Direct)
+
+  def effectByPhase(phase : Phase) = { env : GameCardEffect.Env =>
+    effects.foldLeft(GameState.unit) {
+      case (acc, (ph, effect)) if ph == phase => acc.flatMap(_ => effect(env))
+      case (acc, _) => acc
+    }
+  }
+}
 
 
