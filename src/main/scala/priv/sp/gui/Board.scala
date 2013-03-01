@@ -72,8 +72,14 @@ class CommandRecorder(game: Game) {
 }
 
 class SlotPanel(game: Game) {
-  val slots = game.playersLs.map { playerLs =>
-    slotRange.map(num => new SlotButton(num, playerLs.slots.get(game.state).get(num), game.spWorld)).toList
+  val slots = playerIds.map { playerId =>
+    val playerLs = game.playersLs(playerId)
+    slotRange.map(num =>
+      new SlotButton(
+        num,
+        playerId,
+        playerLs.slots.get(game.state).get(num),
+        game)).toList
   }
   val allSlots = slots.flatten
   allSlots.foreach(listenEvent)
@@ -97,8 +103,8 @@ class CardPanel(playerId: PlayerId, game: Game) {
       def getHouseState = playerLs.houses.get(game.state).apply(idx)
       val house = game.desc.players(playerId).houses(idx)
 
-      new HouseLabel(getHouseState, house.house, game.spWorld) -> house.cards.map { card =>
-        new CardButton(card, getHouseState, game.spWorld)
+      new HouseLabel(getHouseState, house.house, game.sp) -> house.cards.map { card =>
+        new CardButton(card, getHouseState, game.sp)
       }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
@@ -123,7 +129,7 @@ class TopCardPanel(playerId: PlayerId, game: Game) {
   private val playerLs = game.playersLs(playerId)
   val panel = Row(playerLs.houses.get(game.state).zipWithIndex.map {
     case (_, idx) =>
-      new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.desc.players(playerId).houses(idx).house, game.spWorld, flip = true)
+      new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.desc.players(playerId).houses(idx).house, game.sp, flip = true)
   })
 }
 

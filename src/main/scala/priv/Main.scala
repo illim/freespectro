@@ -64,7 +64,7 @@ object Main extends App {
         }
       }
     }
-    game.spWorld.clean()
+    game.sp.clean()
   }
 
   def pollInput() = {

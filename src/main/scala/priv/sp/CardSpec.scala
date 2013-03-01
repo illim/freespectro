@@ -55,12 +55,17 @@ object CardSpec {
 import CardSpec._
 
 case class CardSpec(summon: Boolean, effects: List[PhaseEffect]){
+  val onTurnEffects = effectByPhase(OnTurn)
   val directEffects = effectByPhase(Direct)
 
-  def effectByPhase(phase : Phase) = { env : GameCardEffect.Env =>
-    effects.foldLeft(GameState.unit) {
-      case (acc, (ph, effect)) if ph == phase => acc.flatMap(_ => effect(env))
-      case (acc, _) => acc
+  def effectByPhase(phase : Phase) ={
+    val filteredEffects = effects.filter(_._1 == phase)
+
+    { env : GameCardEffect.Env =>
+      filteredEffects.foldLeft(GameState.unit) {
+        case (acc, (ph, effect)) => acc.flatMap(_ => effect(env))
+        case (acc, _) => acc
+      }
     }
   }
 }

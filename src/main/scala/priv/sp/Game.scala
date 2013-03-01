@@ -8,12 +8,10 @@ import scala.util.continuations._
 import scalaz._
 import priv.sp.bot._
 
-class Game(val world: World)
-  extends SummonPhase
-  with RunPhase {
+class Game(val world: World) {
 
-  val spWorld = new SpWorld
-  val shuffle = new CardShuffle(spWorld)
+  val sp = new SpWorld
+  val shuffle = new CardShuffle(sp)
   val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
   var state = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(List(p1Desc, p2Desc))
@@ -26,7 +24,7 @@ class Game(val world: World)
   val playerPanels = playerIds.map(new CardPanel(_, this))
   val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state)))
   val topCardPanel = new TopCardPanel(playerIds(opponent), this)
-  val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, spWorld)
+  val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
   world.entities.add(board)
 
@@ -60,19 +58,9 @@ class Game(val world: World)
     result._2
   }
 
-  protected def getSlotPhaseEffect(playerId : PlayerId, phase : CardSpec.Phase) = {
-    val playerLs = playersLs(playerId)
-    val env = new GameCardEffect.Env(playerId, this)
-    playerLs.slots.flatMap{ slots =>
-      slots.values.map{ slotState =>
-        slotState.card.spec.effectByPhase(phase)(env)
-      }.reduceLeft{ (x, y) => x flatMap (_ => y)}
-    }
-
+  protected def persistState(newState : GameState) {
+    state = newState
   }
-}
-
-trait SummonPhase { _: Game =>
 
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
@@ -83,27 +71,30 @@ trait SummonPhase { _: Game =>
     run(player)
   }
 
-}
-
-trait RunPhase { _: Game =>
+  protected def getSlotTurnEffect(playerId : PlayerId) = {
+    val player = state.players(playerId)
+    val env = new GameCardEffect.Env(playerId, this)
+    player.slots.values.foldLeft(state){ (acc, slotState) =>
+      slotState.card.spec.onTurnEffects(env) exec acc
+    }
+  }
 
   protected def run(playerId: PlayerId) {
     println("run" + playerId)
     slotPanel.refresh()
-    persist(getSlotPhaseEffect(playerId, CardSpec.OnTurn))
+    persistState(getSlotTurnEffect(playerId))
 
     val player = state.players(playerId)
     val otherPlayerId = other(playerId)
-    val otherPlayer = state.players(otherPlayerId)
     val tasks = player.slots.toList.sortBy(_._1).collect {
       case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
         val slotButton = slotPanel.slots(playerId)(numSlot)
 
-        slotButton.AnimTask(if (playerId == owner) -1 else 1) {
+        new slotButton.AnimTask({
           val result = persist(runSlot(playerId, numSlot, slot))
           slotPanel.refresh()
           result
-        }
+        })
     }
     reset {
       val k = Task.chain(world, tasks)

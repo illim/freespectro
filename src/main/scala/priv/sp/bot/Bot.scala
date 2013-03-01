@@ -13,36 +13,39 @@ trait ExtBot {
 
   // stupid stuff, ai don't know what we have so we create a fake player
   // todo give him all possible cards
-  private val fakePlayer = game.shuffle.createOnePlayer(game.shuffle.filterHouses(game.desc.players(botPlayerId))(game.spWorld.houses.list))
+  private val fakePlayer = game.shuffle.createOnePlayer(game.shuffle.filterHouses(game.desc.players(botPlayerId))(game.sp.houses.list))
   private val ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( desc => GameDesc.replaceCards(fakePlayer._1.houses)(desc)._1)
   private val rippedDesc = ripPlayerState.exec(game.desc)
 
   val gameCard = new GameCard(rippedDesc, game)
 
   def getCommandChoices(state: GameState, playerId: PlayerId): Stream[Command] = {
-    rippedDesc.players(playerId).houses.toStream.flatMap { houseDesc  =>
+    val slots = state.players(playerId).slots
+    val emptySlots = slotRange.filter(num => !slots.isDefinedAt(num))
+    val otherSlots = state.players(other(playerId)).slots
+
+    rippedDesc.players(playerId).houses.flatMap { houseDesc  =>
       val houseState = state.players(playerId).houses(houseDesc.index)
       val house = houseDesc.house
 
-      houseDesc.cards.filter(_.isAvailable(houseState)).flatMap { card =>
+      houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { card =>
         card.inputSpec match {
           case None => List(Command(playerId, card, None))
           case Some(SelectOwnerSlot) =>
-            val slots = state.players(playerId).slots
-            slotRange.collect { case num if ! slots.isDefinedAt(num) =>
+            emptySlots.map { num =>
               Command(playerId, card, Some(new SlotInput(num)))
             }
           case Some(SelectOwnerCreature) =>
-            state.players(playerId).slots.map { slot =>
-              Command(playerId, card, Some(new SlotInput(slot._1)))
+            slots.keys.map { num =>
+              Command(playerId, card, Some(new SlotInput(num)))
             }
           case Some(SelectTargetCreature) =>
-            state.players(other(playerId)).slots.map { slot =>
-              Command(playerId, card, Some(new SlotInput(slot._1)))
+            otherSlots.keys.map { num =>
+              Command(playerId, card, Some(new SlotInput(num)))
             }
         }
       }
-    }
+    }(collection.breakOut)
   }
 
   def simulateCommand(state: GameState, command: Command) = {
