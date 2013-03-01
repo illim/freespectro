@@ -120,14 +120,14 @@ class Game(val world: World) {
 
     if (slot.card.multipleTarget){
       damageLife.flatMap{ result =>
-        GameCardEffect.damageCreatures(otherPlayerLs, slot.attack).map( _ => result)
+        CardSpec.inflictCreatures(otherPlayerLs, slot.attack).map( _ => result)
       }
     } else {
       otherPlayerLs.slots.flatMap { slots =>
         slots.get(numSlot) match {
           case None => damageLife
           case Some(oppositeSlot) =>
-            GameCardEffect.damageCreature(
+            CardSpec.inflictCreature(
               otherPlayerLs, numSlot, slot.attack).map( _ => None)
         }
       }

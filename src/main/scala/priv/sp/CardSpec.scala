@@ -1,6 +1,7 @@
 package priv.sp
 
 import collection._
+import scalaz._
 
 sealed trait Card {
   def image: String
@@ -17,9 +18,10 @@ case class Creature(
   name: String,
   attack: Option[Int],
   life: Int,
-  multipleTarget : Boolean = false,
   inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
-  spec: CardSpec = CardSpec.creature()) extends Card {
+  spec: CardSpec = CardSpec.creature(),
+  multipleTarget : Boolean = false,
+  immune : Boolean = false) extends Card {
 
   def isSpell = false
   def image = name + ".JPG"
@@ -56,21 +58,53 @@ object CardSpec {
   def spell(effects: PhaseEffect*) = CardSpec(false, toEffectMap(effects))
 
   def toEffectMap(effects : Traversable[PhaseEffect]) ={
-    def effectAt(phase : Phase) = {
+    def effectAt(phase : Phase) : Option[Effect] = {
       val filtereds = effects.collect{ case (ph, f) if ph == phase => f}
       if (filtereds.nonEmpty) {
-        val effect = { env : GameCardEffect.Env =>
-          filtereds.foldLeft(GameState.unit) { (acc, f) =>
-            acc.flatMap(_ => f(env))
-          }
-        }
-        Some(effect)
+        Some(new ComposedEffect(filtereds))
       } else None
     }
 
     phases.map(effectAt _)
   }
   val noEffects = phases.map(_ => Option.empty[Effect])
+
+  class ComposedEffect(effects : Traversable[Effect]) extends Function[GameCardEffect.Env, scalaz.State[GameState, Unit]]{
+    def apply(env : GameCardEffect.Env) = {
+      effects.foldLeft(GameState.unit) { (acc, f) =>
+        acc.flatMap(_ => f(env))
+      }
+    }
+  }
+
+  @inline def inflictCreature(player: PlayerStateLenses, numSlot : Int, amount : Int, isAbility : Boolean = false) : State[GameState, Unit] = {
+    player.slots.%== { slots =>
+      slots.get(numSlot) match {
+        case None => slots
+        case Some(slot) =>
+          if (slot.card.immune && isAbility){
+            slots
+          } else {
+            if (slot.life > amount) {
+              slots + (numSlot -> SlotState.lifeL.mod(_ - amount, slot))
+            } else slots - numSlot
+          }
+      }
+    }
+  }
+
+  @inline def inflictCreatures(player: PlayerStateLenses, amount : Int, isAbility : Boolean = false) : State[GameState, Unit] = {
+    player.slots.%==( damageSlots(amount, isAbility) _)
+  }
+
+  def damageSlots(amount: Int, isAbility : Boolean)(slots: PlayerState.SlotsType) = {
+    slots.collect {
+      case (num, slot) if (isAbility && slot.card.immune) =>
+        num -> slot
+      case (num, slot) if slot.life > amount =>
+        num -> SlotState.lifeL.mod(_ - amount, slot)
+    }
+  }
 }
 
 case class CardSpec(summon: Boolean, effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )

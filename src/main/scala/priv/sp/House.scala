@@ -36,7 +36,7 @@ class Houses {
     Creature("SeaSprite", Some(5), 22,
       spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - 4) })),
     Creature("MerfolkApostate", Some(3), 10),
-    Creature("IceGolem", Some(4), 12),
+    Creature("IceGolem", Some(4), 12, immune = true),
     Creature("MerfolkElder", Some(3), 16),
     Creature("IceGuard", Some(3), 20),
     Creature("GiantTurtle", Some(5), 17),
@@ -59,10 +59,11 @@ class Houses {
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(9), Direct -> damage(9))),
     Creature("LightningCloud", Some(4), 20, multipleTarget = true),
     Spell("Tornado",
+      inputSpec = Some(SelectTargetCreature),
       spec = spell(Direct -> { env: Env => env.otherPlayer.slots.%==( _ - env.selected) })),
     Creature("AirElemental", None, 44, spec = creature(Direct -> damage(8))),
     Creature("Titan", Some(9), 40,
-      spec = creature(Direct -> { env : Env => damageCreature(env.otherPlayer, env.selected, 15)}))))
+      spec = creature(Direct -> { env : Env => inflictCreature(env.otherPlayer, env.selected, 15, isAbility = true)}))))
 
   val Earth = House("earth", List(
     Creature("ElvenHealer", Some(2), 12),
@@ -83,7 +84,7 @@ class Houses {
     Creature("DwarvenRifleman", Some(4), 17),
     Creature("DwarvenCraftsman", Some(2), 17),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(2))),
-    Creature("SteelGolem", Some(6), 20),
+    Creature("SteelGolem", Some(6), 20, immune = true),
     Creature("Cannon", Some(8), 29),
     Spell("Cannonade", spec = spell(Direct -> damageCreatures(19))),
     Creature("SteamTank", Some(6), 60, spec = creature(Direct -> damageCreatures(12)))))
