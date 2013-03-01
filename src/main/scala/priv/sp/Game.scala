@@ -14,7 +14,7 @@ class Game(val world: World) {
   val shuffle = new CardShuffle(sp)
   val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
   var state = GameState(List(PlayerState(p1State), PlayerState(p2State)))
-  val desc = GameDesc(List(p1Desc, p2Desc))
+  val desc = GameDesc(Array(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new MMBot(opponent, this)
 
@@ -75,14 +75,16 @@ class Game(val world: World) {
     val player = state.players(playerId)
     val env = new GameCardEffect.Env(playerId, this)
     player.slots.values.foldLeft(state){ (acc, slotState) =>
-      slotState.card.spec.onTurnEffects(env) exec acc
+      slotState.card.spec.effects(CardSpec.OnTurn) match {
+        case Some(f) => f(env) exec acc
+        case None => acc
+      }
     }
   }
 
   protected def run(playerId: PlayerId) {
     println("run" + playerId)
     slotPanel.refresh()
-    persistState(getSlotTurnEffect(playerId))
 
     val player = state.players(playerId)
     val otherPlayerId = other(playerId)
@@ -101,6 +103,8 @@ class Game(val world: World) {
       val result = k
       result.foreach(_.foreach(endGame _))
       persist(prepareNextTurn(otherPlayerId))
+      persistState(getSlotTurnEffect(otherPlayerId))
+      slotPanel.refresh()
       waitPlayer(otherPlayerId)
     }
   }
@@ -156,8 +160,13 @@ class GameCard(desc : GameDesc, game : Game) {
         }
       } else GameState.unit
 
-    val env = new GameCardEffect.Env(command.player, game)
-    command.input foreach { slotInput => env.selected = slotInput.num }
-    debitMana.flatMap(_ => summonIfCreature).flatMap(_ => command.card.spec.directEffects(env))
+    val stateRun = debitMana.flatMap(_ => summonIfCreature)
+    command.card.spec.effects(CardSpec.Direct) match {
+      case None => stateRun
+      case Some(f) =>
+        val env = new GameCardEffect.Env(command.player, game)
+        command.input foreach { slotInput => env.selected = slotInput.num }
+        stateRun.flatMap( _ => f(env))
+    }
   }
 }

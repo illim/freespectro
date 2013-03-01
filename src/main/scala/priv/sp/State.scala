@@ -12,11 +12,11 @@ case class HouseState(mana: Int) extends AnyVal
 case class SlotState(card: Creature, life: Int, attack: Int, hasRunOnce: Boolean = false)
 
 // Description (should not change during the game)
-case class GameDesc(players : List[PlayerDesc])
-case class PlayerDesc(houses : List[PlayerHouseDesc]){
+case class GameDesc(players : Array[PlayerDesc])
+case class PlayerDesc(houses : Array[PlayerHouseDesc]){
   houses.zipWithIndex.foreach{ case (house, i) => house.index = i}
 }
-case class PlayerHouseDesc(house : House, cards : List[Card]){
+case class PlayerHouseDesc(house : House, cards : Array[Card]){
   var index = 0
 }
 
@@ -55,8 +55,8 @@ object GameState {
 }
 // ai hacks
 object GameDesc {
-  val playersL = Lens.lensu[GameDesc, List[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
+  val playersL = Lens.lensu[GameDesc, Array[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = Lens.lensu[GameDesc, PlayerDesc]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id))
-  val housesL = Lens.lensu[PlayerDesc, List[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
-  def replaceCards(newHouses: List[PlayerHouseDesc]) = housesL.%== (_.zipWithIndex.map{case (house, i) => house.copy(cards = newHouses(i).cards) })
+  val housesL = Lens.lensu[PlayerDesc, Array[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
+  def replaceCards(newHouses: Array[PlayerHouseDesc]) = housesL.%== (_.zipWithIndex.map{case (house, i) => house.copy(cards = newHouses(i).cards) })
 }

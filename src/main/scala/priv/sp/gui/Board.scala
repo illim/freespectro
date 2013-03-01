@@ -117,7 +117,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
 
   val panel = Row(houseCardButtons.map {
     case (houseLabel, cardButons) =>
-      Column(houseLabel :: cardButons)
+      Column(houseLabel :: cardButons.toList)
   })
 
   def setEnabled(flag: Boolean) {

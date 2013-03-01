@@ -26,8 +26,8 @@ class CardShuffle(sp: SpWorld) {
 
   def createOnePlayer(houses: List[House]) = {
     def eval = {
-      val fromHouses = (0 to 4).map(i => from(houses(i))).toList
-      (PlayerDesc(fromHouses.map(_._1)), fromHouses.map(_._2))
+      val fromHouses = (0 to 4).map(i => from(houses(i)))
+      (PlayerDesc(fromHouses.map(_._1).toArray), fromHouses.map(_._2).toList)
     }
     var s = eval
     while (!(hasOneWipe(s._1) && hasOneManaGen(s._1))) {
@@ -38,7 +38,7 @@ class CardShuffle(sp: SpWorld) {
 
   private def from(house: House) = {
     val mana = if (isSpecial(house)) 2 else Random.nextInt(3) + 3
-    (PlayerHouseDesc(house, randomize(house).sortBy(_.cost)), HouseState(mana))
+    (PlayerHouseDesc(house, randomize(house).sortBy(_.cost).toArray), HouseState(mana))
   }
 
   private def randomize(house: House) = {

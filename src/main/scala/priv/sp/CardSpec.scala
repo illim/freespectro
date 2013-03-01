@@ -1,5 +1,7 @@
 package priv.sp
 
+import collection._
+
 sealed trait Card {
   def image: String
   def isSpell: Boolean
@@ -42,32 +44,35 @@ case object SelectTargetCreature extends CardInputSpec
 class SlotInput(val num: Int) extends AnyVal
 
 object CardSpec {
-  sealed trait Phase
-  case object Direct extends Phase
-  case object OnTurn extends Phase
+  type Phase = Int
+  val Direct = 0
+  val OnTurn = 1
+  val phases = Array(Direct, OnTurn)
 
   type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
 
-  def creature(effects: PhaseEffect*) = CardSpec(true, effects.to[List])
-  def spell(effects: PhaseEffect*) = CardSpec(false, effects.to[List])
-}
-import CardSpec._
+  def creature(effects: PhaseEffect*) = CardSpec(true, toEffectMap(effects))
+  def spell(effects: PhaseEffect*) = CardSpec(false, toEffectMap(effects))
 
-case class CardSpec(summon: Boolean, effects: List[PhaseEffect]){
-  val onTurnEffects = effectByPhase(OnTurn)
-  val directEffects = effectByPhase(Direct)
-
-  def effectByPhase(phase : Phase) ={
-    val filteredEffects = effects.filter(_._1 == phase)
-
-    { env : GameCardEffect.Env =>
-      filteredEffects.foldLeft(GameState.unit) {
-        case (acc, (ph, effect)) => acc.flatMap(_ => effect(env))
-        case (acc, _) => acc
-      }
+  def toEffectMap(effects : Traversable[PhaseEffect]) ={
+    def effectAt(phase : Phase) = {
+      val filtereds = effects.collect{ case (ph, f) if ph == phase => f}
+      if (filtereds.nonEmpty) {
+        val effect = { env : GameCardEffect.Env =>
+          filtereds.foldLeft(GameState.unit) { (acc, f) =>
+            acc.flatMap(_ => f(env))
+          }
+        }
+        Some(effect)
+      } else None
     }
+
+    phases.map(effectAt _)
   }
+  val noEffects = phases.map(_ => Option.empty[Effect])
 }
+
+case class CardSpec(summon: Boolean, effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )
 
 
