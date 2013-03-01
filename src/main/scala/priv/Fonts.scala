@@ -14,6 +14,8 @@ object Fonts {
   font.getEffects().asInstanceOf[java.util.List[Effect]].add(new ColorEffect())
   font.loadGlyphs()
 
+  val darkGreen = Color.green.darker()
+
   def draw(x: Int, y: Int, s: Any, color: Symbol = null) {
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)
     val c = if (color == null) Color.black else {
@@ -21,6 +23,7 @@ object Fonts {
         case 'white => Color.white
         case 'blue => Color.blue
         case 'red => Color.red
+        case 'green => darkGreen
         case _ => Color.black
       }
     }

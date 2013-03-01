@@ -22,6 +22,8 @@ class Houses {
 
         otherPlayer.slots.%== {
           _.collect {
+            case (num, slot) if slot.card.immune =>
+              num -> slot
             case (num, slot) if (num != selected && slot.life > 10) || slot.life > 18 =>
               num -> SlotState.lifeL.mod(_ - (if (num == selected) 18 else 10), slot)
           }
@@ -63,21 +65,27 @@ class Houses {
       spec = spell(Direct -> { env: Env => env.otherPlayer.slots.%==( _ - env.selected) })),
     Creature("AirElemental", None, 44, spec = creature(Direct -> damage(8))),
     Creature("Titan", Some(9), 40,
-      spec = creature(Direct -> { env : Env => inflictCreature(env.otherPlayer, env.selected, 15, isAbility = true)}))))
+      spec = creature(Direct -> { env : Env => SlotState.inflictCreature(env.otherPlayer, env.selected, 15, isAbility = true)}))))
 
   val Earth = House("earth", List(
-    Creature("ElvenHealer", Some(2), 12),
-    Spell("NaturesRitual"),
+    Creature("ElvenHealer", Some(2), 12,
+      spec = creature(OnTurn -> heal(2))),
+    Spell("NaturesRitual",
+      inputSpec = Some(SelectOwnerCreature),
+      spec = spell(Direct -> heal(8), Direct -> healCreature(8))),
     Creature("ForestSprite", Some(1), 22, multipleTarget = true),
     Spell("Rejuvenation"),
     Creature("elfHermit", Some(1), 13),
     Spell("NaturesFury"),
     Creature("GiantSpider", Some(4), 21),
-    Creature("Troll", Some(6), 25),
+    Creature("Troll", Some(6), 25, spec = creature(OnTurn -> healCreature(4))),
     Spell("StoneRain", spec = spell(Direct -> massDamage(25))),
     Creature("EarthElemental", None, 49),
-    Creature("MasterHealer", Some(3), 35),
-    Creature("Hydra", Some(3), 40, multipleTarget = true)))
+    Creature("MasterHealer", Some(3), 35,
+      spec = creature(OnTurn -> heal(3), OnTurn -> healCreatures(3))),
+    Creature("Hydra", Some(3), 40,
+      multipleTarget = true,
+      spec = creature(OnTurn -> healCreature(4)))))
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime"),

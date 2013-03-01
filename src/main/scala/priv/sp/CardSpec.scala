@@ -76,35 +76,6 @@ object CardSpec {
       }
     }
   }
-
-  @inline def inflictCreature(player: PlayerStateLenses, numSlot : Int, amount : Int, isAbility : Boolean = false) : State[GameState, Unit] = {
-    player.slots.%== { slots =>
-      slots.get(numSlot) match {
-        case None => slots
-        case Some(slot) =>
-          if (slot.card.immune && isAbility){
-            slots
-          } else {
-            if (slot.life > amount) {
-              slots + (numSlot -> SlotState.lifeL.mod(_ - amount, slot))
-            } else slots - numSlot
-          }
-      }
-    }
-  }
-
-  @inline def inflictCreatures(player: PlayerStateLenses, amount : Int, isAbility : Boolean = false) : State[GameState, Unit] = {
-    player.slots.%==( damageSlots(amount, isAbility) _)
-  }
-
-  def damageSlots(amount: Int, isAbility : Boolean)(slots: PlayerState.SlotsType) = {
-    slots.collect {
-      case (num, slot) if (isAbility && slot.card.immune) =>
-        num -> slot
-      case (num, slot) if slot.life > amount =>
-        num -> SlotState.lifeL.mod(_ - amount, slot)
-    }
-  }
 }
 
 case class CardSpec(summon: Boolean, effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )

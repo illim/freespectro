@@ -73,10 +73,12 @@ class Game(val world: World) {
 
   protected def getSlotTurnEffect(playerId : PlayerId) = {
     val player = state.players(playerId)
-    val env = new GameCardEffect.Env(playerId, this)
-    player.slots.values.foldLeft(state){ (acc, slotState) =>
+    player.slots.foldLeft(state){ case (acc, (numSlot, slotState)) =>
       slotState.card.spec.effects(CardSpec.OnTurn) match {
-        case Some(f) => f(env) exec acc
+        case Some(f) =>
+          val env = new GameCardEffect.Env(playerId, this)
+          env.selected = numSlot
+          f(env) exec acc
         case None => acc
       }
     }
@@ -120,14 +122,14 @@ class Game(val world: World) {
 
     if (slot.card.multipleTarget){
       damageLife.flatMap{ result =>
-        CardSpec.inflictCreatures(otherPlayerLs, slot.attack).map( _ => result)
+        SlotState.inflictCreatures(otherPlayerLs, slot.attack).map( _ => result)
       }
     } else {
       otherPlayerLs.slots.flatMap { slots =>
         slots.get(numSlot) match {
           case None => damageLife
           case Some(oppositeSlot) =>
-            CardSpec.inflictCreature(
+            SlotState.inflictCreature(
               otherPlayerLs, numSlot, slot.attack).map( _ => None)
         }
       }
