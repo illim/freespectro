@@ -10,7 +10,7 @@ class Houses {
     Creature("GoblinBerserker", Some(4), 16),
     Creature("WallofFire", Some(0), 5, spec = creature(Direct -> damageCreatures(5))),
     Creature("PriestOfFire", Some(3), 13),
-    Creature("FireDrake", Some(4), 18),
+    Creature("FireDrake", Some(4), 18, spec = creature(Direct -> toggleRun)),
     Creature("OrcChieftain", Some(3), 16),
     Spell("FlameWave", spec = spell(Direct -> damageCreatures(9))),
     Creature("MinotaurCommander", Some(6), 20),
@@ -34,29 +34,38 @@ class Houses {
     Creature("Dragon", Some(9), 41)))
 
   val Water = House("water", List(
-    Spell("Meditation"),
+    Spell("Meditation", spec = spell(Direct -> addMana(1, 0, 2, 3))),
     Creature("SeaSprite", Some(5), 22,
-      spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - 4) })),
-    Creature("MerfolkApostate", Some(3), 10),
+      spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - 2) })),
+    Creature("MerfolkApostate", Some(3), 10, spec = creature(Direct -> addMana(2, 0))),
     Creature("IceGolem", Some(4), 12, immune = true),
     Creature("MerfolkElder", Some(3), 16),
     Creature("IceGuard", Some(3), 20),
     Creature("GiantTurtle", Some(5), 17),
-    Spell("AcidicRain", spec = spell(Direct -> massDamage(15))),
+    Spell("AcidicRain", spec = spell(Direct -> massDamage(15), Direct -> { env : Env =>
+      env.otherPlayer.houses.%=={ houses => HouseState.incrMana(houses, -1 , 0, 1, 2, 3, 4) }
+    })),
     Creature("MerfolkOverlord", Some(7), 34),
-    Creature("WaterElemental", None, 38),
+    Creature("WaterElemental", None, 38, spec = creature(Direct -> heal(10))),
     Creature("MindMaster", Some(6), 22),
     Creature("AstralGuard", Some(1), 17)))
 
   val Air = House("air", List(
     Creature("FaerieApprentice", Some(4), 11),
-    Creature("Griffin", Some(3), 15),
+    Creature("Griffin", Some(3), 15,
+      spec = creature(Direct -> { env : Env =>
+        if (env.getMana(2) > 4) env.otherPlayer.life.%==( _ - 5) else GameState.unit
+      })),
     Spell("CalltoThunder",
       inputSpec = Some(SelectTargetCreature),
       spec = spell(Direct -> damageCreature(6), Direct -> damage(6))),
-    Creature("FaerieSage", Some(4), 19),
+    Creature("FaerieSage", Some(4), 19,
+      spec = creature(Direct -> { env : Env =>
+        env.player.life.%==( _ + math.min(env.getMana(3), 10))
+      })),
     Creature("WallOfLightning", Some(0), 28, spec = creature(OnTurn -> damage(4))),
-    Spell("LightningBolt"),
+    Spell("LightningBolt",
+      spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - 5 - env.getMana(2))})),
     Creature("Phoenix", Some(6), 18),
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(9), Direct -> damage(9))),
     Creature("LightningCloud", Some(4), 20, multipleTarget = true),
@@ -74,7 +83,8 @@ class Houses {
       inputSpec = Some(SelectOwnerCreature),
       spec = spell(Direct -> heal(8), Direct -> healCreature(8))),
     Creature("ForestSprite", Some(1), 22, multipleTarget = true),
-    Spell("Rejuvenation"),
+    Spell("Rejuvenation",
+      spec = spell(Direct -> { env : Env => env.player.life.%==( _ + 2 * env.getMana(3))})),
     Creature("elfHermit", Some(1), 13),
     Spell("NaturesFury"),
     Creature("GiantSpider", Some(4), 21),
@@ -88,7 +98,7 @@ class Houses {
       spec = creature(OnTurn -> healCreature(4)))))
 
   val Mecanic = House("Mechanics", List(
-    Spell("Overtime"),
+    Spell("Overtime", spec = spell(Direct -> addMana(1, 4))),
     Creature("DwarvenRifleman", Some(4), 17),
     Creature("DwarvenCraftsman", Some(2), 17),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(2))),

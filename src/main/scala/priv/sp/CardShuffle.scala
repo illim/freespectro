@@ -27,7 +27,7 @@ class CardShuffle(sp: SpWorld) {
   def createOnePlayer(houses: List[House]) = {
     def eval = {
       val fromHouses = (0 to 4).map(i => from(houses(i)))
-      (PlayerDesc(fromHouses.map(_._1).toArray), fromHouses.map(_._2).toList)
+      (PlayerDesc(fromHouses.map(_._1).toArray), fromHouses.map(_._2).to[Vector])
     }
     var s = eval
     while (!(hasOneWipe(s._1) && hasOneManaGen(s._1))) {

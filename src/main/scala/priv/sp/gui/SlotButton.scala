@@ -6,7 +6,7 @@ import priv.sp._
 import priv.World
 import priv.GuiElem
 
-class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], game : Game) extends GuiElem {
+class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], game : Game) extends GuiElem with Damagable {
   import game.sp.baseTextures.slotTex
 
   val direction = if (playerId == owner) -1 else 1
@@ -14,7 +14,6 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   enabled = false
   private var card = getCard
   private var getDelta = zeroAnim
-  private var getDamageAnimOpt = Option.empty[DamageAnimTask]
 
   def zeroAnim = Function.const[Long, Long](0) _
   def refresh() {
@@ -67,15 +66,5 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
       onEnd
     }
     private def delta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
-  }
-
-  case class DamageAnimTask(damage : Int) extends Task[Unit] {
-    val duration = 1000L
-    val text = if (damage > 0) "+"+damage else damage
-    val color = if (damage > 0) 'green else 'red
-    private val amplitude = 2
-    def init() { getDamageAnimOpt = Some(this) }
-    def end() = { getDamageAnimOpt = None }
-    def delta(time: Long) = (amplitude * (time - start) / 100).intValue
   }
 }

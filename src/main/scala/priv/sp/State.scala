@@ -5,7 +5,7 @@ import collection._
 
 case class GameState(players: List[PlayerState])
 case class PlayerState(
-  houses: List[HouseState],
+  houses: Vector[HouseState],
   slots: PlayerState.SlotsType = immutable.Map.empty,
   life: Int = 60)
 case class HouseState(mana: Int) extends AnyVal
@@ -23,12 +23,18 @@ case class PlayerHouseDesc(house : House, cards : Array[Card]){
 import scalaz._
 object PlayerState {
   type SlotsType = immutable.Map[Int, SlotState]
-  val housesL = Lens.lensu[PlayerState, List[HouseState]]((p, h) => p.copy(houses = h), _.houses)
+  val housesL = Lens.lensu[PlayerState, Vector[HouseState]]((p, h) => p.copy(houses = h), _.houses)
   val slotsL = Lens.lensu[PlayerState, SlotsType]((p, s) => p.copy(slots = s), _.slots)
   val lifeL = Lens.lensu[PlayerState, Int]((p, l) => p.copy(life = l), _.life)
 }
 object HouseState{
   val manaL = Lens.lensu[HouseState, Int]((p, x) => p.copy(mana = x), _.mana)
+  def incrMana(houses : Vector[HouseState], amount : Int, houseIndex : Int*) = {
+    houseIndex.foldLeft(houses){ (acc, id) =>
+      val house = acc(id)
+      acc.updated(id, house.copy(mana = (if (amount < 0) math.min(0, house.mana + amount) else house.mana + amount)))
+    }
+  }
 }
 object SlotState {
   def creature(card: Card) = {
@@ -78,6 +84,7 @@ class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
   val life   = player andThen PlayerState.lifeL
   def slotsToggleRun = slots.%==(_.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
   def housesIncrMana = houses.%== (_.map(house => house.copy(mana = house.mana + 1)))
+  def house(id : Int) = player andThen Lens.lensu[PlayerState, HouseState]((p, x) => p.copy(houses = p.houses.updated(id, x)), _.houses(id))
 }
 object GameState {
   val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)

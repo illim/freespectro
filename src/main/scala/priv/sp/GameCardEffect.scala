@@ -8,6 +8,7 @@ object GameCardEffect {
     var selected = 0
     @inline def player = game.playersLs(playerId)
     @inline def otherPlayer = game.playersLs(other(playerId))
+    @inline def getMana(houseIndex : Int) : Int = game.state.players(playerId).houses(houseIndex).mana
   }
 
   def damage(amount : Int) = { env : Env => env.otherPlayer.life.%==(_ - amount) }
@@ -31,6 +32,18 @@ object GameCardEffect {
       slots.map { case (num, slot)  =>
         num -> SlotState.addLife(slot, amount)
       }
+    }
+  }
+
+  def addMana(amount : Int, houseIndex : Int*) = {env : Env =>
+    env.player.houses.%=={ houses =>
+      HouseState.incrMana(houses, amount, houseIndex : _*)
+    }
+  }
+
+  def toggleRun = {env : Env =>
+    env.player.slots.%=={ slots =>
+      slots + (env.selected -> slots(env.selected).copy(hasRunOnce = true))
     }
   }
 }

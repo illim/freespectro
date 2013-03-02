@@ -22,7 +22,7 @@ class Game(val world: World) {
   val commandRecorder = new CommandRecorder(this)
   val slotPanel = new SlotPanel(this)
   val playerPanels = playerIds.map(new CardPanel(_, this))
-  val lifeLabels = playersLs.map(playerLs => new LifeLabel(playerLs.life.get(state)))
+  val lifeLabels = playersLs.map(playerLs => new LifeLabel(new DamagableInt(playerLs.life.get(state), world), this))
   val topCardPanel = new TopCardPanel(playerIds(opponent), this)
   val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
@@ -86,8 +86,7 @@ class Game(val world: World) {
 
   protected def run(playerId: PlayerId) {
     println("run" + playerId)
-    slotPanel.refresh()
-
+    board.refresh()
     val player = state.players(playerId)
     val otherPlayerId = other(playerId)
     val tasks = player.slots.toList.sortBy(_._1).collect {
@@ -96,7 +95,7 @@ class Game(val world: World) {
 
         new slotButton.AnimTask({
           val result = persist(runSlot(playerId, numSlot, slot))
-          slotPanel.refresh()
+          board.refresh()
           result
         })
     }
@@ -106,7 +105,7 @@ class Game(val world: World) {
       result.foreach(_.foreach(endGame _))
       persist(prepareNextTurn(otherPlayerId))
       persistState(getSlotTurnEffect(otherPlayerId))
-      slotPanel.refresh()
+      board.refresh(silent = true)
       waitPlayer(otherPlayerId)
     }
   }
@@ -148,7 +147,7 @@ class Game(val world: World) {
 class GameCard(desc : GameDesc, game : Game) {
   import game._
 
-  def getCommandEffect(command: Command): State[GameState, Unit] = {
+  def getCommandEffect(command: Command, beforeEffect : State[GameState, Unit] => State[GameState, Unit] = identity): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
     val debitMana = playerLs.houses.%== { houses =>
       val house = houses(command.card.houseIndex)
@@ -168,7 +167,7 @@ class GameCard(desc : GameDesc, game : Game) {
       case Some(f) =>
         val env = new GameCardEffect.Env(command.player, game)
         command.input foreach { slotInput => env.selected = slotInput.num }
-        stateRun.flatMap( _ => f(env))
+        stateRun.flatMap{ _ => f(env)}
     }
   }
 }

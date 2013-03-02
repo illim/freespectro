@@ -17,6 +17,13 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: Lis
     panel.render(world)
   }
 
+  def refresh(silent : Boolean = false) {
+    slotPanel.refresh()
+    lifeLabels.foreach(_.life.refresh())
+    playerPanels.foreach(_.refresh(silent))
+    topCardPanel.refresh(silent)
+  }
+
   private def getPanel(playerPanel: CardPanel) = {
     Column(
       List(
@@ -103,11 +110,12 @@ class CardPanel(playerId: PlayerId, game: Game) {
       def getHouseState = playerLs.houses.get(game.state).apply(idx)
       val house = game.desc.players(playerId).houses(idx)
 
-      new HouseLabel(getHouseState, house.house, game.sp) -> house.cards.map { card =>
+      new HouseLabel(new DamagableInt(getHouseState.mana, game), house.house, game) -> house.cards.map { card =>
         new CardButton(card, getHouseState, game.sp)
       }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
+  val houseLabels = houseCardButtons.map(_._1)
   cardButtons.foreach { cardButton =>
     cardButton.on {
       case MouseClicked(_) if cardButton.enabled =>
@@ -120,6 +128,8 @@ class CardPanel(playerId: PlayerId, game: Game) {
       Column(houseLabel :: cardButons.toList)
   })
 
+  def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
+
   def setEnabled(flag: Boolean) {
     cardButtons.foreach(_.enabled = flag)
   }
@@ -127,9 +137,11 @@ class CardPanel(playerId: PlayerId, game: Game) {
 
 class TopCardPanel(playerId: PlayerId, game: Game) {
   private val playerLs = game.playersLs(playerId)
-  val panel = Row(playerLs.houses.get(game.state).zipWithIndex.map {
+  val houseLabels = playerLs.houses.get(game.state).zipWithIndex.map {
     case (_, idx) =>
-      new HouseLabel(playerLs.houses.get(game.state).apply(idx), game.desc.players(playerId).houses(idx).house, game.sp, flip = true)
-  })
+      new HouseLabel(new DamagableInt(playerLs.houses.get(game.state).apply(idx).mana, game), game.desc.players(playerId).houses(idx).house, game, flip = true)
+  }
+  val panel = Row(houseLabels)
+  def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
 }
 
