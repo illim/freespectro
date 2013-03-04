@@ -20,11 +20,10 @@ class Game(val world: World) {
 
   // gui
   val commandRecorder = new CommandRecorder(this)
-  val slotPanel = new SlotPanel(this)
   val playerPanels = playerIds.map(new CardPanel(_, this))
-  val lifeLabels = playersLs.map(playerLs => new LifeLabel(new DamagableInt(playerLs.life.get(state), world), this))
+  val slotPanels = playerIds.map(new SlotPanel(_, this))
   val topCardPanel = new TopCardPanel(playerIds(opponent), this)
-  val board = new Board(slotPanel, playerPanels, lifeLabels, topCardPanel, sp)
+  val board = new Board(slotPanels, playerPanels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
   world.entities.add(board)
 
@@ -64,11 +63,23 @@ class Game(val world: World) {
 
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
-    slotPanel.disable()
+    slotPanels.foreach(_.disable())
     playerPanels.foreach(_.setEnabled(false))
-    commandOption.foreach(c => persist(gameCard.getCommandEffect(c)))
-    // todo anim
-    run(player)
+    commandOption match {
+      case Some(c) =>
+        persist(gameCard.summon(c))
+        board.refresh(silent = true)
+        reset {
+          if (c.card.isSpell){
+            slotPanels(other(player)).summonSpell(c.card)
+          } else {
+            shiftUnit0[Int, Unit](0)
+          }
+          gameCard.getCommandEffect(c).foreach(persist(_))
+          run(player)
+        }
+      case None => run(player)
+    }
   }
 
   protected def getSlotTurnEffect(playerId : PlayerId) = {
@@ -91,7 +102,7 @@ class Game(val world: World) {
     val otherPlayerId = other(playerId)
     val tasks = player.slots.toList.sortBy(_._1).collect {
       case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
-        val slotButton = slotPanel.slots(playerId)(numSlot)
+        val slotButton = slotPanels(playerId).slots(numSlot)
 
         new slotButton.AnimTask({
           val result = persist(runSlot(playerId, numSlot, slot))
@@ -100,9 +111,7 @@ class Game(val world: World) {
         })
     }
     reset {
-      val k = Task.chain(world, tasks)
-      val result = k
-      result.foreach(_.foreach(endGame _))
+      Task.chain(world, tasks).foreach(_.foreach(endGame _))
       persist(prepareNextTurn(otherPlayerId))
       persistState(getSlotTurnEffect(otherPlayerId))
       board.refresh(silent = true)
@@ -147,11 +156,11 @@ class Game(val world: World) {
 class GameCard(desc : GameDesc, game : Game) {
   import game._
 
-  def getCommandEffect(command: Command, beforeEffect : State[GameState, Unit] => State[GameState, Unit] = identity): State[GameState, Unit] = {
+  def summon(command: Command): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
     val debitMana = playerLs.houses.%== { houses =>
       val house = houses(command.card.houseIndex)
-      houses.updated(command.card.houseIndex, HouseState.manaL.mod(_ - command.card.cost, house))
+      houses.updated(command.card.houseIndex, new HouseState(house.mana - command.card.cost))
     }
     val summonIfCreature =
       if (command.card.spec.summon) {
@@ -161,13 +170,14 @@ class GameCard(desc : GameDesc, game : Game) {
         }
       } else GameState.unit
 
-    val stateRun = debitMana.flatMap(_ => summonIfCreature)
-    command.card.spec.effects(CardSpec.Direct) match {
-      case None => stateRun
-      case Some(f) =>
-        val env = new GameCardEffect.Env(command.player, game)
-        command.input foreach { slotInput => env.selected = slotInput.num }
-        stateRun.flatMap{ _ => f(env)}
+    debitMana.flatMap(_ => summonIfCreature)
+  }
+
+  def getCommandEffect(command : Command) : Option[State[GameState, Unit]] = {
+    command.card.spec.effects(CardSpec.Direct) map { f =>
+      val env = new GameCardEffect.Env(command.player, game)
+      command.input foreach { slotInput => env.selected = slotInput.num }
+      f(env)
     }
   }
 }

@@ -3,6 +3,10 @@ package priv
 import org.lwjgl.opengl.GL11._
 import priv._
 
+/**
+ * Obviously the gui is a bit a bullshit now, with relative coords
+ * we can't easily locate a component duh.
+ */
 object GuiHandler {
   type Type = PartialFunction[MouseEvent, Unit]
 }
@@ -77,7 +81,9 @@ case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
   }
 }
 
-abstract class Flow(elts: Traversable[GuiElem], dirx: Int = 0, diry: Int = 0) extends GuiContainer {
+abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer {
+  def elts: Traversable[GuiElem]
+
   val last = (Coord2i(0, 0) /: elts) { (acc, elt) =>
     val c = acc.copy(x = acc.x + dirx * elt.size.x, y = acc.y + diry * elt.size.y)
     add(acc, elt)
@@ -99,6 +105,6 @@ abstract class Flow(elts: Traversable[GuiElem], dirx: Int = 0, diry: Int = 0) ex
   }
 }
 
-case class Column(elts: Traversable[GuiElem]) extends Flow(elts, diry = 1)
+case class Column(elts: Traversable[GuiElem]) extends Flow(diry = 1)
 
-case class Row(elts: Traversable[GuiElem]) extends Flow(elts, dirx = 1)
+case class Row(elts: Traversable[GuiElem]) extends Flow(dirx = 1)

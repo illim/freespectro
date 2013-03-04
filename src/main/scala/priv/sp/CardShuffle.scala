@@ -38,7 +38,7 @@ class CardShuffle(sp: SpWorld) {
 
   private def from(house: House) = {
     val mana = if (isSpecial(house)) 2 else Random.nextInt(3) + 3
-    (PlayerHouseDesc(house, randomize(house).sortBy(_.cost).toArray), HouseState(mana))
+    (PlayerHouseDesc(house, randomize(house).sortBy(_.cost).toArray), new HouseState(mana))
   }
 
   private def randomize(house: House) = {

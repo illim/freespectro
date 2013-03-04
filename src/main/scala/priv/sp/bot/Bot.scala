@@ -26,7 +26,6 @@ trait ExtBot {
 
     rippedDesc.players(playerId).houses.flatMap { houseDesc  =>
       val houseState = state.players(playerId).houses(houseDesc.index)
-      val house = houseDesc.house
 
       houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { card =>
         card.inputSpec match {
@@ -50,7 +49,10 @@ trait ExtBot {
 
   def simulateCommand(state: GameState, command: Command) = {
     val playerId = command.player
-    val commandState = gameCard.getCommandEffect(command).exec(state)
+    var commandState = gameCard.summon(command).exec(state)
+    gameCard.getCommandEffect(command).foreach{ f =>
+      commandState = f.exec(commandState)
+    }
     val runState = (commandState /: commandState.players(playerId).slots) {
       case (st, (numSlot, slot)) =>
         game.runSlot(playerId, numSlot, slot).exec(st)

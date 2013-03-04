@@ -30,15 +30,15 @@ class MMBotSpec extends FlatSpec with ShouldMatchers {
     def getNexts(label : Node) : Stream[Tree[Node]] = data(label.id).map{ id => Tree(Node(id)) }.toStream
 
     def isPrunable(treeLoc : TreeLoc[Node]) : Boolean = {
-      treeLoc.parent.flatMap(_.parent).flatMap(_.getLabel.score).flatMap{ pscore =>
-        treeLoc.parent.flatMap(_.getLabel.score).map{ score =>
+      stackGet(2).flatMap(_.getLabel.score).flatMap{ pscore =>
+        stackGet(1).get.getLabel.score.filter{ score =>
           if (depth % 2 == 0) {
             score < pscore
           } else {
             score > pscore
           }
         }
-      } getOrElse false
+      }.isDefined
     }
 
     def propagate(label : Node, parentLabel : Node) = parentLabel.updateScore(depth ,label.score.getOrElse(label.getScore))

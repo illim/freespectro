@@ -37,15 +37,15 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
 
     def isPrunable(treeLoc : TreeLoc[Node]) : Boolean = {
-      treeLoc.parent.flatMap(_.parent).flatMap(_.getLabel.score).flatMap{ pscore =>
-        treeLoc.parent.flatMap(_.getLabel.score).map{ score =>
+      stackGet(2).flatMap(_.getLabel.score).flatMap{ pscore =>
+        stackGet(1).get.getLabel.score.filter{ score =>
           if (treeLoc.getLabel.playerId == botPlayerId) {
             score > pscore
           } else {
             score < pscore
           }
         }
-      } getOrElse false
+      }.isDefined
     }
 
 
@@ -94,14 +94,19 @@ trait BotTreeLoop[A] {
 
   var depth = 0
 
+  // useless perf shit (todo not using a tree finally?)
+  var stack = Vector[TreeLoc[A]]()
+  def stackGet(index : Int) = if (index > stack.size - 1) None else Some(stack(index))
+
   final def apply(start: TreeLoc[A]) : Tree[A] = {
     var treeLoc = start
     var end = false
     while (!end) {
+      stack = treeLoc +: stack
       val label = treeLoc.getLabel
       val prune = isPrunable(treeLoc)
       if (depth == maxDepth) {
-        for (parent <- treeLoc.parent) propagate(label, parent.getLabel)
+        propagate(label, stack(1).getLabel)
       }
       val nextTreeLoc = {
         if (depth < maxDepth && !treeLoc.hasChildren) {
@@ -111,8 +116,10 @@ trait BotTreeLoop[A] {
           }
           treeLoc.setTree(Tree.node(label, nextLabels)).firstChild
         } else if (prune) {
+          stack = stack.tail
           None
         } else {
+          stack = stack.tail
           if (depth > 1) Utils.deleteThenRight(treeLoc) else treeLoc.right
         }
       }
@@ -122,9 +129,11 @@ trait BotTreeLoop[A] {
           treeLoc.parent match {
             case None => end = true
             case Some(parent) =>
+              stack = stack.tail
               depth -= 1
               treeLoc = parent
-              for (parent <- treeLoc.parent) propagate(treeLoc.getLabel, parent.getLabel)
+              if (stack.size > 0)
+                propagate(treeLoc.getLabel, stack(0).getLabel)
           }
         case Some(loc) => treeLoc = loc
       }

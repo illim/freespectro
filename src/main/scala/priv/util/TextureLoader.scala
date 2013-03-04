@@ -16,11 +16,7 @@ trait TextureLoader {
 
   def loadTexture(name: String): Texture = {
     println("loading " + name)
-    val buffImage = if (name.endsWith("tga")) {
-      TargaReader.getImage(ResourceLoader.getResourceAsStream(name))
-    } else {
-      ImageIO.read(new MemoryCacheImageInputStream(ResourceLoader.getResourceAsStream(name)))
-    }
+    val buffImage = getBuffImage(name)
 
     val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
     println(
@@ -38,7 +34,7 @@ trait TextureLoader {
   }
 
   def loadTexture(name: String, xOffSet: Int, yOffSet: Int, textWidth: Int, textHeight: Int): Texture = {
-    val buffImage = ImageIO.read(new MemoryCacheImageInputStream(ResourceLoader.getResourceAsStream(name)))
+    val buffImage = getBuffImage(name)
     val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
     /**
      * println(
@@ -68,6 +64,13 @@ trait TextureLoader {
     toReturntextures
   }
 
+  private def getBuffImage(name : String) = {
+    if (name.endsWith("tga")) {
+      TargaReader.getImage(ResourceLoader.getResourceAsStream(name))
+    } else {
+      ImageIO.read(new MemoryCacheImageInputStream(ResourceLoader.getResourceAsStream(name)))
+    }
+  }
 }
 
 object TargaReader {

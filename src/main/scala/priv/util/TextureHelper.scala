@@ -17,7 +17,7 @@ class TextureHelper {
     draw(c.x, c.y, flip)
     glEnd()
   }
-  
+
   def draw(w: Int, h: Int, flip : Boolean) {
     val (tup, tdown) = if (flip) (textureDown, textureUp) else (textureUp, textureDown)
     glTexCoord2f(textureRight, tup)

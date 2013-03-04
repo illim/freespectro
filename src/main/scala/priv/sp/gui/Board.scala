@@ -4,10 +4,8 @@ import priv._
 import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
-import priv.World
-import priv.MouseClicked
 
-class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: List[LifeLabel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
+class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
 
   private val currentPlayerPanel = playerPanels(owner)
 
@@ -18,8 +16,7 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: Lis
   }
 
   def refresh(silent : Boolean = false) {
-    slotPanel.refresh()
-    lifeLabels.foreach(_.life.refresh())
+    slotPanels.foreach(_.refresh())
     playerPanels.foreach(_.refresh(silent))
     topCardPanel.refresh(silent)
   }
@@ -33,9 +30,9 @@ class Board(slotPanel: SlotPanel, playerPanels: List[CardPanel], lifeLabels: Lis
         Translate(
           Coord2i(320, 0),
           Column(List(
-            Row(lifeLabels(opponent) :: slotPanel.slots(opponent)),
+            slotPanels(opponent),
             Translate(
-              Coord2i(0, -30), Row(lifeLabels(owner) :: /**TestButton(sp) :: */ slotPanel.slots(owner)))))),
+              Coord2i(0, -30), slotPanels(owner))))),
         Translate(
           Coord2i(500, 0), playerPanel.panel)))
   }
@@ -68,40 +65,14 @@ class CommandRecorder(game: Game) {
         cont(Some(command))
       } else {
         command.card.inputSpec.get match {
-          case SelectOwnerSlot => game.slotPanel.setSlotEnabled(owner, empty = true)
-          case SelectOwnerCreature => game.slotPanel.setSlotEnabled(owner, empty = false)
-          case SelectTargetCreature => game.slotPanel.setSlotEnabled(opponent, empty = false)
+          case SelectOwnerSlot => game.slotPanels(owner).setSlotEnabled(empty = true)
+          case SelectOwnerCreature => game.slotPanels(owner).setSlotEnabled(empty = false)
+          case SelectTargetCreature => game.slotPanels(opponent).setSlotEnabled(empty = false)
         }
       }
     }
   }
 
-}
-
-class SlotPanel(game: Game) {
-  val slots = playerIds.map { playerId =>
-    val playerLs = game.playersLs(playerId)
-    slotRange.map(num =>
-      new SlotButton(
-        num,
-        playerId,
-        playerLs.slots.get(game.state).get(num),
-        game)).toList
-  }
-  val allSlots = slots.flatten
-  allSlots.foreach(listenEvent)
-
-  def listenEvent(slotButton: SlotButton) {
-    slotButton.on {
-      case MouseClicked(_) if slotButton.enabled =>
-        game.commandRecorder.addInput(new SlotInput(slotButton.num))
-    }
-  }
-  def setSlotEnabled(player: PlayerId, empty: Boolean) {
-    slots(player).foreach { slot => if (slot.isEmpty == empty) slot.enabled = true }
-  }
-  def disable() { allSlots.foreach(_.enabled = false) }
-  def refresh() { allSlots.foreach(_.refresh()) }
 }
 
 class CardPanel(playerId: PlayerId, game: Game) {

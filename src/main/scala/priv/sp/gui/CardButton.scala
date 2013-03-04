@@ -37,7 +37,7 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
     }
 
     glPushMatrix()
-    if (card.isSpell) glTranslatef(-2, 1, 0) else glTranslatef(3, 8, 0)
+    if (card.isSpell) glTranslatef(-1, -1, 0) else glTranslatef(3, 8, 0)
     tex.draw(cardTex)
     glPopMatrix()
 

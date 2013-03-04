@@ -10,7 +10,7 @@ class SpWorld {
   val shaders = new Shaders
   val baseShaders = new BaseShaders(shaders, this)
   val houses = new Houses
-  
+
   def clean() {
     textures.clean()
     shaders.clean()
@@ -34,6 +34,7 @@ class BaseTextures(textures: Textures) {
     "Images/Combat/cardglow.tga",
     "Images/Combat/bottomslot.tga",
     "blank.png")
+  lazy val fire = textures.getOrElseUpdate("fire", _ => loadTexture("Images/Combat/particles.tga", 352, 0, 32, 32))
 
   def getBorder(card: Card) = if (card.isSpell) (borderTexSpell, maskTex) else (borderTex, maskTex)
 }
@@ -63,7 +64,7 @@ class HoverShader(name: String, texture: Texture) extends Shader {
   val (program, _, _) = GShader.createProgram(name, name)
   val grad :: width :: height :: cursor :: _= getUniformLocations("grads", "width", "height", "cursor")
   val fbuffer = GBufferUtils.createFloatBuffer(200)
-  
+
   fillBuffer(fbuffer)
   used {
     glUniform2(grad, fbuffer)
