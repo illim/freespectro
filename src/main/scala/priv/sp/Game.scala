@@ -34,6 +34,7 @@ class Game(val world: World) {
       val k = if (player == opponent) {
         shift { k: (Option[Command] => Unit) =>
           util.Utils.threaded {
+            playerPanels(player).setEnabled(true)
             k(bot.executeAI(state))
           }
         }

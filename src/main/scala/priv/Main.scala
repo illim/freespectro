@@ -20,11 +20,11 @@ import org.lwjgl.input.Mouse
 import priv.util.Repere
 
 object Main extends App {
+  var offsety = 0
   val g = GInit()
+
   mainLoop()
   g.cleanUp()
-
-  val screenTexId = 0
 
   def mainLoop() {
     val world = new World()
@@ -38,25 +38,20 @@ object Main extends App {
         glPushMatrix()
         world.render()
         glPopMatrix()
-        //render()
-
-        //g.saveScreen()
-        pollInput().foreach(game.board.panel.fireEvent _)
+        pollInput().foreach{
+          case MouseDrag(y) =>
+            if (math.abs(y) > 2){
+              val newy = offsety - y
+              val dy = if (math.abs(newy - g.height/2) > g.height/2) 0 else (- y)
+                offsety = offsety + dy
+              glTranslatef(0, dy, 0)
+            }
+          case MouseWheel(w) => // todo
+          case e : GuiEvent => game.board.panel.fireEvent(e)
+        }
         Display.update()
         Display.sync(60)
-
-        // check keyboard input
-        //  	    processKeyboard()
-        // do "game" logic, and render it
-        //  	    logic()
-        //  	    render()
       } else {
-        // no need to render/paint if nothing has changed (ie. window
-        // dragged over)
-        if (Display.isDirty()) {
-          //  	      render(resources)
-        }
-        // don't waste cpu time, sleep more
         try {
           Thread.sleep(100)
         } catch {
@@ -71,8 +66,17 @@ object Main extends App {
     var result = Option.empty[MouseEvent]
     while (Mouse.next()) {
       result = if (Mouse.getEventButton() != -1 && Mouse.isButtonDown(0)) {
-        Some(MouseClicked(Coord2i(Mouse.getX(), g.height - Mouse.getY())))
-      } else Some(MouseMoved(Coord2i(Mouse.getX(), g.height - Mouse.getY())))
+        Some(MouseClicked(Coord2i(Mouse.getX(), g.height - offsety - Mouse.getY())))
+      } else {
+        val wheel = Mouse.getDWheel()
+        if  (Mouse.isButtonDown(0)){
+          Some(MouseDrag(Mouse.getDY()))
+        } else if (wheel != 0){
+          Some(MouseWheel(wheel))
+        } else {
+          Some(MouseMoved(Coord2i(Mouse.getX(), g.height - offsety - Mouse.getY())))
+        }
+      }
     }
     result
   }
@@ -82,3 +86,15 @@ object Main extends App {
     glMatrixMode(GL_MODELVIEW)
   }
 }
+
+
+sealed trait MouseEvent
+
+sealed trait GuiEvent extends MouseEvent{
+  def coord: Coord2i
+}
+case class MouseMoved(coord: Coord2i) extends GuiEvent
+case class MouseClicked(coord: Coord2i) extends GuiEvent
+case class MouseLeaved(coord: Coord2i) extends GuiEvent
+case class MouseDrag(y : Int) extends MouseEvent
+case class MouseWheel(w : Int) extends MouseEvent

@@ -13,6 +13,7 @@ sealed trait Card {
   var cost = 0
   var id = 0
   var houseIndex = 0
+  override def hashCode() : Int = cost + houseIndex * 32
 }
 case class Creature(
   name: String,

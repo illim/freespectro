@@ -8,15 +8,8 @@ import priv._
  * we can't easily locate a component duh.
  */
 object GuiHandler {
-  type Type = PartialFunction[MouseEvent, Unit]
+  type Type = PartialFunction[GuiEvent, Unit]
 }
-
-sealed trait MouseEvent {
-  def coord: Coord2i
-}
-case class MouseMoved(coord: Coord2i) extends MouseEvent
-case class MouseClicked(coord: Coord2i) extends MouseEvent
-case class MouseLeaved(coord: Coord2i) extends MouseEvent
 
 trait GuiElem extends Entity {
   def size: Coord2i
@@ -25,7 +18,7 @@ trait GuiElem extends Entity {
   def on(handler: GuiHandler.Type) {
     handlers ::= handler
   }
-  def handle(mouseEvent: MouseEvent) = {
+  def handle(mouseEvent: GuiEvent) = {
     handlers.foreach { handler =>
       if (handler.isDefinedAt(mouseEvent)) {
         handler(mouseEvent)
@@ -54,7 +47,7 @@ trait GuiContainer extends GuiElem {
   }
 
   var lastElem = Option.empty[GuiElem]
-  def fireEvent(mouseEvent: MouseEvent) = {
+  def fireEvent(mouseEvent: GuiEvent) = {
     findElem(mouseEvent.coord).foreach { elem =>
       if (Some(elem) != lastElem) {
         lastElem.foreach { e =>

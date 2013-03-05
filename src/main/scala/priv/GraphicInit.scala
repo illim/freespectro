@@ -46,7 +46,6 @@ object GInit {
     glViewport(0, 0, mode.getWidth(), mode.getHeight)
     org.lwjgl.opengl.Util.checkGLError()
   }
-  
 
   private def findDisplayMode(width: Int, height: Int, bpp: Int) = {
     val modes = Display.getAvailableDisplayModes()

@@ -7,9 +7,7 @@ import scala.util.continuations._
 
 class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
 
-  private val currentPlayerPanel = playerPanels(owner)
-
-  val panel = getPanel(currentPlayerPanel) // todo be able to see opponent board
+  val panel = getPanel() // todo be able to see opponent board
 
   def render(world: World) {
     panel.render(world)
@@ -21,12 +19,13 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
     topCardPanel.refresh(silent)
   }
 
-  private def getPanel(playerPanel: CardPanel) = {
+  private def getPanel() = {
+    val opponentPanel = playerPanels(opponent).panel
+
     Column(
       List(
-        Translate(
-          Coord2i(500, 0),
-          topCardPanel.panel),
+        Translate(Coord2i(500, - opponentPanel.size.y), opponentPanel),
+        Translate(Coord2i(500, 0),topCardPanel.panel),
         Translate(
           Coord2i(320, 0),
           Column(List(
@@ -34,7 +33,7 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
             Translate(
               Coord2i(0, -30), slotPanels(owner))))),
         Translate(
-          Coord2i(500, 0), playerPanel.panel)))
+          Coord2i(500, 0), playerPanels(owner).panel)))
   }
 
 }
@@ -87,10 +86,12 @@ class CardPanel(playerId: PlayerId, game: Game) {
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
   val houseLabels = houseCardButtons.map(_._1)
-  cardButtons.foreach { cardButton =>
-    cardButton.on {
-      case MouseClicked(_) if cardButton.enabled =>
-        game.commandRecorder.setCommand(Command(owner, cardButton.card, None))
+  if (playerId == owner){
+    cardButtons.foreach { cardButton =>
+      cardButton.on {
+        case MouseClicked(_) if cardButton.enabled =>
+          game.commandRecorder.setCommand(Command(owner, cardButton.card, None))
+      }
     }
   }
 
@@ -98,6 +99,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
     case (houseLabel, cardButons) =>
       Column(houseLabel :: cardButons.toList)
   })
+  setEnabled(false)
 
   def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
 

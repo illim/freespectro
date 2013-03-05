@@ -10,8 +10,10 @@ import scala.util.control.TailCalls._
 class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   private val loop = new Loop()
+  private var stat = new Stat()
 
   def executeAI(start: GameState) = {
+    stat = new Stat()
     val s = System.currentTimeMillis()
     val node = Node(start, botPlayerId)
     val loc = loop(Tree(node).loc)
@@ -24,7 +26,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     }
 
     result.flatMap { node =>
-      println("ai spent " + (System.currentTimeMillis() - s) + ", sc : " + node.score.get)
+      println("ai spent " + (System.currentTimeMillis() - s) + ", sc : " + node.score.get + ", "+ stat)
       node.commandOpt
     }
   }
@@ -53,7 +55,10 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   }
 
   case class Node(initState: GameState, playerId: PlayerId, commandOpt: Option[Command] = None) {
-    lazy val state = commandOpt.map(cmd => simulateCommand(initState, cmd)) getOrElse initState
+    lazy val state = commandOpt.map{ cmd =>
+      stat.nbsim += 1
+      simulateCommand(initState, cmd)
+    } getOrElse initState
     var score = Option.empty[Double]
 
     def updateScore(v : Double){
@@ -66,7 +71,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     def commandChoices: Stream[Command] = getCommandChoices(state, playerId)
 
     def getScore = {
-      val stats = playerIds.map{ playerId =>
+      def stats(playerIds : PlayerId) = {
         if (state.players(other(playerId)).life <= 0) new Stat(kill = 1)
         else new Stat(damage = state.players(playerId).life - initState.players(playerId).life)
       }
@@ -78,6 +83,8 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
     private class Stat(val kill:Int = 0, val damage : Int = 0)
   }
+
+  case class Stat( var nbsim : Int = 0)
 }
 
 // full of side effect horror
