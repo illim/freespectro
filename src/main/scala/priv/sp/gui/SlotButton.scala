@@ -14,6 +14,8 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   enabled = false
   private var card = getCard
   private var getDelta = zeroAnim
+  val slotSize = Coord2i(120, 142)
+  private val dashOffset = Coord2i(slotSize.x/2 - 39, slotSize.y/2-44)
 
   def zeroAnim = Function.const[Long, Long](0) _
   def refresh() {
@@ -27,14 +29,13 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
 
   private def getCard = slot.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }
 
-  val slotSize = Coord2i(120, 142)
 
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(1, 1, 1, 1)
 
     if (enabled) {
-      tex.draw(game.sp.baseTextures.cardGlow)
+      dash(dashOffset, 81, 92, ((deltaT(world.time) / 100) % 16).intValue)
     }
 
     tex.draw(slotTex.id, slotSize)
@@ -54,6 +55,23 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
         }
         glPopMatrix()
     }
+  }
+
+  def dash(c : Coord2i, w:Int, h : Int, t : Int){
+    glDisable(GL_TEXTURE_2D)
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    val mask = 0xFF << t
+    glLineStipple(1, (mask ^ (mask >> 16)).shortValue)
+    glEnable(GL_LINE_STIPPLE)
+    glBegin(GL_POLYGON)
+      glVertex2f(c.x,c.y)
+      glVertex2f(c.x + w,c.y)
+      glVertex2f(c.x + w,c.y +h)
+      glVertex2f(c.x,c.y+h)
+    glEnd()
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    glDisable(GL_LINE_STIPPLE)
+    glEnable(GL_TEXTURE_2D)
   }
 
   class AnimTask[A](onEnd: => A) extends Task[A] {

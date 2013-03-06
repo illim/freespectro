@@ -13,6 +13,7 @@ import org.lwjgl.util.glu.GLU._
 object Repere extends Entity {
 
   def render(world: World) {
+glDisable(GL_TEXTURE_2D)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glBegin(GL_LINES)
 
@@ -31,5 +32,6 @@ object Repere extends Entity {
     glEnd()
     glClearColor(0f, 0f, 0f, 0.0f)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    glEnable(GL_TEXTURE_2D)
   }
 }
