@@ -27,12 +27,12 @@ float getNoise(vec2 coord){
   vec2 j = vec2(i.x - 1, i.y);
   vec2 k = vec2(i.x - 1, i.y - 1);
   vec2 l = vec2(i.x, i.y - 1);
-  
+
   float s = dot(g1, i);
   float t = dot(g2, j);
   float u = dot(g3, k);
   float v = dot(g4, l);
-  
+
   float sx = ease(i.x);
   float a = lerp(sx, s, t);
   float b = lerp(sx, v, u);

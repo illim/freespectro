@@ -24,7 +24,6 @@ object GInit {
     Display.create()
     Display.setVSyncEnabled(true)
     initGLState(mode)
-    //glShadeModel(GL_SMOOTH)
     Keyboard.create()
 
     GInited(width, height)
@@ -56,6 +55,7 @@ object GInit {
 }
 
 case class GInited(val width: Int, val height: Int) {
+  val resolution = Coord2i(width, height)
 
   val offscreenTex = new OffscreenTexture(width, height)
 

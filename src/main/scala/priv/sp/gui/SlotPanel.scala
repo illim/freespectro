@@ -5,7 +5,7 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
 
-class SlotPanel(playerId : PlayerId, game : Game) extends {
+class SlotPanel(playerId : PlayerId, game : Game) {
   val lifeLabel = new LifeLabel(new DamagableInt(game.state.players(playerId).life, game), game)
   val slots =
     slotRange.map(num =>
@@ -14,31 +14,25 @@ class SlotPanel(playerId : PlayerId, game : Game) extends {
         playerId,
         game.state.players(playerId).slots.get(num),
         game)).toList
-  val elts = lifeLabel ::  /** TestButton(sp) :: */ slots
+  val elts = lifeLabel :: /**testButton ::: */ slots
 
-} with Flow(dirx = 1) {
+  def testButton = (if (playerId == owner) List(TestButton(game.sp)) else Nil)
 
   val slotOffset = lifeLabel.size
   val slotSize = slots(0).size
   slots.foreach(listenEvent _)
 
-  var animEntityOpt = Option.empty[Entity]
-
-  final override def render(world: World) {
-    super.render(world)
-    animEntityOpt.foreach(_.render(world))
-  }
+  val panel = Row(elts)
 
   abstract class SpellAnim(k : Int => Unit) extends Task[Unit] with Entity {
-    def init() { animEntityOpt = Some(this)  }
+    def init() { panel.entities.add(this)  }
     def end() = {
-      animEntityOpt = None
-      println("call cont")
+      panel.unspawn(this)
       k(duration.intValue)
     }
   }
 
-// TODO
+  // TODO
   class FlameAnimTask(cont : Int => Unit) extends SpellAnim(cont) {
     val duration = 1800L
     val fireTex = game.sp.baseTextures.fire
@@ -60,7 +54,7 @@ class SlotPanel(playerId : PlayerId, game : Game) extends {
 
   def summonSpell(card : Card) = shift { k: (Int => Unit) =>
     if (card.houseIndex == 0 && card.cost == 6) {
-      game.world.addTask(new FlameAnimTask(k))
+      panel.addTask(new FlameAnimTask(k))
     } else k(0)
   }
 
@@ -71,7 +65,7 @@ class SlotPanel(playerId : PlayerId, game : Game) extends {
     }
   }
   def setSlotEnabled(empty: Boolean) {
-    slots.foreach { slot => if (slot.isEmpty == empty) slot.enabled = true }
+    slots.foreach { slot => slot.enabled = (slot.isEmpty == empty) }
   }
   def disable() { slots.foreach(_.enabled = false) }
   def refresh() {

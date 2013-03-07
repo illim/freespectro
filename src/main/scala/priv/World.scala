@@ -9,9 +9,21 @@ import org.lwjgl.opengl.GL15._
 import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
 
-class World {
+class World(ginited : GInited) extends Attachable {
   var time: Long = 0
   var ended = false
+  val resolution = ginited.resolution
+
+  def render() {
+    renderAttacheds(this)
+  }
+
+  def tick() {
+    time = System.currentTimeMillis
+  }
+}
+
+trait Attachable {
 
   val entities = new ConcurrentLinkedQueue[Entity]
   private val tasks = new ConcurrentLinkedQueue[Task[_]]
@@ -20,10 +32,10 @@ class World {
     entities.remove(entity)
   }
 
-  def render() {
-    iterate(entities.iterator)(_.render(this))
+  def renderAttacheds(world : World) {
+    iterate(entities.iterator)(_.render(world))
     iterate(tasks.iterator()) { task =>
-      if (time - task.start > task.duration) {
+      if (world.time - task.start > task.duration) {
         tasks.remove(task)
         task.finish()
       }
@@ -36,32 +48,34 @@ class World {
     }
   }
 
+  def forGuiElem(f : GuiElem => Unit){
+    iterate(entities.iterator){
+      case elem : GuiElem => f(elem)
+      case _ =>
+    }
+  }
+
   def addTask(task: Task[_]) {
-    task.start = time
+    task.start = System.currentTimeMillis
     task.init()
     tasks.add(task)
   }
-
-  def tick() {
-    time = System.currentTimeMillis
-  }
-
 }
 
 object Entity {
   val stdspeed = 1 / 1000f
-  val nextId = new atomic.AtomicInteger()
+  val lastId = new atomic.AtomicInteger()
 }
 
 trait Entity {
   val creationTime = System.currentTimeMillis
-  val id = Entity.nextId
+  val id = Entity.lastId.incrementAndGet()
 
   def render(world: World)
 
   protected def deltaT(time: Long) = time - creationTime
   @inline def stdspeed = Entity.stdspeed
-
+  override def hashCode() = id
 }
 
 object Task {

@@ -25,7 +25,7 @@ class Game(val world: World) {
   val topCardPanel = new TopCardPanel(playerIds(opponent), this)
   val board = new Board(slotPanels, playerPanels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
-  world.entities.add(board)
+  world.entities.add(board.panel)
 
   waitPlayer(owner)
 

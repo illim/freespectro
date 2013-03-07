@@ -5,13 +5,9 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
 
-class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) extends Entity {
+class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) {
 
-  val panel = getPanel() // todo be able to see opponent board
-
-  def render(world: World) {
-    panel.render(world)
-  }
+  val panel = getPanel()
 
   def refresh(silent : Boolean = false) {
     slotPanels.foreach(_.refresh())
@@ -29,9 +25,9 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
         Translate(
           Coord2i(320, 0),
           Column(List(
-            slotPanels(opponent),
+            slotPanels(opponent).panel,
             Translate(
-              Coord2i(0, -30), slotPanels(owner))))),
+              Coord2i(0, -30), slotPanels(owner).panel)))),
         Translate(
           Coord2i(500, 0), playerPanels(owner).panel)))
   }
@@ -42,6 +38,7 @@ class CommandRecorder(game: Game) {
   private var value = Option.empty[Command]
   private var cont = Function.const[Unit, Option[Command]]() _
   def setCommand(command: Command) {
+    game.slotPanels.foreach(_.disable())
     value = Some(command)
     nextStep()
   }
@@ -73,48 +70,3 @@ class CommandRecorder(game: Game) {
   }
 
 }
-
-class CardPanel(playerId: PlayerId, game: Game) {
-  private val playerLs = game.playersLs(playerId)
-  private val houseCardButtons = playerLs.houses.get(game.state).zipWithIndex.map { case (_, idx) =>
-      def getHouseState = playerLs.houses.get(game.state).apply(idx)
-      val house = game.desc.players(playerId).houses(idx)
-
-      new HouseLabel(new DamagableInt(getHouseState.mana, game), house.house, game) -> house.cards.map { card =>
-        new CardButton(card, getHouseState, game.sp)
-      }
-  }
-  val cardButtons = houseCardButtons.flatMap(_._2)
-  val houseLabels = houseCardButtons.map(_._1)
-  if (playerId == owner){
-    cardButtons.foreach { cardButton =>
-      cardButton.on {
-        case MouseClicked(_) if cardButton.enabled =>
-          game.commandRecorder.setCommand(Command(owner, cardButton.card, None))
-      }
-    }
-  }
-
-  val panel = Row(houseCardButtons.map {
-    case (houseLabel, cardButons) =>
-      Column(houseLabel :: cardButons.toList)
-  })
-  setEnabled(false)
-
-  def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
-
-  def setEnabled(flag: Boolean) {
-    cardButtons.foreach(_.enabled = flag)
-  }
-}
-
-class TopCardPanel(playerId: PlayerId, game: Game) {
-  private val playerLs = game.playersLs(playerId)
-  val houseLabels = playerLs.houses.get(game.state).zipWithIndex.map {
-    case (_, idx) =>
-      new HouseLabel(new DamagableInt(playerLs.houses.get(game.state).apply(idx).mana, game), game.desc.players(playerId).houses(idx).house, game, flip = true)
-  }
-  val panel = Row(houseLabels)
-  def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
-}
-

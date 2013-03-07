@@ -34,10 +34,6 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(1, 1, 1, 1)
 
-    if (enabled) {
-      dash(dashOffset, 81, 92, ((deltaT(world.time) / 100) % 16).intValue)
-    }
-
     tex.draw(slotTex.id, slotSize)
 
     card.foreach {
@@ -54,6 +50,10 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
           Fonts.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
         }
         glPopMatrix()
+    }
+
+    if (enabled) {
+      dash(dashOffset, 81, 92, ((deltaT(world.time) / 100) % 16).intValue)
     }
   }
 

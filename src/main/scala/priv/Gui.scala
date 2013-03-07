@@ -2,16 +2,17 @@ package priv
 
 import org.lwjgl.opengl.GL11._
 import priv._
+import collection._
 
 /**
- * Obviously the gui is a bit a bullshit now, with relative coords
- * we can't easily locate a component duh.
+ * Supposing that the ui is completely static
  */
 object GuiHandler {
   type Type = PartialFunction[GuiEvent, Unit]
 }
 
 trait GuiElem extends Entity {
+  var coord = Coord2i(0, 0)
   def size: Coord2i
   var handlers = List.empty[GuiHandler.Type]
   var enabled = true
@@ -25,6 +26,7 @@ trait GuiElem extends Entity {
       }
     }
   }
+  def updateCoord(c : Coord2i){ coord = c }
 }
 
 trait GuiContainer extends GuiElem {
@@ -72,9 +74,13 @@ case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
     elt.render(world)
     glPopMatrix()
   }
+  override def updateCoord(c : Coord2i){
+    super.updateCoord(c)
+    elt.updateCoord(c + at)
+  }
 }
 
-abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer {
+abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer with Attachable {
   def elts: Traversable[GuiElem]
 
   val last = (Coord2i(0, 0) /: elts) { (acc, elt) =>
@@ -95,6 +101,16 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer {
       glTranslatef(dirx * elt.size.x, diry * elt.size.y, 0)
     }
     glPopMatrix()
+    renderAttacheds(world)
+  }
+
+  override def updateCoord(c : Coord2i){
+    super.updateCoord(c)
+// todo update attached stuff?
+    (c /: elts) { (acc, elt) =>
+      elt.updateCoord(acc)
+      acc.copy(x = acc.x + dirx * elt.size.x, y = acc.y + diry * elt.size.y)
+    }
   }
 }
 

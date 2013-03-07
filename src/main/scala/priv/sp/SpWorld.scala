@@ -58,6 +58,7 @@ class Shaders extends ResourceCache[String, Shader] {
 class BaseShaders(shaders: Shaders, sp: SpWorld) {
 
   val hoverGlow = shaders.getOrElseUpdate("hoverglow", _ => new HoverShader("nz", sp.baseTextures.cardGlow))
+  def selectedGlow(name : String, s : Int) = shaders.getOrElseUpdate("sel"+name, _ => new SelectedShader("sel", s))
 }
 
 class HoverShader(name: String, texture: Texture) extends Shader {
@@ -92,5 +93,14 @@ class HoverShader(name: String, texture: Texture) extends Shader {
       fbuffer.put(gy)
     }
     fbuffer.rewind()
+  }
+}
+
+class SelectedShader(name: String, s : Int) extends Shader {
+  val (program, _, _) = GShader.createProgram(name, name)
+  val size :: cursor :: offset :: _= getUniformLocations("size", "cursor", "offset")
+
+  used {
+    glUniform1f(size, s)
   }
 }

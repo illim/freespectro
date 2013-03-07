@@ -27,9 +27,10 @@ object Main extends App {
   g.cleanUp()
 
   def mainLoop() {
-    val world = new World()
+    val world = new World(g)
     val game = new Game(world)
     world.entities.add(Repere)
+    world.forGuiElem(_.updateCoord(Coord2i(0, 0))) //useless now
 
     while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested() && ! world.ended) {
       if (Display.isVisible()) {
@@ -39,14 +40,8 @@ object Main extends App {
         world.render()
         glPopMatrix()
         pollInput().foreach{
-          case MouseDrag(y) =>
-            if (math.abs(y) > 2){
-              val newy = offsety - y
-              val dy = if (math.abs(newy - g.height/2) > g.height/2) 0 else (- y)
-                offsety = offsety + dy
-              glTranslatef(0, dy, 0)
-            }
-          case MouseWheel(w) => // todo
+          case MouseDrag(y) => scroll(world, y)
+          case MouseWheel(w) => scroll(world, -w)
           case e : GuiEvent => game.board.panel.fireEvent(e)
         }
         Display.update()
@@ -79,6 +74,16 @@ object Main extends App {
       }
     }
     result
+  }
+
+  private def scroll(world : World, y : Int){
+    if (math.abs(y) > 2){
+      val newy = offsety - y
+      val dy = if (math.abs(newy - g.height/2) > g.height/2) 0 else -y //todo diff instead of 0
+      offsety = offsety + dy
+      glTranslatef(0, dy, 0)
+      world.forGuiElem(_.updateCoord(Coord2i(0, offsety))) // useless now
+    }
   }
 
   private def clearScreen() {
