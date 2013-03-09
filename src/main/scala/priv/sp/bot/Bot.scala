@@ -20,11 +20,13 @@ trait ExtBot {
   val gameCard = new GameCard(rippedDesc, game)
 
   def simulateCommand(state: GameState, command: Command) = {
+    def applyEffect(st : GameState) =
+      (st /: gameCard.getCommandEffect(command)) { (acc, f) =>
+        f.exec(acc)
+      }
+
     val playerId = command.player
-    var commandState = gameCard.summon(command).exec(state)
-    gameCard.getCommandEffect(command).foreach{ f =>
-      commandState = f.exec(commandState)
-    }
+    val commandState = gameCard.debitAndSpawn(command).exec(applyEffect(state))
     val runState = (commandState /: commandState.players(playerId).slots) {
       case (st, (numSlot, slot)) =>
         game.runSlot(playerId, numSlot, slot).exec(st)

@@ -68,8 +68,6 @@ class Game(val world: World) {
     playerPanels.foreach(_.setEnabled(false))
     commandOption match {
       case Some(c) =>
-        persist(gameCard.summon(c))
-        board.refresh(silent = true)
         reset {
           if (c.card.isSpell){
             slotPanels(other(player)).summonSpell(c.card)
@@ -77,6 +75,9 @@ class Game(val world: World) {
             shiftUnit0[Int, Unit](0)
           }
           gameCard.getCommandEffect(c).foreach(persist(_))
+          board.refresh()
+          persist(gameCard.debitAndSpawn(c))
+          board.refresh(silent = true)
           run(player)
         }
       case None => run(player)
@@ -159,7 +160,7 @@ class Game(val world: World) {
 class GameCard(desc : GameDesc, game : Game) {
   import game._
 
-  def summon(command: Command): State[GameState, Unit] = {
+  def debitAndSpawn(command: Command): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
     val debitMana = playerLs.houses.%== { houses =>
       val house = houses(command.card.houseIndex)

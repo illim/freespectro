@@ -5,7 +5,6 @@ import scalaz._
 
 sealed trait Card {
   def image: String
-  def isSpell: Boolean
   def inputSpec: Option[CardInputSpec]
   def spec: CardSpec
   def isAvailable(house: HouseState) = cost <= house.mana
@@ -13,6 +12,7 @@ sealed trait Card {
   var cost = 0
   var id = 0
   var houseIndex = 0
+  final val isSpell = isInstanceOf[Spell]
   override def hashCode() : Int = cost + houseIndex * 32
   override def equals(o : Any) = {
     o match {
@@ -34,8 +34,7 @@ case class Creature(
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
   }
-
-  def isSpell = false
+  val runOnce = false
   def image = name + ".JPG"
 }
 
@@ -44,7 +43,6 @@ case class Spell(
   inputSpec: Option[CardInputSpec] = None,
   spec: CardSpec = CardSpec.spell()) extends Card {
 
-  def isSpell = true
   def image = name + ".tga"
 }
 
@@ -64,7 +62,8 @@ object CardSpec {
   type Phase = Int
   val Direct = 0
   val OnTurn = 1
-  val phases = Array(Direct, OnTurn)
+  val AfterSpawn = 2
+  val phases = Array(Direct, OnTurn, AfterSpawn)
 
   type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)

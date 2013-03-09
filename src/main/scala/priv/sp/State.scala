@@ -24,7 +24,7 @@ case class PlayerState(
   }
 }
 class HouseState(val mana: Int) extends AnyVal
-case class SlotState(card: Creature, life: Int, attack: Int = 0, hasRunOnce: Boolean = false){
+case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int = 0){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
@@ -66,7 +66,7 @@ object SlotState {
   def creature(card: Card) = {
     card match {
       case creature: Creature =>
-        SlotState(creature, creature.life)
+        SlotState(creature, creature.life, creature.runOnce)
       case _ => sys.error(card + " is not a creature")
     }
   }

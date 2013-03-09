@@ -17,14 +17,16 @@ class Houses extends HouseCardEffects {
     Creature("GoblinBerserker", Some(4), 16, spec = creature(OnTurn ->goblinBerserker)),
     Creature("WallofFire", Some(0), 5, spec = creature(Direct -> damageCreatures(Damage(5, isAbility = true)))),
     Creature("PriestOfFire", Some(3), 13, spec = creature(OnTurn -> addMana(1, 0))),
-    Creature("FireDrake", Some(4), 18, spec = creature(Direct -> toggleRun)),
+    new Creature("FireDrake", Some(4), 18){
+      override val runOnce = true
+    },
     Creature("OrcChieftain", Some(3), 16, mod = Some(AddAttackMod(2, around = true))),
     Spell("FlameWave", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)))),
     Creature("MinotaurCommander", Some(6), 20, mod = Some(AddAttackMod(1))),
-    Creature("Bargul", Some(8), 25, spec = creature(Direct -> bargul)),
+    Creature("Bargul", Some(8), 25, spec = creature(Direct -> massDamage(Damage(4, isAbility = true)))),
     Spell("Inferno", inputSpec = Some(SelectTargetCreature), spec = spell(Direct -> inferno)),
     Creature("FireElemental", None, 36, spec = creature(Direct -> damageCreatures(Damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
-    Spell("Armageddon"),
+    Spell("Armageddon", spec = spell(Direct -> armageddon)),
     Creature("Dragon", Some(9), 41, mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue)))))
 
   val Water = House("water", List(
@@ -63,7 +65,7 @@ class Houses extends HouseCardEffects {
       })),
     Creature("WallOfLightning", Some(0), 28, spec = creature(OnTurn -> damage(Damage(4, isAbility = true)))),
     Spell("LightningBolt",
-      spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - env.guard(5 - env.getMana(2)))})),
+      spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - env.guard(env.mod(Damage(5 + env.getMana(2), isSpell = true)).amount))})),
     Creature("Phoenix", Some(6), 18),
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)), Direct -> damage(Damage(9, isSpell = true)))),
     Creature("LightningCloud", Some(4), 20, multipleTarget = true),
@@ -75,8 +77,7 @@ class Houses extends HouseCardEffects {
       spec = creature(Direct -> { env : Env => SlotState.inflictCreature(env.otherPlayer, env.selected, Damage(15, isAbility = true))}))))
 
   val Earth = House("earth", List(
-    Creature("ElvenHealer", Some(2), 12,
-      spec = creature(OnTurn -> heal(2))),
+    Creature("ElvenHealer", Some(2), 12, spec = creature(OnTurn -> heal(2))),
     Spell("NaturesRitual",
       inputSpec = Some(SelectOwnerCreature),
       spec = spell(Direct -> heal(8), Direct -> healCreature(8))),
@@ -84,7 +85,7 @@ class Houses extends HouseCardEffects {
     Spell("Rejuvenation",
       spec = spell(Direct -> { env : Env => env.player.life.%==( _ + 2 * env.getMana(3))})),
     Creature("elfHermit", Some(1), 13, spec = creature(OnTurn -> addMana(2, 3))),
-    Spell("NaturesFury"),
+    Spell("NaturesFury", spec = spell(Direct -> fury)),
     Creature("GiantSpider", Some(4), 21, spec = creature(Direct -> spider)),
     Creature("Troll", Some(6), 25, spec = creature(OnTurn -> healCreature(4))),
     Spell("StoneRain", spec = spell(Direct -> massDamage(Damage(25, isSpell = true)))),
@@ -103,7 +104,7 @@ class Houses extends HouseCardEffects {
     new Creature("SteelGolem", Some(6), 20, immune = true){
       override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
     },
-    Creature("Cannon", Some(8), 29),
+    Creature("Cannon", Some(8), 29, spec=creature(OnTurn -> cannon)),
     Spell("Cannonade", spec = spell(Direct -> damageCreatures(Damage(19, isSpell = true)))),
     Creature("SteamTank", Some(6), 60, spec = creature(Direct -> damageCreatures(Damage(12, isAbility = true))))))
 

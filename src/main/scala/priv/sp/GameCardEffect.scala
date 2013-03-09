@@ -1,5 +1,6 @@
 package priv.sp
 
+import collection._
 import scalaz._
 import CardSpec._
 
@@ -82,6 +83,25 @@ trait HouseCardEffects {
     }
   }
 
+  def fury = { env: Env =>
+    import env._
+
+    player.slots.flatMap{ slots =>
+      val attack = (slots.values.map(_.attack)(breakOut) : Seq[Int]).sorted(math.Ordering.Int.reverse).take(2).sum
+      val d = env.mod(Damage(attack, isSpell = true))
+      env.otherPlayer.life.%==(_ - env.guard(env.mod(d).amount))
+    }
+  }
+
+  def armageddon = { env: Env =>
+    import env._
+
+    val d = env.mod(Damage(getMana(0) + 8, isSpell = true))
+    env.otherPlayer.life.%==(_ - env.guard(env.mod(d).amount)).flatMap{ _ =>
+      massDamage(d)(env)
+    }
+  }
+
   def goblinBerserker = { env: Env =>
     env.player.slots.%== { slots =>
       var result = PlayerState.emptySlots
@@ -100,28 +120,6 @@ trait HouseCardEffects {
     }
   }
 
-  def bargul = { env: Env =>
-    import env._
-    val damage = Damage(4, isAbility = true)
-
-    otherPlayer.slots.%==(SlotState.damageSlots(damage) _).flatMap{_ =>
-      player.slots.%=={ slots =>
-        var result = PlayerState.emptySlots
-        slots.foreach {
-          case (num, slot) =>
-            if (num != selected) {
-              slot.inflict(damage).foreach { newslot =>
-                result += (num -> newslot)
-              }
-            } else {
-              result += (num -> slot)
-            }
-        }
-        result
-      }
-    }
-  }
-
   def spider = {
     env: Env =>
       env.player.slots.%== { slots =>
@@ -135,5 +133,21 @@ trait HouseCardEffects {
         spawnForestSpiderAt(env.selected + 1)
         result
       }
+  }
+
+
+  def cannon = { env: Env =>
+    import env._
+
+    otherPlayer.slots.%=={ slots =>
+      slots.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption match {
+        case None => slots
+        case Some((num, slot)) =>
+          slot.inflict(Damage(8, isAbility = true)) match {
+            case None => slots - num
+            case Some(slot) => slots + (num -> slot)
+          }
+      }
+    }
   }
 }
