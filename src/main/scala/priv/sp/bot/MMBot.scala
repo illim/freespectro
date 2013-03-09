@@ -9,11 +9,17 @@ import scala.util.control.TailCalls._
 // another very stupid bot, but a bit less slow using minmax with pruning, horrible mess pretty sure it doesn't work :)
 class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
+  def executeAI(start: GameState) = {
+    new MMBotAI(botPlayerId, start, this).execute()
+  }
+}
+
+class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
   private val loop = new Loop()
   private var stat = new Stat()
+  private var choices = new Choices(bot)
 
-  def executeAI(start: GameState) = {
-    stat = new Stat()
+  def execute() : Option[Command] = {
     val s = System.currentTimeMillis()
     val node = Node(start, botPlayerId)
     val loc = loop(Tree(node).loc)
@@ -57,7 +63,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
   case class Node(initState: GameState, playerId: PlayerId, commandOpt: Option[Command] = None) {
     lazy val state = commandOpt.map{ cmd =>
       stat.nbsim += 1
-      simulateCommand(initState, cmd)
+      bot.simulateCommand(initState, cmd)
     } getOrElse initState
     var score = Option.empty[Double]
 
@@ -68,12 +74,12 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
       })
     }
 
-    def commandChoices: Stream[Command] = getCommandChoices(state, playerId)
+    def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
 
     def getScore = {
-      def stats(playerIds : PlayerId) = {
-        if (state.players(other(playerId)).life <= 0) new Stat(kill = 1)
-        else new Stat(damage = state.players(playerId).life - initState.players(playerId).life)
+      def stats(playerId : PlayerId) = {
+        if (state.players(other(playerId)).life <= 0) new NodeStat(kill = 1)
+        else new NodeStat(damage = state.players(playerId).life - start.players(playerId).life)
       }
       val v = stats(botPlayerId)
       val v2 = stats(other(botPlayerId))
@@ -81,7 +87,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
       ((v.kill - v2.kill) + (v.damage - v2.damage) * 0.01) // stupid heuristic
     }
 
-    private class Stat(val kill:Int = 0, val damage : Int = 0)
+    private class NodeStat(val kill:Int = 0, val damage : Int = 0)
   }
 
   case class Stat( var nbsim : Int = 0)

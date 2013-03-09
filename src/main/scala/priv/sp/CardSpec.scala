@@ -14,6 +14,12 @@ sealed trait Card {
   var id = 0
   var houseIndex = 0
   override def hashCode() : Int = cost + houseIndex * 32
+  override def equals(o : Any) = {
+    o match {
+      case c : Card => c.hashCode() == hashCode()
+      case _ => false
+    }
+  }
 }
 case class Creature(
   name: String,
@@ -21,8 +27,13 @@ case class Creature(
   life: Int,
   inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
   spec: CardSpec = CardSpec.creature(),
+  mod : Option[Mod] = None,
   multipleTarget : Boolean = false,
   immune : Boolean = false) extends Card {
+
+  def inflict(damage : Damage, life : Int) = {
+    if (damage.isEffect && immune) life else life - damage.amount
+  }
 
   def isSpell = false
   def image = name + ".JPG"
@@ -38,6 +49,9 @@ case class Spell(
 }
 
 case class Command(player: PlayerId, card: Card, input: Option[SlotInput])
+case class Damage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false){
+  def isEffect = isAbility || isSpell
+}
 
 sealed trait CardInputSpec
 case object SelectOwnerSlot extends CardInputSpec
@@ -79,6 +93,10 @@ object CardSpec {
   }
 }
 
-case class CardSpec(summon: Boolean, effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )
+case class CardSpec(
+  summon: Boolean,
+  effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )
 
-
+trait Mod
+class SpellMod(val modify : Int => Int) extends Mod
+class SpellProtectOwner(val modify : Int => Int) extends Mod

@@ -10,7 +10,7 @@ trait Texture{
   def height : Int
   def width : Int
   def bind()
-  
+
   val coord = Coord2i(width, height)
 }
 

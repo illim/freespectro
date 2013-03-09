@@ -11,6 +11,7 @@ import scala.util.control.TailCalls._
 class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   private val maxDepth = 4
+  val choices = new Choices(this)
 
   def executeAI(start: GameState) = {
     val s = System.currentTimeMillis()
@@ -76,7 +77,7 @@ class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
     lazy val state = commandOpt.map(cmd => simulateCommand(initState, cmd)) getOrElse initState
     val stats = new Stats
 
-    def commandChoices: Stream[Command] = getCommandChoices(state, playerId)
+    def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
   }
 
   class Stats {

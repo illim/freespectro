@@ -7,12 +7,13 @@ import priv.sp.PlayerState
 import priv.util.Utils
 
 // stupid bot very slow, reason forward and using a stupid heuristic on life ratio
-// todo : 
+// todo :
 // - maximize fake player move instead of minimizing it lol
 // - update the fakeplayer
 class DummyBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   private val maxDepth = 2
+  val choices = new Choices(this)
 
   def executeAI(start: GameState) = {
     val s = System.currentTimeMillis()
@@ -77,7 +78,7 @@ class DummyBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
   class Simu(playerId: PlayerId, path: Path) {
     val initState = path.steps.headOption.map(_._2) getOrElse path.start
-    val commands: Stream[Command] = getCommandChoices(initState, playerId)
+    val commands: Stream[Command] = choices.getNexts(initState, playerId)
     val nexts: Stream[Path] = commands.map { command =>
       path.add(command, simulateCommand(initState, command))
     }

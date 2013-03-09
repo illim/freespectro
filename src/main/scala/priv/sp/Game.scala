@@ -13,7 +13,7 @@ class Game(val world: World) {
   val sp = new SpWorld
   val shuffle = new CardShuffle(sp)
   val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
-  var state = GameState(List(PlayerState(p1State), PlayerState(p2State)))
+  var state : GameState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new MMBot(opponent, this)
@@ -123,15 +123,17 @@ class Game(val world: World) {
   def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Option[PlayerId]] = {
     val otherPlayerLs = playersLs(other(playerId))
 
-    def damageLife = (otherPlayerLs.life -= slot.attack).map { life =>
-      if (life <= 0) {
-        Some(playerId)
-      } else None
+    def damageLife = State.get[GameState].flatMap{ st =>
+      (otherPlayerLs.life -= st.players(other(playerId)).guard(slot.attack)).map { life =>
+        if (life <= 0) {
+          Some(playerId)
+        } else None
+      }
     }
 
     if (slot.card.multipleTarget){
       damageLife.flatMap{ result =>
-        SlotState.inflictCreatures(otherPlayerLs, slot.attack).map( _ => result)
+        SlotState.inflictCreatures(otherPlayerLs, Damage(slot.attack)).map( _ => result)
       }
     } else {
       otherPlayerLs.slots.flatMap { slots =>
@@ -139,7 +141,7 @@ class Game(val world: World) {
           case None => damageLife
           case Some(oppositeSlot) =>
             SlotState.inflictCreature(
-              otherPlayerLs, numSlot, slot.attack).map( _ => None)
+              otherPlayerLs, numSlot, Damage(slot.attack)).map( _ => None)
         }
       }
     }
