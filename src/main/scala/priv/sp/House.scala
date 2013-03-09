@@ -16,7 +16,7 @@ class Houses extends HouseCardEffects {
     Creature("MinotaurCommander", Some(6), 20, mod = Some(AddAttackMod(1))),
     Creature("Bargul", Some(8), 25, spec = creature(Direct -> bargul)),
     Spell("Inferno", inputSpec = Some(SelectTargetCreature), spec = spell(Direct -> inferno)),
-    Creature("FireElemental", None, 36, spec = creature(OnTurn -> addMana(1, 0))),
+    Creature("FireElemental", None, 36, spec = creature(Direct -> damageCreatures(Damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
     Spell("Armageddon"),
     Creature("Dragon", Some(9), 41, mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue)))))
 
@@ -93,7 +93,9 @@ class Houses extends HouseCardEffects {
     Creature("DwarvenRifleman", Some(4), 17),
     Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4))),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
-    Creature("SteelGolem", Some(6), 20, immune = true),
+    new Creature("SteelGolem", Some(6), 20, immune = true){
+      override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
+    },
     Creature("Cannon", Some(8), 29),
     Spell("Cannonade", spec = spell(Direct -> damageCreatures(Damage(19, isSpell = true)))),
     Creature("SteamTank", Some(6), 60, spec = creature(Direct -> damageCreatures(Damage(12, isAbility = true))))))

@@ -22,10 +22,6 @@ case class PlayerState(
   def resetSlotAttack(){
     slots.values.foreach{ slot => slot.attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana }
   }
-
-  val manaHash = (0 /: houses.zipWithIndex) { case (acc, (house, i)) =>
-    acc + (house.mana * math.pow(10, i)).intValue
-  }
 }
 class HouseState(val mana: Int) extends AnyVal
 case class SlotState(card: Creature, life: Int, var attack: Int = 0, hasRunOnce: Boolean = false){
@@ -125,7 +121,7 @@ object GameState {
     // /!\ suppose that no slot is replaced in one pass
     // mods should not be used before state update
     // recompute all when house mana increase or slots number modified
-    if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.manaHash == p.manaHash)) {
+    if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.houses.eq(p.houses))) {
       p.mods = oldp.mods
       p.isSlotDependsMana = oldp.isSlotDependsMana
     } else {
