@@ -62,8 +62,7 @@ object CardSpec {
   type Phase = Int
   val Direct = 0
   val OnTurn = 1
-  val AfterSpawn = 2
-  val phases = Array(Direct, OnTurn, AfterSpawn)
+  val phases = Array(Direct, OnTurn)
 
   type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
