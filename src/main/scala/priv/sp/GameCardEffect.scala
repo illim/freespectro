@@ -12,6 +12,7 @@ object GameCardEffect {
     @inline def otherPlayer = game.playersLs(other(playerId))
     @inline def getMana(houseIndex : Int) : Int = game.state.players(playerId).houses(houseIndex).mana
     @inline def guard(amount : Int) = game.state.players(other(playerId)).guard(amount)
+    @inline def guardSelf(amount : Int) = game.state.players(playerId).guard(amount)
 
     def mod(d : Damage) = {
       if (d.isSpell) {

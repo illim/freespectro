@@ -11,9 +11,9 @@ class Houses extends HouseCardEffects {
     Creature("WallofFire", Some(0), 5, spec = creature(Direct -> damageCreatures(Damage(5, isAbility = true)))),
     Creature("PriestOfFire", Some(3), 13, spec = creature(OnTurn -> addMana(1, 0))),
     Creature("FireDrake", Some(4), 18, spec = creature(Direct -> toggleRun)),
-    Creature("OrcChieftain", Some(3), 16),
+    Creature("OrcChieftain", Some(3), 16, mod = Some(AddAttackMod(2, around = true))),
     Spell("FlameWave", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)))),
-    Creature("MinotaurCommander", Some(6), 20),
+    Creature("MinotaurCommander", Some(6), 20, mod = Some(AddAttackMod(1))),
     Creature("Bargul", Some(8), 25, spec = creature(Direct -> bargul)),
     Spell("Inferno", inputSpec = Some(SelectTargetCreature), spec = spell(Direct -> inferno)),
     Creature("FireElemental", None, 36, spec = creature(OnTurn -> addMana(1, 0))),
@@ -23,7 +23,7 @@ class Houses extends HouseCardEffects {
   val Water = House("water", List(
     Spell("Meditation", spec = spell(Direct -> addMana(1, 0, 2, 3))),
     Creature("SeaSprite", Some(5), 22,
-      spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - 2) })),
+      spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - env.guardSelf(2)) })),
     Creature("MerfolkApostate", Some(3), 10, spec = creature(Direct -> addMana(2, 0))),
     Creature("IceGolem", Some(4), 12, immune = true),
     Creature("MerfolkElder", Some(3), 16, spec = creature(OnTurn -> addMana(1, 2))),
@@ -45,7 +45,7 @@ class Houses extends HouseCardEffects {
     Creature("FaerieApprentice", Some(4), 11, mod = Some(new SpellMod(x => x + 1))),
     Creature("Griffin", Some(3), 15,
       spec = creature(Direct -> { env : Env =>
-        if (env.getMana(2) > 4) env.otherPlayer.life.%==( _ - 5) else GameState.unit
+        if (env.getMana(2) > 4) env.otherPlayer.life.%==( _ - env.guard(5)) else GameState.unit
       })),
     Spell("CalltoThunder",
       inputSpec = Some(SelectTargetCreature),
@@ -56,7 +56,7 @@ class Houses extends HouseCardEffects {
       })),
     Creature("WallOfLightning", Some(0), 28, spec = creature(OnTurn -> damage(Damage(4, isAbility = true)))),
     Spell("LightningBolt",
-      spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - 5 - env.getMana(2))})),
+      spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - env.guard(5 - env.getMana(2)))})),
     Creature("Phoenix", Some(6), 18),
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)), Direct -> damage(Damage(9, isSpell = true)))),
     Creature("LightningCloud", Some(4), 20, multipleTarget = true),

@@ -8,19 +8,35 @@ case class PlayerState(
   houses: Vector[HouseState],
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
   life: Int = 60) {
-  lazy val mods = slots.values.flatMap(_.card.mod)
+
+  var mods : List[Mod] = Nil // /!\ recomputed in lens
+  var isSlotDependsMana = false
+
   def guard(amount : Int) = {
     (amount /: mods){
       case (acc, mod : SpellProtectOwner) => mod.modify(acc)
       case (acc, _) => acc
     }
   }
+
+  def resetSlotAttack(){
+    slots.values.foreach{ slot => slot.attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana }
+  }
+
+  val manaHash = (0 /: houses.zipWithIndex) { case (acc, (house, i)) =>
+    acc + (house.mana * math.pow(10, i)).intValue
+  }
 }
 class HouseState(val mana: Int) extends AnyVal
-case class SlotState(card: Creature, life: Int, attack: Int, hasRunOnce: Boolean = false){
+case class SlotState(card: Creature, life: Int, var attack: Int = 0, hasRunOnce: Boolean = false){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
+  }
+  def addAttack(x : Int) = {
+    if (card.attack.isEmpty || card.attack != Some(0)){
+      attack += x
+    }
   }
 }
 
@@ -54,7 +70,7 @@ object SlotState {
   def creature(card: Card) = {
     card match {
       case creature: Creature =>
-        SlotState(creature, creature.life, creature.attack getOrElse 0)
+        SlotState(creature, creature.life)
       case _ => sys.error(card + " is not a creature")
     }
   }
@@ -101,7 +117,43 @@ class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
 }
 object GameState {
   val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
-  def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id)))
+
+  def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]({ (state, p) =>
+    val oldp = state.players(id)
+    val newState = state.copy(players = state.players.updated(id, p))
+
+    // /!\ suppose that no slot is replaced in one pass
+    // mods should not be used before state update
+    // recompute all when house mana increase or slots number modified
+    if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.manaHash == p.manaHash)) {
+      p.mods = oldp.mods
+      p.isSlotDependsMana = oldp.isSlotDependsMana
+    } else {
+      p.isSlotDependsMana = p.slots.values.exists(_.card.attack.isEmpty)
+      p.resetSlotAttack()
+      val mods = (List.empty[Mod] /: p.slots){ case (acc, (num, slot)) =>
+        slot.card.mod match {
+          case None => acc
+          case Some(mod) =>
+            mod match {
+              case AddAttackMod(x, around) =>
+                if (around){
+                  p.slots.get(num - 1).foreach( s => s.addAttack(x)) // /!\ side effect
+                  p.slots.get(num + 1).foreach( s => s.addAttack(x))
+                } else {
+                  p.slots.foreach(_._2.addAttack(x))
+                }
+              case _ =>
+            }
+            (mod :: acc)
+        }
+      }
+      p.mods = mods
+    }
+
+    newState
+  }, _.players(id)))
+
   val unit = State[GameState, Unit](gs => (gs, ()))
   def none[A] = State[GameState, Option[A]](gs => (gs, None))
   val currentVersion = new java.util.concurrent.atomic.AtomicInteger(0)
