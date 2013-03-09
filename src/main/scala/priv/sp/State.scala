@@ -19,20 +19,20 @@ case class PlayerState(
     }
   }
 
-  def resetSlotAttack(){
-    slots.values.foreach{ slot => slot.attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana }
+  def slotAttackReseted()={
+    slots.mapValues{ slot => slot.copy(attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana) }
   }
 }
 class HouseState(val mana: Int) extends AnyVal
-case class SlotState(card: Creature, life: Int, var attack: Int = 0, hasRunOnce: Boolean = false){
+case class SlotState(card: Creature, life: Int, attack: Int = 0, hasRunOnce: Boolean = false){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
   }
   def addAttack(x : Int) = {
     if (card.attack.isEmpty || card.attack != Some(0)){
-      attack += x
-    }
+      copy(attack = attack + x)
+    } else this
   }
 }
 
@@ -116,17 +116,16 @@ object GameState {
 
   def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]({ (state, p) =>
     val oldp = state.players(id)
-    val newState = state.copy(players = state.players.updated(id, p))
 
-    // /!\ suppose that no slot is replaced in one pass
+    // /!\ suppose that no slot is replaced in one pass so that mod list is coherent
     // mods should not be used before state update
     // recompute all when house mana increase or slots number modified
-    if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.houses.eq(p.houses))) {
+    val newp = if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.houses.eq(p.houses))) {
       p.mods = oldp.mods
       p.isSlotDependsMana = oldp.isSlotDependsMana
+      p
     } else {
-      p.isSlotDependsMana = p.slots.values.exists(_.card.attack.isEmpty)
-      p.resetSlotAttack()
+      var newslots = p.slotAttackReseted()
       val mods = (List.empty[Mod] /: p.slots){ case (acc, (num, slot)) =>
         slot.card.mod match {
           case None => acc
@@ -134,20 +133,26 @@ object GameState {
             mod match {
               case AddAttackMod(x, around) =>
                 if (around){
-                  p.slots.get(num - 1).foreach( s => s.addAttack(x)) // /!\ side effect
-                  p.slots.get(num + 1).foreach( s => s.addAttack(x))
+                  newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.addAttack(x)))
+                  newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.addAttack(x)))
                 } else {
-                  p.slots.foreach(_._2.addAttack(x))
+                  newslots = newslots.mapValues(_.addAttack(x))
                 }
+              case ToggleRunAround =>
+                newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.copy(hasRunOnce =true)))
+                newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.copy(hasRunOnce =true)))
               case _ =>
             }
             (mod :: acc)
         }
       }
-      p.mods = mods
+      val newp = p.copy(slots = newslots)
+      newp.isSlotDependsMana = newp.slots.values.exists(_.card.attack.isEmpty)
+      newp.mods = mods
+      newp
     }
 
-    newState
+    state.copy(players = state.players.updated(id, newp))
   }, _.players(id)))
 
   val unit = State[GameState, Unit](gs => (gs, ()))

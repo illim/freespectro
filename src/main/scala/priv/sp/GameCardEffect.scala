@@ -121,4 +121,19 @@ trait HouseCardEffects {
       }
     }
   }
+
+  def spider = {
+    env: Env =>
+      env.player.slots.%== { slots =>
+        var result = slots
+        def spawnForestSpiderAt(num : Int){
+          if (slots.get(num).isEmpty && num > -1 && num < 6){
+            result += (num -> SlotState.creature(Houses.forestSpider))
+          }
+        }
+        spawnForestSpiderAt(env.selected - 1)
+        spawnForestSpiderAt(env.selected + 1)
+        result
+      }
+  }
 }

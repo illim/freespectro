@@ -101,3 +101,4 @@ trait Mod
 class SpellMod(val modify : Int => Int) extends Mod
 class SpellProtectOwner(val modify : Int => Int) extends Mod
 case class AddAttackMod(amount : Int, around : Boolean = false) extends Mod
+case object ToggleRunAround extends Mod

@@ -2,6 +2,13 @@ package priv.sp
 
 case class House(name: String, cards: List[Card])
 
+object Houses {
+  val forestSpider = new Creature("ForestSpider", Some(2), 11){
+    cost = 1
+    houseIndex = 2
+  }
+}
+
 class Houses extends HouseCardEffects {
   import CardSpec._
   import GameCardEffect._
@@ -34,7 +41,7 @@ class Houses extends HouseCardEffects {
     Spell("AcidicRain", spec = spell(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
       env.otherPlayer.houses.%=={ houses => HouseState.incrMana(houses, -1 , 0, 1, 2, 3, 4) }
     })),
-    Creature("MerfolkOverlord", Some(7), 34),
+    Creature("MerfolkOverlord", Some(7), 34, mod = Some(ToggleRunAround)),
     Creature("WaterElemental", None, 38, spec = creature(Direct -> heal(10), OnTurn -> addMana(1, 1))),
     Creature("MindMaster", Some(6), 22, spec = creature(OnTurn -> addMana(1, 0, 1, 2, 3, 4))),
     Creature("AstralGuard", Some(1), 17, spec = creature(OnTurn -> { env : Env =>
@@ -78,7 +85,7 @@ class Houses extends HouseCardEffects {
       spec = spell(Direct -> { env : Env => env.player.life.%==( _ + 2 * env.getMana(3))})),
     Creature("elfHermit", Some(1), 13, spec = creature(OnTurn -> addMana(2, 3))),
     Spell("NaturesFury"),
-    Creature("GiantSpider", Some(4), 21),
+    Creature("GiantSpider", Some(4), 21, spec = creature(Direct -> spider)),
     Creature("Troll", Some(6), 25, spec = creature(OnTurn -> healCreature(4))),
     Spell("StoneRain", spec = spell(Direct -> massDamage(Damage(25, isSpell = true)))),
     Creature("EarthElemental", None, 49, spec = creature(OnTurn -> addMana(1, 2))),
