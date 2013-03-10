@@ -74,10 +74,13 @@ object SlotState {
 
   @inline def inflictCreature(player: PlayerStateLenses, numSlot : Int, damage : Damage) : State[GameState, Unit] = {
     player.slots.%== { slots =>
-      val slot = slots(numSlot)
-      slot.inflict(damage) match {
-        case None => slots - numSlot
-        case Some(newSlot) => slots + (numSlot -> newSlot)
+      slots.get(numSlot) match {
+        case None => slots // for example titan on unopposed slot
+        case Some(slot) =>
+          slot.inflict(damage) match {
+            case None => slots - numSlot
+            case Some(newSlot) => slots + (numSlot -> newSlot)
+          }
       }
     }
   }
