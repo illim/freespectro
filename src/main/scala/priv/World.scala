@@ -111,6 +111,12 @@ trait Task[A] {
   private[priv] def finish(){result = Some(end())}
 }
 
+class SimpleTask(f : => Unit) extends Task[Unit]{
+  val duration = 0L
+  def init(){}
+  def end(){f}
+}
+
 class TexAnim(
   val animationTextures: Array[Texture],
   val ratio: Float = 1 / 500f) {

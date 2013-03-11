@@ -43,7 +43,7 @@ class Game(val world: World) {
           playerPanels(player).setEnabled(true)
         }
       }
-      submit(k, player)
+      world.addTask(new SimpleTask(submit(k, player))) // to avoid to be done in ai thread
     }
   }
 

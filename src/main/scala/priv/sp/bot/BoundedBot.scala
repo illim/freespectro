@@ -70,7 +70,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     node.numSim += 1
     // maybe store nbStep?
     // stupid heuristic again
-    node.rewards = end.map{ p => if (p == botPlayerId) -1f else 1f }.getOrElse(0.01f * (state.players(botPlayerId).life - state.players(other(botPlayerId)).life))
+    node.rewards += end.map{ p => if (p == botPlayerId) -1f else 1f }.getOrElse(0.01f * (state.players(botPlayerId).life - state.players(other(botPlayerId)).life))
     node.backPropagate()
   }
 

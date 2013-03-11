@@ -43,7 +43,9 @@ trait ExtBot {
   }
 }
 
-class Choices(bot : ExtBot) {
+case class RandomChoiceParam(chooseExpensive : Boolean = false)
+
+class Choices(bot : ExtBot, rndParams : RandomChoiceParam = RandomChoiceParam()) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
     val slots = state.players(playerId).slots
@@ -83,8 +85,14 @@ class Choices(bot : ExtBot) {
 
     val houseDesc = bot.rippedDesc.players(playerId).houses(Random.nextInt(5))
     val houseState = state.players(playerId).houses(houseDesc.index)
+    val cards = houseDesc.cardList.filter(_.isAvailable(houseState))
 
-    Random.shuffle(houseDesc.cardList.filter(_.isAvailable(houseState))).headOption.flatMap { card =>
+    val cardOption = if (rndParams.chooseExpensive) {
+      if (cards.isEmpty) None
+      else Some(cards.maxBy(_.cost))
+    } else Random.shuffle(cards).headOption
+
+    cardOption.flatMap { card =>
       card.inputSpec match {
         case None => Some(Command(playerId, card, None))
         case Some(SelectOwnerSlot) =>
