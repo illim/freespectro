@@ -3,8 +3,6 @@ package priv.sp.bot
 import priv.sp._
 import priv.util._
 import scalaz._
-import annotation.tailrec
-import scala.util.control.TailCalls._
 
 // another very stupid bot, but a bit less slow using minmax with pruning, horrible mess pretty sure it doesn't work :)
 class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
@@ -16,7 +14,7 @@ class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 
 class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
   private val loop = new Loop()
-  private var stat = new Stat()
+  private var perfStat = new PerfStat()
   private var choices = new Choices(bot)
 
   def execute() : Option[Command] = {
@@ -32,7 +30,7 @@ class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     }
 
     result.flatMap { node =>
-      println("ai spent " + (System.currentTimeMillis() - s) + ", sc : " + node.score.get + ", "+ stat)
+      println("ai spent " + (System.currentTimeMillis() - s) + ", sc : " + node.score.get + ", "+ perfStat)
       node.commandOpt
     }
   }
@@ -62,7 +60,7 @@ class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
 
   case class Node(initState: GameState, playerId: PlayerId, commandOpt: Option[Command] = None) {
     lazy val state = commandOpt.map{ cmd =>
-      stat.nbsim += 1
+      perfStat.nbsim += 1
       bot.simulateCommand(initState, cmd)
     } getOrElse initState
     var score = Option.empty[Double]
@@ -90,7 +88,7 @@ class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     private class NodeStat(val kill:Int = 0, val damage : Int = 0)
   }
 
-  case class Stat( var nbsim : Int = 0)
+  case class PerfStat( var nbsim : Int = 0)
 }
 
 // full of side effect horror

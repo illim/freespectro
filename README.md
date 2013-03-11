@@ -2,6 +2,13 @@ Started toy programming trying to make a fake dumbed down Spectromancer, a turn 
 Currently I'm working with the original resources, but the final goal is to have a decent ai so we can have fun making our own cards,
 and play with them.
 
+## Todo
+update ai fake opponent
+ai too slow or too dumb
+implements A7, M2
+game crash when ai use F7
+effect card focus
+spell anims
 
 ## Acknowledgements
 

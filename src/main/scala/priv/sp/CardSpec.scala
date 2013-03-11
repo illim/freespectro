@@ -4,6 +4,7 @@ import collection._
 import scalaz._
 
 sealed trait Card {
+  def name : String
   def image: String
   def inputSpec: Option[CardInputSpec]
   def spec: CardSpec
@@ -13,6 +14,7 @@ sealed trait Card {
   var id = 0
   var houseIndex = 0
   final val isSpell = isInstanceOf[Spell]
+  override def toString() = s"Card($name)"
   override def hashCode() : Int = cost + houseIndex * 32
   override def equals(o : Any) = {
     o match {

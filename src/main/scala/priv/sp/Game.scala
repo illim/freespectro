@@ -16,7 +16,7 @@ class Game(val world: World) {
   var state : GameState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
-  private val bot = new MMBot(opponent, this)
+  private val bot = new BoundedBot(opponent, this)
 
   // gui
   val commandRecorder = new CommandRecorder(this)

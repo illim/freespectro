@@ -120,9 +120,9 @@ object GameState {
   def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]({ (state, p) =>
     val oldp = state.players(id)
 
+    // recompute all when house mana increase or slots number modified
     // /!\ suppose that no slot is replaced in one pass so that mod list is coherent
     // mods should not be used before state update
-    // recompute all when house mana increase or slots number modified
     val newp = if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.houses.eq(p.houses))) {
       p.mods = oldp.mods
       p.isSlotDependsMana = oldp.isSlotDependsMana
