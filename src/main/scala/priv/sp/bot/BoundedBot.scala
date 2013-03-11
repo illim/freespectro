@@ -14,13 +14,14 @@ class BoundedBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
 }
 
 class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
-  val duration = 3000
+  val duration = 4000
   val defaultPolicyMaxTurn = 15
-  val expansionTreeMaxDepth = 1  // todo shuffle the nodes before increase maxDepth?
+  val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?
 
   val selector = new Selector()
   val perfStat = new PerfStat()
   val choices = new Choices(bot)
+  val deltaStart = start.players(botPlayerId).life  -start.players(other(botPlayerId)).life
 
   def execute() = {
     val startTime = System.currentTimeMillis
@@ -29,12 +30,14 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     val rootLoc = Tree(node).loc
     var next = Option(rootLoc)
     var last = rootLoc
+    var i = 0
     while(System.currentTimeMillis < end && next.isDefined){
       next = selector.treePolicy(last).map{ selected =>
         defaultPolicy(selected.getLabel)
         selected.root
       }
       last = next.get
+      i+=1
     }
     val result = last.tree.subForest.foldLeft(Option.empty[Node]) {
       case (None, childTree) =>
@@ -48,7 +51,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     }
 
     result.flatMap { node =>
-      println(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat}")
+      println(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
       node.commandOpt
     }
   }
@@ -65,13 +68,18 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
       state = bot.simulateCommand(state, player, nextCommand)
       player = other(player)
       nbStep += 1
-      end = state.players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => n }
+      end = state.checkEnded
     }
     node.numSim += 1
-    // maybe store nbStep?
     // stupid heuristic again
-    node.rewards += end.map{ p => if (p == botPlayerId) -1f else 1f }.getOrElse(0.01f * (state.players(botPlayerId).life - state.players(other(botPlayerId)).life))
-    node.backPropagate()
+    val deltaReward = end.map{ p =>
+      if (p == botPlayerId) 1f else -1f
+    }.getOrElse {
+      val dend = state.players(botPlayerId).life - state.players(other(botPlayerId)).life
+      0.01f * (dend - deltaStart)
+    }
+    node.rewards += deltaReward
+    node.backPropagate(deltaReward)
   }
 
   class Selector extends SelectExpandLoop[Node] {
@@ -103,10 +111,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
     } getOrElse initState
 
     def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
-    def backPropagate(){
+    def backPropagate(deltaReward : Float){
       path.foreach{ node =>
         node.numSim += 1
-        node.rewards += rewards
+        node.rewards += deltaReward
       }
     }
     def stringPath = path.collect{ case p if p.commandOpt.isDefined=> p.commandOpt.get.card.name}

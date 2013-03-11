@@ -98,26 +98,30 @@ class Game(val world: World) {
   }
 
   protected def run(playerId: PlayerId) {
-    println("run" + playerId)
-    board.refresh()
-    val player = state.players(playerId)
-    val otherPlayerId = other(playerId)
-    val tasks = player.slots.toList.sortBy(_._1).collect {
-      case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
-        val slotButton = slotPanels(playerId).slots(numSlot)
+    state.checkEnded match {
+      case Some(player) => endGame(player)
+      case None =>
+        println("run" + playerId)
+        board.refresh()
+        val player = state.players(playerId)
+        val otherPlayerId = other(playerId)
+        val tasks = player.slots.toList.sortBy(_._1).collect {
+          case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
+            val slotButton = slotPanels(playerId).slots(numSlot)
 
-        new slotButton.AnimTask({
-          val result = persist(runSlot(playerId, numSlot, slot))
-          board.refresh()
-          result
-        })
-    }
-    reset {
-      Task.chain(world, tasks).foreach(_.foreach(endGame _))
-      persist(prepareNextTurn(otherPlayerId))
-      persistState(getSlotTurnEffect(otherPlayerId))
-      board.refresh(silent = true)
-      waitPlayer(otherPlayerId)
+          new slotButton.AnimTask({
+            val result = persist(runSlot(playerId, numSlot, slot))
+            board.refresh()
+            result
+          })
+        }
+        reset {
+          Task.chain(world, tasks).foreach(_.foreach(endGame _))
+          persist(prepareNextTurn(otherPlayerId))
+          persistState(getSlotTurnEffect(otherPlayerId))
+          board.refresh(silent = true)
+          waitPlayer(otherPlayerId)
+        }
     }
   }
 

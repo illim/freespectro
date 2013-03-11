@@ -3,7 +3,9 @@ package priv.sp
 import util.Random
 import collection._
 
-case class GameState(players: List[PlayerState])
+case class GameState(players: List[PlayerState]){
+  def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
+}
 case class PlayerState(
   houses: Vector[HouseState],
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
