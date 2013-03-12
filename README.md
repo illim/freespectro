@@ -3,11 +3,7 @@ Currently I'm working with the original resources, but the final goal is to have
 and play with them.
 
 ## Todo
-update ai fake opponent.
-ai too slow or too dumb.
-implements A7, M2.
-effect card focus.
-spell anims.
+Update ai fake opponent; Health bar; Effect card focus; spell anims.
 
 ## Acknowledgements
 

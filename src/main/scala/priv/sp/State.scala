@@ -7,7 +7,7 @@ case class GameState(players: List[PlayerState]){
   def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
 }
 case class PlayerState(
-  houses: Vector[HouseState],
+  houses: PlayerState.HousesType,
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
   life: Int = 60) {
 
@@ -19,10 +19,6 @@ case class PlayerState(
       case (acc, mod : SpellProtectOwner) => mod.modify(acc)
       case (acc, _) => acc
     }
-  }
-
-  def slotAttackReseted()={
-    slots.mapValues{ slot => slot.copy(attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana) }
   }
 }
 class HouseState(val mana: Int) extends AnyVal
@@ -51,10 +47,16 @@ case class PlayerHouseDesc(house : House, cards : Array[Card]){
 import scalaz._
 object PlayerState {
   type SlotsType = immutable.Map[Int, SlotState]
+  type HousesType = Vector[HouseState]
   val emptySlots = immutable.Map.empty[Int, SlotState]
+
   val housesL = Lens.lensu[PlayerState, Vector[HouseState]]((p, h) => p.copy(houses = h), _.houses)
   val slotsL = Lens.lensu[PlayerState, SlotsType]((p, s) => p.copy(slots = s), _.slots)
   val lifeL = Lens.lensu[PlayerState, Int]((p, l) => p.copy(life = l), _.life)
+
+  def resetSlotAttack(slots : SlotsType, houses : HousesType)={
+    slots.mapValues{ slot => slot.copy(attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana) }
+  }
 }
 object HouseState{
   def incrMana(houses : Vector[HouseState], amount : Int, houseIndex : Int*) = {
@@ -130,25 +132,46 @@ object GameState {
       p.isSlotDependsMana = oldp.isSlotDependsMana
       p
     } else {
-      var newslots = p.slotAttackReseted()
-      val mods = (List.empty[Mod] /: p.slots){ case (acc, (num, slot)) =>
+      var newslots = p.slots
+      oldp.slots.foreach{ case (num, slot) =>
+        slot.card.boardEffect.foreach {
+          case Reborn(f) if ! newslots.isDefinedAt(num) =>
+            if (f(p)) newslots += (num -> SlotState.creature(slot.card))
+          case _ =>
+        }
+      }
+      val intereceptSpawns = state.players(other(id)).mods.collect{ case InterceptSpawn(d) => d }
+      if (intereceptSpawns.nonEmpty){
+        newslots.foreach{ case (num, slot) =>
+          if (!oldp.slots.isDefinedAt(num)){
+            intereceptSpawns.foreach{ d =>
+              slot.inflict(d) match {
+                case None => newslots -= num
+                case Some(s) => newslots += (num -> s)
+              }
+            }
+          }
+        }
+      }
+      newslots = PlayerState.resetSlotAttack(newslots, p.houses)
+      val mods = (List.empty[Mod] /: newslots){ case (acc, (num, slot)) =>
+        slot.card.boardEffect.foreach {
+          case AddAttack(x, around) =>
+            if (around){
+              newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.addAttack(x)))
+              newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.addAttack(x)))
+            } else {
+              newslots = newslots.mapValues(_.addAttack(x))
+            }
+          case ToggleRunAround =>
+            newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.copy(hasRunOnce =true)))
+            newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.copy(hasRunOnce =true)))
+            case _ =>
+        }
+
         slot.card.mod match {
           case None => acc
-          case Some(mod) =>
-            mod match {
-              case AddAttackMod(x, around) =>
-                if (around){
-                  newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.addAttack(x)))
-                  newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.addAttack(x)))
-                } else {
-                  newslots = newslots.mapValues(_.addAttack(x))
-                }
-              case ToggleRunAround =>
-                newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.copy(hasRunOnce =true)))
-                newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.copy(hasRunOnce =true)))
-              case _ =>
-            }
-            (mod :: acc)
+          case Some(mod) => (mod :: acc)
         }
       }
       val newp = p.copy(slots = newslots)
@@ -162,7 +185,6 @@ object GameState {
 
   val unit = State[GameState, Unit](gs => (gs, ()))
   def none[A] = State[GameState, Option[A]](gs => (gs, None))
-  val currentVersion = new java.util.concurrent.atomic.AtomicInteger(0)
 }
 // ai hacks
 object GameDesc {

@@ -20,9 +20,9 @@ class Houses extends HouseCardEffects {
     new Creature("FireDrake", Some(4), 18){
       override val runOnce = true
     },
-    Creature("OrcChieftain", Some(3), 16, mod = Some(AddAttackMod(2, around = true))),
+    Creature("OrcChieftain", Some(3), 16, boardEffect = Some(AddAttack(2, around = true))),
     Spell("FlameWave", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)))),
-    Creature("MinotaurCommander", Some(6), 20, mod = Some(AddAttackMod(1))),
+    Creature("MinotaurCommander", Some(6), 20, boardEffect = Some(AddAttack(1))),
     Creature("Bargul", Some(8), 25, spec = creature(Direct -> massDamage(Damage(4, isAbility = true)))),
     Spell("Inferno", inputSpec = Some(SelectTargetCreature), spec = spell(Direct -> inferno)),
     Creature("FireElemental", None, 36, spec = creature(Direct -> damageCreatures(Damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
@@ -43,7 +43,7 @@ class Houses extends HouseCardEffects {
     Spell("AcidicRain", spec = spell(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
       env.otherPlayer.houses.%=={ houses => HouseState.incrMana(houses, -1 , 0, 1, 2, 3, 4) }
     })),
-    Creature("MerfolkOverlord", Some(7), 34, mod = Some(ToggleRunAround)),
+    Creature("MerfolkOverlord", Some(7), 34, boardEffect = Some(ToggleRunAround)),
     Creature("WaterElemental", None, 38, spec = creature(Direct -> heal(10), OnTurn -> addMana(1, 1))),
     Creature("MindMaster", Some(6), 22, spec = creature(OnTurn -> addMana(1, 0, 1, 2, 3, 4))),
     Creature("AstralGuard", Some(1), 17, spec = creature(OnTurn -> { env : Env =>
@@ -66,7 +66,9 @@ class Houses extends HouseCardEffects {
     Creature("WallOfLightning", Some(0), 28, spec = creature(OnTurn -> damage(Damage(4, isAbility = true)))),
     Spell("LightningBolt",
       spec = spell(Direct -> { env : Env => env.otherPlayer.life.%==( _ - env.guard(env.mod(Damage(5 + env.getMana(2), isSpell = true)).amount))})),
-    Creature("Phoenix", Some(6), 18),
+    Creature("Phoenix", Some(6), 18, boardEffect = Some(Reborn{ p =>
+      p.houses(0).mana > 9
+    })),
     Spell("ChainLightning", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)), Direct -> damage(Damage(9, isSpell = true)))),
     Creature("LightningCloud", Some(4), 20, multipleTarget = true),
     Spell("Tornado",
@@ -98,7 +100,7 @@ class Houses extends HouseCardEffects {
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", spec = spell(Direct -> addMana(1, 4))),
-    Creature("DwarvenRifleman", Some(4), 17),
+    Creature("DwarvenRifleman", Some(4), 17, mod = Some(InterceptSpawn(Damage(2, isAbility = true)))),
     Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4))),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
     new Creature("SteelGolem", Some(6), 20, immune = true){

@@ -30,6 +30,7 @@ case class Creature(
   inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
   spec: CardSpec = CardSpec.creature(),
   mod : Option[Mod] = None,
+  boardEffect : Option[BoardEffect] = None,
   multipleTarget : Boolean = false,
   immune : Boolean = false) extends Card {
 
@@ -97,8 +98,14 @@ case class CardSpec(
   summon: Boolean,
   effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )
 
+// mods are gathered at player state level, and are not dependent on the slots
 trait Mod
 class SpellMod(val modify : Int => Int) extends Mod
 class SpellProtectOwner(val modify : Int => Int) extends Mod
-case class AddAttackMod(amount : Int, around : Boolean = false) extends Mod
-case object ToggleRunAround extends Mod
+case class InterceptSpawn(damage : Damage) extends Mod // TODO manage as an effect (anim)
+
+// board effect are applied per slot during board change
+trait BoardEffect
+case class AddAttack(amount : Int, around : Boolean = false) extends BoardEffect
+case class Reborn(player : PlayerState => Boolean) extends BoardEffect
+case object ToggleRunAround extends BoardEffect
