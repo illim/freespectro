@@ -3,21 +3,24 @@ package priv.sp.bot
 import priv.sp._
 
 class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)]) {
-  // todo give him all possible cards
-  val fakePlayerDesc = {
-    val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
-    val cardModel = CardModel.build(game.sp.houses, getCardRange)
-    knownCards.foreach{ case (card, index) =>
-      cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
-    }
-    new CardShuffler(cardModel).solve()
-    cardModel.toPlayerHouseDesc(game.sp.houses)
-  }
-  val ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
-  val rippedDesc = ripPlayerState.exec(game.desc)
-  val otherPlayerDesc = rippedDesc.players(other(botPlayerId))
-  val gameCard = new GameCard(rippedDesc, game)
+  val desc = ripPlayerState.exec(game.desc)
+  val otherPlayerDesc = desc.players(other(botPlayerId))
+  val gameCard = new GameCard(desc, game)
   var dirty = false
+
+  private def ripPlayerState = {
+    // todo give him all possible cards
+    val fakePlayerDesc = {
+      val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
+      val cardModel = CardModel.build(game.sp.houses, getCardRange)
+      knownCards.foreach{ case (card, index) =>
+        cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
+      }
+      new CardShuffler(cardModel).solve()
+      cardModel.toPlayerHouseDesc(game.sp.houses)
+    }
+    GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
+  }
 }
 
 trait Bot {
@@ -76,16 +79,14 @@ trait Bot {
   }
 }
 
-case class RandomChoiceParam(chooseExpensive : Boolean = false)
-
-class Choices(bot : Bot, rndParams : RandomChoiceParam = RandomChoiceParam()) {
+class Choices(bot : Bot) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
     val slots = state.players(playerId).slots
     val emptySlots = slotRange.filter(num => !slots.isDefinedAt(num))
     val otherSlots = state.players(other(playerId)).slots
 
-    bot.k.rippedDesc.players(playerId).houses.flatMap { houseDesc  =>
+    bot.k.desc.players(playerId).houses.flatMap { houseDesc  =>
       val houseState = state.players(playerId).houses(houseDesc.index)
 
       houseDesc.cardList.withFilter(_.isAvailable(houseState)).flatMap { card =>
@@ -115,15 +116,10 @@ class Choices(bot : Bot, rndParams : RandomChoiceParam = RandomChoiceParam()) {
     val slot = Random.shuffle(slots).headOption
     val emptySlot = Random.shuffle(slotRange.filter(num => !slots.isDefinedAt(num))).headOption
     val otherSlot = Random.shuffle(state.players(other(playerId)).slots).headOption
-
-    val houseDesc = bot.k.rippedDesc.players(playerId).houses(Random.nextInt(5))
+    val houseDesc = bot.k.desc.players(playerId).houses(Random.nextInt(5))
     val houseState = state.players(playerId).houses(houseDesc.index)
     val cards = houseDesc.cardList.filter(_.isAvailable(houseState))
-
-    val cardOption = if (rndParams.chooseExpensive) {
-      if (cards.isEmpty) None
-      else Some(cards.maxBy(_.cost))
-    } else Random.shuffle(cards).headOption
+    val cardOption = Random.shuffle(cards).headOption
 
     cardOption.flatMap { card =>
       card.inputSpec match {

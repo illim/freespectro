@@ -45,8 +45,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
         println(childTree.rootLabel)
         Some(childTree.rootLabel)
       case (acc @ Some(node), childTree) =>
-        println(childTree.rootLabel)
-        if (node.numSim < childTree.rootLabel.numSim)
+        val child = childTree.rootLabel
+        println(child)
+        if (node.numSim < child.numSim)
           Some(childTree.rootLabel)
         else acc
     }
@@ -59,8 +60,8 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
 
   def defaultPolicy(node : Node) = {
     var nbStep = 0
-    var end = Option.empty[PlayerId]
     var state = node.initState
+    var end = state.checkEnded
     var player = node.playerId
     perfStat.nbdefpol += 1
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
@@ -71,16 +72,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       nbStep += 1
       end = state.checkEnded
     }
-    node.numSim += 1
-    // stupid heuristic again
-    val deltaReward = end.map{ p =>
-      if (p == botPlayerId) 1f else -1f
-    }.getOrElse {
-      val dend = state.players(botPlayerId).life - state.players(other(botPlayerId)).life
-      0.01f * (dend - deltaStart)
-    }
-    node.rewards += deltaReward
-    node.backPropagate(deltaReward)
+    node.updateStatsFrom(state, end)
   }
 
   class Selector extends SelectExpandLoop[Node] {
@@ -88,15 +80,22 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
 
     def getNexts(label : Node) : Stream[Tree[Node]] = {
       val path = label :: label.path
-      label.commandChoices.map { command =>
-        Tree(Node(label.state, other(label.playerId), path, Some(command)))
+      label.state.checkEnded match {
+        case Some(p) =>
+          label.leafed = true
+          label.updateStatsFrom(label.state, Some(p), boost = label.commandChoices.size * (1 + maxDepth - depth)) // FIXME not great
+          Stream.Empty
+        case None =>
+          label.commandChoices.map { command =>
+            Tree(Node(label.state, other(label.playerId), path, Some(command)))
+          }
       }
     }
 
     def select(x : Node, y : Node) : Boolean = x.getUct > y.getUct
   }
 
-  case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command] = None) {
+  case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command] = None) extends LeafableNode {
     var numSim = 0.1f
     var rewards = 0f
 
@@ -112,7 +111,19 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     } getOrElse initState
 
     def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
-    def backPropagate(deltaReward : Float){
+    def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1){
+      numSim += boost
+      // stupid heuristic again
+      val deltaReward = end.map{ p =>
+        if (p == botPlayerId) 1f else -1f
+      }.getOrElse {
+        val dend = st.players(botPlayerId).life - st.players(other(botPlayerId)).life
+        0.01f * (dend - deltaStart)
+      }
+      rewards += boost * deltaReward
+      backPropagate(deltaReward)
+    }
+    private def backPropagate(deltaReward : Float){
       path.foreach{ node =>
         node.numSim += 1
         node.rewards += deltaReward
@@ -125,9 +136,12 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   case class PerfStat( var nbsim : Int = 0, var nbdefpol : Int = 0)
 }
 
+trait LeafableNode{
+  var leafed = false
+}
 
 // full of side effect horror
-trait SelectExpandLoop[A] {
+trait SelectExpandLoop[A <: LeafableNode] {
 
   def maxDepth:Int
 
@@ -147,7 +161,7 @@ trait SelectExpandLoop[A] {
       } else {
         val label = treeLoc.getLabel
         val nextTreeLoc = {
-          if (depth < maxDepth && !treeLoc.hasChildren) {
+          if (depth < maxDepth && !treeLoc.hasChildren && !label.leafed) {
             expand(treeLoc)
           } else {
             if (depth == maxDepth - 1) { // if there's no move available, will is there a risk to come back here until the select score change? (maybe a flag to not reselect this?)
@@ -192,7 +206,9 @@ trait SelectExpandLoop[A] {
     var result = treeLoc
     var next = treeLoc.right
     while(next.isDefined){
-      if (select(next.get.getLabel, result.getLabel)) result = next.get
+      if (result.getLabel.leafed || select(next.get.getLabel, result.getLabel)) {
+        result = next.get
+      }
       next = next.get.right
     }
     result

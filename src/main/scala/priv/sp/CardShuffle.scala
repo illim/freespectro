@@ -118,10 +118,10 @@ class CardShuffler(cardModel : CardModel) {
       cp.add(maximum(air) > 8)
 
       // bans
-      cp.add(contains(9, fire) ==> !contains(11, fire))
-      cp.add(contains(5, fire) ==> !contains(3, earth))
-      cp.add(contains(1, water) ==> !contains(9, earth))
-      cp.add(contains(5, earth) ==> !contains(6, earth))
+      cp.add(contains(9, fire) ==> notContains(11, fire))
+      cp.add(contains(5, fire) ==> notContains(3, earth))
+      cp.add(contains(1, water) ==> notContains(9, earth))
+      cp.add(contains(5, earth) ==> notContains(6, earth))
 
     } exploration {
       cp.binary(allCards.toArray, _.size, getRandom _ )
@@ -156,6 +156,12 @@ class CardShuffler(cardModel : CardModel) {
   def contains(x : Int, l : Traversable[CPVarInt]) = {
     l.foldLeft(CPVarBool(cp, false)){ (acc, e) =>
       acc || (e === x)
+    }
+  }
+
+  def notContains(x : Int, l : Traversable[CPVarInt]) = {
+    l.foldLeft(CPVarBool(cp, true)){ (acc, e) =>
+      acc && (e !== x)
     }
   }
 }
