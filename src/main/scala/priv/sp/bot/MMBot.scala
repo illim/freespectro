@@ -5,14 +5,14 @@ import priv.util._
 import scalaz._
 
 // another very stupid bot, but a bit less slow using minmax with pruning, horrible mess pretty sure it doesn't work :)
-class MMBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
+class MMBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
 
   def executeAI(start: GameState) = {
     new MMBotAI(botPlayerId, start, this).execute()
   }
 }
 
-class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
+class MMBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   private val loop = new Loop()
   private var perfStat = new PerfStat()
   private var choices = new Choices(bot)

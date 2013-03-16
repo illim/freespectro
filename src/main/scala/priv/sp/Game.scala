@@ -39,9 +39,11 @@ class Game(val world: World) {
           }
         }
       } else {
-        commandRecorder.startWith {
+        val commandOption = commandRecorder.startWith {
           playerPanels(player).setEnabled(true)
         }
+        commandOption.foreach(bot.updateKnowledge _)
+        commandOption
       }
       world.addTask(new SimpleTask(submit(k, player))) // to avoid to be done in ai thread
     }

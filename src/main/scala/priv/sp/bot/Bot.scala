@@ -2,22 +2,55 @@ package priv.sp.bot
 
 import priv.sp._
 
-trait Bot {
-
-  def executeAI(state: GameState): Option[Command]
+class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)]) {
+  // todo give him all possible cards
+  val fakePlayerDesc = {
+    val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
+    val cardModel = CardModel.build(game.sp.houses, getCardRange)
+    knownCards.foreach{ case (card, index) =>
+      cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
+    }
+    new CardShuffler(cardModel).solve()
+    cardModel.toPlayerHouseDesc(game.sp.houses)
+  }
+  val ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
+  val rippedDesc = ripPlayerState.exec(game.desc)
+  val otherPlayerDesc = rippedDesc.players(other(botPlayerId))
+  val gameCard = new GameCard(rippedDesc, game)
+  var dirty = false
 }
 
-trait ExtBot {
+trait Bot {
   def game: Game
   def botPlayerId: PlayerId
+  def executeAI(state: GameState): Option[Command]
 
-  // stupid stuff, ai don't know what we have so we create a fake player
-  // todo give him all possible cards
-  val fakePlayer = game.shuffle.createOnePlayer(game.shuffle.filterHouses(game.desc.players(botPlayerId))(game.sp.houses.list))
-  val ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( desc => GameDesc.replaceCards(fakePlayer._1.houses)(desc)._1)
-  val rippedDesc = ripPlayerState.exec(game.desc)
+  var knownCards = Set.empty[(Card, Int)]
+  var k = generateK()
 
-  val gameCard = new GameCard(rippedDesc, game)
+  def updateKnowledge(command : Command) {
+    import command._
+    val c = (card, index)
+    if (!knownCards.contains(c)
+        && k.otherPlayerDesc.houses(card.houseIndex).cards(index) != card) {
+      knownCards += c
+      k.dirty = true
+    }
+  }
+
+  def generateK() = {
+    println("generating AI fake player")
+    val start = System.currentTimeMillis
+    val k = new Knowledge(game, botPlayerId, knownCards)
+    println("generated k in " + (System.currentTimeMillis -start)+" ms")
+    k
+  }
+
+  def refreshK(){
+    if (k.dirty){
+      k = generateK()
+    }
+  }
 
   def simulateCommand(state: GameState, command: Command) : GameState = {
     simulateCommand(state, command.player, Some(command))
@@ -29,10 +62,10 @@ trait ExtBot {
       case None => state
       case Some(command) =>
         def applyEffect(st : GameState) =
-          (st /: gameCard.getCommandEffect(command)) { (acc, f) =>
+          (st /: k.gameCard.getCommandEffect(command)) { (acc, f) =>
             f.exec(acc)
           }
-        gameCard.debitAndSpawn(command).exec(applyEffect(state))
+        k.gameCard.debitAndSpawn(command).exec(applyEffect(state))
     }
 
     val runState = (commandState /: commandState.players(playerId).slots) {
@@ -45,14 +78,14 @@ trait ExtBot {
 
 case class RandomChoiceParam(chooseExpensive : Boolean = false)
 
-class Choices(bot : ExtBot, rndParams : RandomChoiceParam = RandomChoiceParam()) {
+class Choices(bot : Bot, rndParams : RandomChoiceParam = RandomChoiceParam()) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
     val slots = state.players(playerId).slots
     val emptySlots = slotRange.filter(num => !slots.isDefinedAt(num))
     val otherSlots = state.players(other(playerId)).slots
 
-    bot.rippedDesc.players(playerId).houses.flatMap { houseDesc  =>
+    bot.k.rippedDesc.players(playerId).houses.flatMap { houseDesc  =>
       val houseState = state.players(playerId).houses(houseDesc.index)
 
       houseDesc.cardList.withFilter(_.isAvailable(houseState)).flatMap { card =>
@@ -83,7 +116,7 @@ class Choices(bot : ExtBot, rndParams : RandomChoiceParam = RandomChoiceParam())
     val emptySlot = Random.shuffle(slotRange.filter(num => !slots.isDefinedAt(num))).headOption
     val otherSlot = Random.shuffle(state.players(other(playerId)).slots).headOption
 
-    val houseDesc = bot.rippedDesc.players(playerId).houses(Random.nextInt(5))
+    val houseDesc = bot.k.rippedDesc.players(playerId).houses(Random.nextInt(5))
     val houseState = state.players(playerId).houses(houseDesc.index)
     val cards = houseDesc.cardList.filter(_.isAvailable(houseState))
 

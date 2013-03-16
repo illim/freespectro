@@ -19,11 +19,11 @@ class CardPanel(playerId: PlayerId, game: Game) {
   var lastSelected = Option.empty[CardButton]
 
   if (playerId == owner){
-    cardButtons.foreach { cardButton =>
+    cardButtons.zipWithIndex.foreach { case (cardButton, idx) =>
       cardButton.on {
         case MouseClicked(_) if cardButton.enabled =>
           import cardButton.card
-          game.commandRecorder.setCommand(Command(owner, card, None))
+          game.commandRecorder.setCommand(Command(owner, card, None, idx % 4))
           if (card.inputSpec.isDefined) {
             lastSelected.foreach(_.selected = false)
             cardButton.selected = true

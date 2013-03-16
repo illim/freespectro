@@ -3,11 +3,11 @@ Currently I'm working with the original resources, but the final goal is to have
 and play with them.
 
 ## Todo
-Update ai fake opponent; Health bar; Effect card focus; spell anims.
+Improve Bot;Health bar; Effect card focus; spell anims.
 
 ## Acknowledgements
 
-Special thanks to third-party developpers and tools for their work, Scalaz, Slick2d, Yourkit...
+Special thanks to third-party developpers and tools for their work, Scalaz, Slick2d, Yourkit, Oscar...
 
 YourKit is kindly supporting open source projects with its full-featured Java Profiler.
 YourKit, LLC is the creator of innovative and intelligent tools for profiling

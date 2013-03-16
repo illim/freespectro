@@ -7,13 +7,14 @@ import collection._
 import scala.util.control.TailCalls._
 
 // another stupid bot, faster because bounded in time, trying to use uct.
-class BoundedBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
+class BoundedBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
   def executeAI(start: GameState) = {
+    refreshK()
     new BoundedBotAI(botPlayerId, start, this).execute()
   }
 }
 
-class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : ExtBot) {
+class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   val duration = 4000
   val defaultPolicyMaxTurn = 15
   val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?

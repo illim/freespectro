@@ -48,8 +48,8 @@ case class Spell(
 
   def image = name + ".tga"
 }
-
-case class Command(player: PlayerId, card: Card, input: Option[SlotInput])
+// index is the index of the card in the player's house(hint for the ai)
+case class Command(player: PlayerId, card: Card, input: Option[SlotInput], index : Int = 0)
 case class Damage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false){
   def isEffect = isAbility || isSpell
 }

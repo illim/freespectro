@@ -8,7 +8,7 @@ import scala.util.control.TailCalls._
 
 // another slow dumb bot with stupid heuristic who minimize life loss :(
 // todo optim prune
-class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
+class DummyBot2(val botPlayerId: PlayerId, val game: Game) extends Bot {
 
   private val maxDepth = 4
   val choices = new Choices(this)

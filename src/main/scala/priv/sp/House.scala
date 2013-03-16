@@ -1,6 +1,8 @@
 package priv.sp
 
-case class House(name: String, cards: List[Card])
+case class House(name: String, cards: List[Card]){
+  def costs = cards.map(_.cost)
+}
 
 object Houses {
   val forestSpider = new Creature("ForestSpider", Some(2), 11){
@@ -100,7 +102,7 @@ class Houses extends HouseCardEffects {
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", spec = spell(Direct -> addMana(1, 4))),
-    Creature("DwarvenRifleman", Some(4), 17, mod = Some(InterceptSpawn(Damage(2, isAbility = true)))),
+    Creature("DwarvenRifleman", Some(4), 17, mod = Some(InterceptSpawn(Damage(4, isAbility = true)))),
     Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4))),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
     new Creature("SteelGolem", Some(6), 20, immune = true){

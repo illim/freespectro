@@ -161,7 +161,9 @@ object GameState {
               newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.addAttack(x)))
               newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.addAttack(x)))
             } else {
-              newslots = newslots.mapValues(_.addAttack(x))
+              newslots = newslots.map{ case (n, s) =>
+                (n -> (if (n == num) s else s.addAttack(x)))
+              }
             }
           case ToggleRunAround =>
             newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.copy(hasRunOnce =true)))
@@ -191,5 +193,4 @@ object GameDesc {
   val playersL = Lens.lensu[GameDesc, Array[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = Lens.lensu[GameDesc, PlayerDesc]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id))
   val housesL = Lens.lensu[PlayerDesc, Array[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
-  def replaceCards(newHouses: Array[PlayerHouseDesc]) = housesL.%== (_.zipWithIndex.map{case (house, i) => house.copy(cards = newHouses(i).cards) })
 }

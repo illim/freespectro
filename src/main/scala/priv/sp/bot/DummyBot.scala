@@ -10,7 +10,7 @@ import priv.util.Utils
 // todo :
 // - maximize fake player move instead of minimizing it lol
 // - update the fakeplayer
-class DummyBot(val botPlayerId: PlayerId, val game: Game) extends ExtBot {
+class DummyBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
 
   private val maxDepth = 2
   val choices = new Choices(this)
