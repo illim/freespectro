@@ -10,7 +10,7 @@ class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int
 
   private def ripPlayerState = {
     // todo give him all possible cards
-    val fakePlayerDesc = game.shuffle.createAIPlayer(botPlayerId, knownCards)
+    val fakePlayerDesc = game.shuffle.createAIPlayer(botPlayerId, knownCards, 2)
     GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
   }
 }

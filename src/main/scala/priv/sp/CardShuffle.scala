@@ -23,13 +23,13 @@ class CardShuffle(game : Game) {
     (cardModel.toPlayerHouseDesc(sp.houses), manaModel.toHouseStates)
   }
 
-  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)]) = {
+  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) = {
     val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
     val cardModel = CardModel.build(sp.houses, getCardRange)
     knownCards.foreach{ case (card, index) =>
       cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
     }
-    new CardShuffler(cardModel).solve()
+    new CardShuffler(cardModel).solve(timeLimit)
     cardModel.toPlayerHouseDesc(sp.houses)
   }
 }
@@ -100,7 +100,8 @@ class HModel(cp : CPSolver, house : House, spHouses : Houses, getCardRange : Get
 class CardShuffler(cardModel : CardModel) {
   import cardModel._
 
-  def solve() = {
+  def solve(timeLimit : Int = Int.MaxValue) = {
+    cp.timeLimit = timeLimit
     cp.subjectTo{
       houses.foreach{ house =>
         import house.cards
