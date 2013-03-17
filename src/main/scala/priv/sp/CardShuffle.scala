@@ -2,15 +2,16 @@ package priv.sp
 
 import util.Random
 
-class CardShuffle(sp: SpWorld) {
+class CardShuffle(game : Game) {
+  import game.sp
 
   def get() = {
-    val p1 = createOnePlayer(owner, None)
-    val p2 = createOnePlayer(opponent, Some(p1._1))
+    val p1 = createPlayer(owner, None)
+    val p2 = createPlayer(opponent, Some(p1._1))
     List(p1, p2)
   }
 
-  def createOnePlayer(p : PlayerId, exclusion : Option[PlayerDesc]) = {
+  def createPlayer(p : PlayerId, exclusion : Option[PlayerDesc]) = {
     val getCardRange = exclusion match {
       case Some(p) => new CardModel.ExcludePlayerCards(p)
       case None => CardModel.BasicCardRange
@@ -20,6 +21,16 @@ class CardShuffle(sp: SpWorld) {
     val manaModel = new ManaModel(cardModel)
     new ManaShuffler(manaModel, p == owner).solve()
     (cardModel.toPlayerHouseDesc(sp.houses), manaModel.toHouseStates)
+  }
+
+  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)]) = {
+    val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
+    val cardModel = CardModel.build(sp.houses, getCardRange)
+    knownCards.foreach{ case (card, index) =>
+      cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
+    }
+    new CardShuffler(cardModel).solve()
+    cardModel.toPlayerHouseDesc(sp.houses)
   }
 }
 

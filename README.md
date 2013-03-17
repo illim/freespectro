@@ -2,8 +2,17 @@ Started toy programming trying to make a fake dumbed down Spectromancer, a turn 
 Currently I'm working with the original resources, but the final goal is to have a decent ai so we can have fun making our own cards,
 and play with them.
 
-## Todo
-Improve Bot;Health bar; Effect card focus; spell anims.
+#### Running
+- copy original images folder into resources
+- update the java library path in build.sbt to suit your system
+- download then copy slick, oscar jars in lib folders
+- sbt run
+
+#### Todo
+- Improve Bot
+- Health bar
+- Effect card focus
+- Spell anims
 
 ## Acknowledgements
 

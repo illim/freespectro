@@ -10,15 +10,7 @@ class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int
 
   private def ripPlayerState = {
     // todo give him all possible cards
-    val fakePlayerDesc = {
-      val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
-      val cardModel = CardModel.build(game.sp.houses, getCardRange)
-      knownCards.foreach{ case (card, index) =>
-        cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
-      }
-      new CardShuffler(cardModel).solve()
-      cardModel.toPlayerHouseDesc(game.sp.houses)
-    }
+    val fakePlayerDesc = game.shuffle.createAIPlayer(botPlayerId, knownCards)
     GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
   }
 }
