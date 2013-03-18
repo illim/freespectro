@@ -54,7 +54,9 @@ object Main extends App {
         }
       }
     }
+    println("releasing resources")
     game.sp.clean()
+    game.aiExecutor.shutdown()
   }
 
   def pollInput() = {

@@ -2,17 +2,11 @@ package priv.sp.bot
 
 import priv.sp._
 
-class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)]) {
+class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
   val desc = ripPlayerState.exec(game.desc)
-  val otherPlayerDesc = desc.players(other(botPlayerId))
   val gameCard = new GameCard(desc, game)
-  var dirty = false
 
-  private def ripPlayerState = {
-    // todo give him all possible cards
-    val fakePlayerDesc = game.shuffle.createAIPlayer(botPlayerId, knownCards, 2)
-    GameDesc.playerLens(other(botPlayerId))%==( desc => fakePlayerDesc)
-  }
+  private def ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( _ => otherPlayerDesc)
 }
 
 trait Bot {
@@ -21,7 +15,7 @@ trait Bot {
   def executeAI(state: GameState): Option[Command]
 
   var knownCards = Set.empty[(Card, Int)]
-  var k = generateK()
+  var k = generateK().get
 
   def updateKnowledge(command : Command) {
     import command._
@@ -29,21 +23,16 @@ trait Bot {
     if (!knownCards.contains(c)
         && k.otherPlayerDesc.houses(card.houseIndex).cards(index) != card) {
       knownCards += c
-      k.dirty = true
+      generateK(2).foreach{ k = _ }
     }
   }
 
-  def generateK() = {
+  def generateK(timeLimit : Int = Int.MaxValue) = {
     println("generating AI fake player")
     val start = System.currentTimeMillis
-    val k = new Knowledge(game, botPlayerId, knownCards)
-    println("generated k in " + (System.currentTimeMillis -start)+" ms")
-    k
-  }
-
-  def refreshK(){
-    if (k.dirty){
-      k = generateK()
+    game.shuffle.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
+      println("generated k in " + (System.currentTimeMillis -start)+" ms")
+      new Knowledge(game, botPlayerId, knownCards, fakePlayerDesc)
     }
   }
 

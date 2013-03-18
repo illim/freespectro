@@ -7,6 +7,8 @@ import priv.sp.gui._
 import scala.util.continuations._
 import scalaz._
 import priv.sp.bot._
+import java.util.concurrent._
+import util.Utils.runnable
 
 class Game(val world: World) {
 
@@ -17,6 +19,7 @@ class Game(val world: World) {
   val desc = GameDesc(Array(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new BoundedBot(opponent, this)
+  val aiExecutor = Executors.newSingleThreadExecutor
 
   // gui
   val commandRecorder = new CommandRecorder(this)
@@ -33,16 +36,19 @@ class Game(val world: World) {
     reset {
       val k = if (player == opponent) {
         shift { k: (Option[Command] => Unit) =>
-          util.Utils.threaded {
-            playerPanels(player).setEnabled(true)
-            k(bot.executeAI(state))
-          }
+          aiExecutor.submit(
+            runnable {
+              playerPanels(player).setEnabled(true)
+              k(bot.executeAI(state))
+            })
         }
       } else {
         val commandOption = commandRecorder.startWith {
           playerPanels(player).setEnabled(true)
         }
-        commandOption.foreach(bot.updateKnowledge _)
+        commandOption.foreach{ c =>
+          aiExecutor.submit(runnable(bot.updateKnowledge(c)))
+        }
         commandOption
       }
       world.addTask(new SimpleTask(submit(k, player))) // to avoid to be done in ai thread

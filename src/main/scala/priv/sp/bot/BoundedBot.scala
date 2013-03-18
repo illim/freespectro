@@ -9,7 +9,6 @@ import scala.util.control.TailCalls._
 // another stupid bot, faster because bounded in time, trying to use uct.
 class BoundedBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
   def executeAI(start: GameState) = {
-    refreshK()
     new BoundedBotAI(botPlayerId, start, this).execute()
   }
 }

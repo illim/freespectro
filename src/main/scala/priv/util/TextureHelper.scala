@@ -10,7 +10,7 @@ class TextureHelper {
   def textureLeft = 0f
   def textureRight = 1f
 
-  def draw(texture: priv.Texture) { draw(texture.id, texture.coord) }
+  def draw(texture: priv.Texture) { draw(texture.id, texture.size) }
   def draw(texId: Int, c : Coord2i, flip : Boolean = false) {
     glBindTexture(GL_TEXTURE_2D, texId)
     glBegin(GL_QUADS)
@@ -31,5 +31,22 @@ class TextureHelper {
 
     glTexCoord2f(textureRight, tdown)
     glVertex2f(w, 0)
+  }
+
+  def drawAt(c : Coord2i, texId: Int, size : Coord2i) {
+    glBindTexture(GL_TEXTURE_2D, texId)
+    glBegin(GL_QUADS)
+    glTexCoord2f(textureRight, textureUp)
+    glVertex2f(c.x + size.x, c.y + size.y)
+
+    glTexCoord2f(textureLeft, textureUp)
+    glVertex2f(c.x, c.y + size.y)
+
+    glTexCoord2f(textureLeft, textureDown)
+    glVertex2f(c.x, c.y)
+
+    glTexCoord2f(textureRight, textureDown)
+    glVertex2f(c.x + size.x, c.y)
+    glEnd()
   }
 }

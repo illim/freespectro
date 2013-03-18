@@ -1,10 +1,24 @@
 package priv
 
+import scalaz._
 
 object Coord2i {
   val zero = Coord2i(0, 0)
+  val xL = Lens.lensu[Coord2i, Int]((c, v) => c.copy(x = v), _.x)
+  val yL = Lens.lensu[Coord2i, Int]((c, v) => c.copy(y = v), _.y)
+
+  class Proj(lens : Lens[Coord2i, Int], c : Coord2i){
+    def *[N](fact : N)(implicit num : Numeric[N]) = lens.mod(x => (num.toFloat(fact) * x).intValue, c)
+    def +[N](x : N)(implicit num : Numeric[N]) = lens.mod(v => (num.toFloat(x) + v).intValue, c)
+    def -[N](x : N)(implicit num : Numeric[N]) = this.+(num.negate(x))
+  }
 }
 
 case class Coord2i(x: Int, y: Int) {
   def +(c : Coord2i) = Coord2i(x+c.x, y+c.y)
+  def *[N](fact : N)(implicit num : Numeric[N]) = Coord2i((num.toFloat(fact) * x).intValue, (num.toFloat(fact) * y).intValue)
+
+  import Coord2i._
+  def xProj = new Proj(xL, this)
+  def yProj = new Proj(yL, this)
 }

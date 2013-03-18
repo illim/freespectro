@@ -11,7 +11,7 @@ trait Texture{
   def width : Int
   def bind()
 
-  val coord = Coord2i(width, height)
+  val size = Coord2i(width, height)
 }
 
 class SampleTexture(data : ByteBuffer, val width : Int, val height : Int, hasAlpha : Boolean, bytesPerPixel : Int) extends Texture {

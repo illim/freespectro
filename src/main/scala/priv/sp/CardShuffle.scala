@@ -23,14 +23,15 @@ class CardShuffle(game : Game) {
     (cardModel.toPlayerHouseDesc(sp.houses), manaModel.toHouseStates)
   }
 
-  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) = {
+  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
     val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
     val cardModel = CardModel.build(sp.houses, getCardRange)
     knownCards.foreach{ case (card, index) =>
       cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
     }
     new CardShuffler(cardModel).solve(timeLimit)
-    cardModel.toPlayerHouseDesc(sp.houses)
+    if (cardModel.cp.isFailed) None
+    else Some(cardModel.toPlayerHouseDesc(sp.houses))
   }
 }
 

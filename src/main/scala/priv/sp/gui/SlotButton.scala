@@ -10,7 +10,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   import game.sp.baseTextures.slotTex
 
   val direction = if (playerId == owner) -1 else 1
-  val size = Coord2i(slotTex.width, slotTex.height)
+  val size = slotTex.size
   enabled = false
   private var card = getCard
   private var getDelta = zeroAnim

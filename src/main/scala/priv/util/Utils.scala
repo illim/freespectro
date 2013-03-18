@@ -88,10 +88,8 @@ object Utils {
     if (fl == 0) fl else num.toFloat(n) * math.abs(1 / fl)
   }
 
-  def threaded(f: => Unit) = {
-    val t = new Thread(new Runnable() { def run() = f  })
-    t.start()
-  }
+  def threaded(f: => Unit) = new Thread(runnable(f)).start()
+  def runnable(f: => Unit) = new Runnable() { def run() = f  }
 
   def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
     treeLoc.rights match {

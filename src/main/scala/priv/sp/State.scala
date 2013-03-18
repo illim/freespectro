@@ -62,7 +62,7 @@ object HouseState{
   def incrMana(houses : Vector[HouseState], amount : Int, houseIndex : Int*) = {
     houseIndex.foldLeft(houses){ (acc, id) =>
       val house = acc(id)
-      acc.updated(id, new HouseState(if (amount < 0) math.min(0, house.mana + amount) else house.mana + amount))
+      acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
     }
   }
 }
