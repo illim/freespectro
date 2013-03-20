@@ -22,6 +22,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   val slotOffset = lifeLabel.size
   val slotSize = slots(0).size
+  val slotCenter = slotSize * 0.5
   slots.foreach(listenEvent _)
 
   val panel = Row(elts)
@@ -38,13 +39,30 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   def summonSpell(command : Command, sourceCoord : Coord2i) = shift { k: (Int => Unit) =>
     import command.card
-    val absTargetSlotCoord = command.input.map{ slotInput =>
-      (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + (slotSize * 0.5)
+    def absTargetSlotCoord = command.input.map{ slotInput =>
+      (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + slotCenter
     }
     if (card.houseIndex == 0 && card.cost == 6) {
       panel.addTask(new SpellAnim(k, new Flame(game.sp, slotOffset, slotSize)))
     } else if (card.houseIndex == 2 && card.cost == 3) {
-      panel.addTask(new SpellAnim(k, new CallThunder(game.sp, slots(0).coord, sourceCoord, absTargetSlotCoord.getOrElse(slots(0).coord)), isRelative = false))
+      panel.addTask(
+        new SpellAnim(k,
+          isRelative = false,
+          entity = new Lightning(game.sp, sourceCoord, absTargetSlotCoord.get, slots(0).coord)))
+    } else if (card.houseIndex == 2 && card.cost == 6) {
+      panel.addTask(
+        new SpellAnim(k, isRelative = false,
+          entity = new Lightning(game.sp, sourceCoord, slots(0).coord)))
+    } else if (card.houseIndex == 2 && card.cost == 8) {
+      val points = (List(slots(5).coord + slotCenter) /: slots.reverse){ (acc, slot) =>
+        if (!slot.isEmpty){
+          val deviation = if (acc.size > 1) ((acc.size % 2) -0.5) * 20 else 0
+          ((slots(slot.num).coord + slotCenter).yProj + deviation) :: acc
+        } else acc
+      }
+      panel.addTask(
+        new SpellAnim(k, isRelative = false,
+          entity = new Lightning(game.sp, points.reverse :+ lifeLabel.coord.yProj + slotCenter.y : _*)))
     } else k(0)
   }
 
@@ -70,7 +88,6 @@ trait SpellEntity extends Entity {
 
 import Coord2i._
 
-// Very ugly anim
 class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends SpellEntity {
   val duration = 1500L
   val fireTex = sp.baseTextures.fire
@@ -106,11 +123,12 @@ class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends Spel
   }
 }
 
-class CallThunder(sp : SpWorld, slotOffset : Coord2i, sourceCoord: Coord2i, targetSlotCoord : Coord2i) extends SpellEntity {
-  val duration = 1000L
+class Lightning(sp : SpWorld, points : Coord2i*) extends SpellEntity {
+  val posInterval = new FollowLines(points.zip(points.tail).map{ case (p1, p2) =>
+    new SegInterval(p1, p2)
+  })
+  val duration = posInterval.duration
   val ctTex = sp.baseTextures.callthunder
-  val sourceToSlot = new FollowLine(sourceCoord, targetSlotCoord, 500)
-  val slotToOffset = new FollowLine(targetSlotCoord, slotOffset, 500)
   val trailRange = 0 to 10
 
   def render(world: World) {
@@ -119,16 +137,27 @@ class CallThunder(sp : SpWorld, slotOffset : Coord2i, sourceCoord: Coord2i, targ
     val delta = deltaT(world.time)
     trailRange.foreach{ x =>
       val size = ctTex.size * (1f/(1+x))
-      tex.drawAt(recenter(getPos(delta - (x * 5)), size), ctTex.id, size)
+      tex.drawAt(recenter(posInterval.posAt(delta - (x * 5)), size), ctTex.id, size)
     }
   }
 
-  def getPos(t : Long) = {
-    if (t > sourceToSlot.duration){
-      slotToOffset.posAt(t - sourceToSlot.duration)
-    } else sourceToSlot.posAt(t)
+  class SegInterval(a : Coord2i, b :Coord2i){
+    val speed = 3/2f
+    val distance = math.sqrt(sqrDist(a, b))
+    val duration = (distance / speed).toLong
+
+    def posAt(t : Long) = a + ((Coord2i(b.x - a.x, b.y - a.y) * (t.floatValue /duration)))
   }
-  class FollowLine(a : Coord2i, b :Coord2i, val duration : Long){
-    def posAt(t : Long) = a + ((Coord2i(b.x - a.x, b.y - a.y) * (t.floatValue/duration)))
+
+  class FollowLines(l : Traversable[SegInterval]) {
+    val duration = l.map(_.duration).sum
+    def posAt(t : Long) = {
+      val (offset, line) = ((0L, l.head) /: l.tail){ case ((acc, last), x) =>
+        if (acc + last.duration < t) {
+          (acc + last.duration, x)
+        } else (acc, last)
+      }
+      line.posAt(t - offset)
+    }
   }
 }
