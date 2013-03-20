@@ -101,8 +101,9 @@ class HModel(cp : CPSolver, house : House, spHouses : Houses, getCardRange : Get
 class CardShuffler(cardModel : CardModel) {
   import cardModel._
 
+  val MAXRETRY = 3
+
   def solve(timeLimit : Int = Int.MaxValue) = {
-    cp.timeLimit = timeLimit
     cp.subjectTo{
       houses.foreach{ house =>
         import house.cards
@@ -138,7 +139,25 @@ class CardShuffler(cardModel : CardModel) {
 
     } exploration {
       cp.binary(allCards.toArray, _.size, getRandom _ )
-    } run(1)
+    }
+
+    if (timeLimit != Int.MaxValue){
+      cp.timeLimit = timeLimit
+      cp.run(1)
+    } else {
+      var failed = true
+      var i = 0
+      while(failed && i < MAXRETRY){
+        cp.timeLimit = 1 + i
+        cp.run(1)
+        failed = cp.isFailed
+      }
+      if (cp.isFailed){
+        println("last retry")
+        cp.timeLimit = Int.MaxValue
+        cp.run(1)
+      }
+    }
   }
 
   def oneManaGen = sum(
