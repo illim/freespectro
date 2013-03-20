@@ -19,11 +19,11 @@ class CardPanel(playerId: PlayerId, game: Game) {
   var lastSelected = Option.empty[CardButton]
 
   if (playerId == owner){
-    cardButtons.zipWithIndex.foreach { case (cardButton, idx) =>
+    cardButtons.foreach { cardButton =>
       cardButton.on {
         case MouseClicked(_) if cardButton.enabled =>
           import cardButton.card
-          game.commandRecorder.setCommand(Command(owner, card, None, idx % 4))
+          game.commandRecorder.setCommand(Command(owner, card, None))
           if (card.inputSpec.isDefined) {
             lastSelected.foreach(_.selected = false)
             cardButton.selected = true
@@ -39,8 +39,11 @@ class CardPanel(playerId: PlayerId, game: Game) {
   })
   setEnabled(false)
 
+  def getPositionOf(card : Card) = {
+    val cardButton = cardButtons.find(_.card == card).get
+    cardButton.coord + (cardButton.size * 0.5)
+  }
   def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
-
   def setEnabled(flag: Boolean) {
     cardButtons.foreach{ btn =>
       btn.enabled = flag

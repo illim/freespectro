@@ -10,25 +10,37 @@ import priv.sp.bot._
 import java.util.concurrent._
 import util.Utils.runnable
 
-class Game(val world: World) {
-
+class GameResources {
   val sp = new SpWorld
+  val aiExecutor = Executors.newSingleThreadExecutor
+  def release(){
+    println("releasing resources")
+    sp.clean()
+    aiExecutor.shutdown()
+  }
+}
+
+class Game(val world: World, resources : GameResources) {
+  val sp = resources.sp
+  val aiExecutor = resources.aiExecutor
   val shuffle = new CardShuffle(this)
   val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
   var state : GameState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
   val playersLs = playerIds.map(GameState.playerLens(_))
   private val bot = new BoundedBot(opponent, this)
-  val aiExecutor = Executors.newSingleThreadExecutor
 
   // gui
   val commandRecorder = new CommandRecorder(this)
-  val playerPanels = playerIds.map(new CardPanel(_, this))
+  val cardPanels = playerIds.map(new CardPanel(_, this))
   val slotPanels = playerIds.map(new SlotPanel(_, this))
   val topCardPanel = new TopCardPanel(playerIds(opponent), this)
-  val board = new Board(slotPanels, playerPanels, topCardPanel, sp)
+  val board = new Board(slotPanels, cardPanels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
+  val surrenderButton = new SurrenderButton()
+
   world.entities.add(board.panel)
+  world.entities.add(Column(List(surrenderButton)))
 
   waitPlayer(owner)
 
@@ -38,16 +50,17 @@ class Game(val world: World) {
         shift { k: (Option[Command] => Unit) =>
           aiExecutor.submit(
             runnable {
-              playerPanels(player).setEnabled(true)
+              cardPanels(player).setEnabled(true)
               k(bot.executeAI(state))
             })
         }
       } else {
         val commandOption = commandRecorder.startWith {
-          playerPanels(player).setEnabled(true)
+          cardPanels(player).setEnabled(true)
         }
         commandOption.foreach{ c =>
-          aiExecutor.submit(runnable(bot.updateKnowledge(c)))
+          val cardIdx = desc.players(player).getIndexOfCardInHouse(c.card)
+          aiExecutor.submit(runnable(bot.updateKnowledge(c, cardIdx)))
         }
         commandOption
       }
@@ -73,12 +86,16 @@ class Game(val world: World) {
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
     slotPanels.foreach(_.disable())
-    playerPanels.foreach(_.setEnabled(false))
+    cardPanels.foreach(_.setEnabled(false))
     commandOption match {
       case Some(c) =>
         reset {
           if (c.card.isSpell){
-            slotPanels(other(player)).summonSpell(c.card)
+            val sourceCoord = cardPanels(player).getPositionOf(c.card)
+            val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
+              player
+            } else other(player)
+            slotPanels(targetPlayer).summonSpell(c, sourceCoord)
           } else {
             shiftUnit0[Int, Unit](0)
           }

@@ -48,11 +48,16 @@ trait Attachable {
     }
   }
 
-  def forGuiElem(f : GuiElem => Unit){
+  def forEntity[A : reflect.ClassTag](f : A => Unit){
     iterate(entities.iterator){
-      case elem : GuiElem => f(elem)
+      case elem : A => f(elem)
       case _ =>
     }
+  }
+
+  def clear(){
+    entities.clear()
+    tasks.clear()
   }
 
   def addTask(task: Task[_]) {

@@ -70,3 +70,10 @@ class CommandRecorder(game: Game) {
   }
 
 }
+
+class SurrenderButton extends GuiElem {
+  val size = Coord2i(50, 30)
+  def render(world: World) {
+    Fonts.draw(0, 10, "Surrender", 'white)
+  }
+}

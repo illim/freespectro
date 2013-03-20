@@ -12,10 +12,18 @@ object Coord2i {
     def +[N](x : N)(implicit num : Numeric[N]) = lens.mod(v => (num.toFloat(x) + v).intValue, c)
     def -[N](x : N)(implicit num : Numeric[N]) = this.+(num.negate(x))
   }
+
+  def sqrDist(a : Coord2i, b :Coord2i) = {
+    @inline def pow2(x : Int) = x * x
+    pow2(b.x - a.x) + pow2(b.y - a.y)
+  }
+
+  def recenter(c : Coord2i, size :Coord2i) = c - (size * 0.5)
 }
 
 case class Coord2i(x: Int, y: Int) {
   def +(c : Coord2i) = Coord2i(x+c.x, y+c.y)
+  def -(c : Coord2i) = Coord2i(x-c.x, y-c.y)
   def *[N](fact : N)(implicit num : Numeric[N]) = Coord2i((num.toFloat(fact) * x).intValue, (num.toFloat(fact) * y).intValue)
 
   import Coord2i._

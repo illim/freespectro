@@ -38,6 +38,10 @@ case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int
 case class GameDesc(players : Array[PlayerDesc])
 case class PlayerDesc(houses : Array[PlayerHouseDesc]){
   houses.zipWithIndex.foreach{ case (house, i) => house.index = i}
+
+  def getIndexOfCardInHouse(card : Card) = {
+    houses.find(_.cards.contains(card)).get.cards.indexOf(card)
+  }
 }
 case class PlayerHouseDesc(house : House, cards : Array[Card]){
   var index = 0

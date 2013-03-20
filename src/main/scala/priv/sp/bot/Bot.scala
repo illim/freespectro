@@ -17,11 +17,11 @@ trait Bot {
   var knownCards = Set.empty[(Card, Int)]
   var k = generateK().get
 
-  def updateKnowledge(command : Command) {
+  def updateKnowledge(command : Command, indexOfCardInHouse : Int) {
     import command._
-    val c = (card, index)
+    val c = (card, indexOfCardInHouse)
     if (!knownCards.contains(c)
-        && k.otherPlayerDesc.houses(card.houseIndex).cards(index) != card) {
+        && k.otherPlayerDesc.houses(card.houseIndex).cards(indexOfCardInHouse) != card) {
       knownCards += c
       generateK(2).foreach{ k = _ }
     }

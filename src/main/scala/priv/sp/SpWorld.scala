@@ -35,6 +35,7 @@ class BaseTextures(textures: Textures) {
     "Images/Combat/bottomslot.tga",
     "blank.png")
   lazy val fire = textures.getOrElseUpdate("fire", _ => loadTexture("Images/Combat/particles.tga", 352, 0, 32, 32))
+  lazy val callthunder = textures.getOrElseUpdate("callthunder", _ => loadTexture("Images/Combat/particles.tga", 208, 80, 32, 32))
 
   def getBorder(card: Card) = if (card.isSpell) (borderTexSpell, maskTex) else (borderTex, maskTex)
 }

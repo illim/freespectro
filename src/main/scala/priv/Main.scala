@@ -28,9 +28,19 @@ object Main extends App {
 
   def mainLoop() {
     val world = new World(g)
-    val game = new Game(world)
+    val resources= new GameResources
+    var game = new Game(world, resources)
+    def initGame(){
+      offsety = 0
+      world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
+      game.surrenderButton.on{ case MouseClicked(_) =>
+        world.clear()
+        game = new Game(world, resources)
+        initGame()
+      }
+    }
     world.entities.add(Repere)
-    world.forGuiElem(_.updateCoord(Coord2i(0, 0))) //useless now
+    initGame()
 
     while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested() && ! world.ended) {
       if (Display.isVisible()) {
@@ -42,7 +52,7 @@ object Main extends App {
         pollInput().foreach{
           case MouseDrag(y) => scroll(world, y)
           case MouseWheel(w) => scroll(world, -w)
-          case e : GuiEvent => game.board.panel.fireEvent(e)
+          case e : GuiEvent => world.forEntity[GuiContainer](_.fireEvent(e))
         }
         Display.update()
         Display.sync(60)
@@ -54,9 +64,7 @@ object Main extends App {
         }
       }
     }
-    println("releasing resources")
-    game.sp.clean()
-    game.aiExecutor.shutdown()
+    resources.release()
   }
 
   def pollInput() = {
@@ -81,10 +89,11 @@ object Main extends App {
   private def scroll(world : World, y : Int){
     if (math.abs(y) > 2){
       val newy = offsety - y
-      val dy = if (math.abs(newy - g.height/2) > g.height/2) 0 else -y //todo diff instead of 0
+      val diff = math.abs(newy - g.height/2) - g.height/2
+      val dy = if (diff > 0) - y + diff else -y
       offsety = offsety + dy
       glTranslatef(0, dy, 0)
-      world.forGuiElem(_.updateCoord(Coord2i(0, offsety))) // useless now
+      world.forEntity[GuiElem](_.updateCoord(Coord2i(0, offsety)))
     }
   }
 
