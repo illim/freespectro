@@ -32,7 +32,9 @@ case class Creature(
   mod : Option[Mod] = None,
   boardEffect : Option[BoardEffect] = None,
   multipleTarget : Boolean = false,
-  immune : Boolean = false) extends Card {
+  immune : Boolean = false,
+  isFocusable : Boolean = true) // card is focused on effect after spawn. a bit ugly should be specified by effects
+     extends Card {
 
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount

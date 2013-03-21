@@ -18,7 +18,7 @@ class Houses extends HouseCardEffects {
   val Fire = House("fire", List(
     Creature("GoblinBerserker", Some(4), 16, spec = creature(OnTurn ->goblinBerserker)),
     Creature("WallofFire", Some(0), 5, spec = creature(Direct -> damageCreatures(Damage(5, isAbility = true)))),
-    Creature("PriestOfFire", Some(3), 13, spec = creature(OnTurn -> addMana(1, 0))),
+    Creature("PriestOfFire", Some(3), 13, spec = creature(OnTurn -> addMana(1, 0)), isFocusable = false),
     new Creature("FireDrake", Some(4), 18){
       override val runOnce = true
     },
@@ -37,7 +37,7 @@ class Houses extends HouseCardEffects {
       spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - env.guardSelf(2)) })),
     Creature("MerfolkApostate", Some(3), 10, spec = creature(Direct -> addMana(2, 0))),
     Creature("IceGolem", Some(4), 12, immune = true),
-    Creature("MerfolkElder", Some(3), 16, spec = creature(OnTurn -> addMana(1, 2))),
+    Creature("MerfolkElder", Some(3), 16, spec = creature(OnTurn -> addMana(1, 2)), isFocusable = false),
     Creature("IceGuard", Some(3), 20, mod = Some(new SpellProtectOwner(x => math.ceil(x / 2.0).intValue))),
     new Creature("GiantTurtle", Some(5), 17){
       override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
@@ -88,7 +88,7 @@ class Houses extends HouseCardEffects {
     Creature("ForestSprite", Some(1), 22, multipleTarget = true),
     Spell("Rejuvenation",
       spec = spell(Direct -> { env : Env => env.player.life.%==( _ + 2 * env.getMana(3))})),
-    Creature("elfHermit", Some(1), 13, spec = creature(OnTurn -> addMana(2, 3))),
+    Creature("elfHermit", Some(1), 13, spec = creature(OnTurn -> addMana(2, 3)), isFocusable = false),
     Spell("NaturesFury", spec = spell(Direct -> fury)),
     Creature("GiantSpider", Some(4), 21, spec = creature(Direct -> spider)),
     Creature("Troll", Some(6), 25, spec = creature(OnTurn -> healCreature(4))),
@@ -103,7 +103,7 @@ class Houses extends HouseCardEffects {
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", spec = spell(Direct -> addMana(1, 4))),
     Creature("DwarvenRifleman", Some(4), 17, mod = Some(InterceptSpawn(Damage(4, isAbility = true)))),
-    Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4))),
+    Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4)), isFocusable = false),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
     new Creature("SteelGolem", Some(6), 20, immune = true){
       override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))

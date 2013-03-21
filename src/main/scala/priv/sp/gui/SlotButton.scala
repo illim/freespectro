@@ -6,6 +6,7 @@ import priv.sp._
 import priv.World
 import priv.GuiElem
 
+// total crap
 class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], game : Game) extends GuiElem with Damagable {
   import game.sp.baseTextures.slotTex
 
@@ -13,7 +14,8 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   val size = slotTex.size
   enabled = false
   private var card = getCard
-  private var getDelta = zeroAnim
+  private var runAnim = Option.empty[RunAnimTask[_]]
+  private var focusAnim = Option.empty[FocusAnimTask[_]]
   val slotSize = Coord2i(120, 142)
   private val dashOffset = Coord2i(slotSize.x/2 - 39, slotSize.y/2-44)
 
@@ -39,7 +41,13 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     card.foreach {
       case (cardState, cardTex) =>
         glPushMatrix()
-        glTranslatef(21, 33 + getDelta(world.time), 0)
+        glTranslatef(21, 33 + runAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f), 0)
+        focusAnim.foreach{ anim =>
+          val scale = 1 + anim.getDelta(world.time).toFloat
+          glScalef(scale, scale, 1)
+          val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
+          glTranslatef(pos.x, pos.y, 0)
+        }
         tex.draw(cardTex)
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
@@ -74,15 +82,27 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     glEnable(GL_TEXTURE_2D)
   }
 
-  class AnimTask[A](onEnd: => A) extends Task[A] {
+  class RunAnimTask[A](onEnd: => A) extends Task[A] {
     val duration = 1500L
     private val half = duration / 2
     private val amplitude = 2
-    def init() { getDelta = delta _ }
+    def init() { runAnim = Some(this) }
     def end() = {
-      getDelta = zeroAnim
+      runAnim = None
       onEnd
     }
-    private def delta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
+    def getDelta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
+  }
+
+  class FocusAnimTask[A](onEnd: => A) extends Task[A] {
+    val duration = 500L
+    private val half = duration / 2
+    private val amplitude = 0.05
+    def init() { focusAnim = Some(this) }
+    def end() = {
+      focusAnim = None
+      onEnd
+    }
+    def getDelta(time: Long) = amplitude * math.sin((time - start).toDouble / duration * math.Pi)
   }
 }

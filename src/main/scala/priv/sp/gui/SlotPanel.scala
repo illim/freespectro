@@ -132,10 +132,10 @@ class Lightning(sp : SpWorld, points : Coord2i*) extends SpellEntity {
   val trailRange = 0 to 10
 
   def render(world: World) {
-    glColor4f(1, 1, 1, 1)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
     val delta = deltaT(world.time)
     trailRange.foreach{ x =>
+      glColor4f(1, 1, 1, 1f/(1+x))
       val size = ctTex.size * (1f/(1+x))
       tex.drawAt(recenter(posInterval.posAt(delta - (x * 5)), size), ctTex.id, size)
     }

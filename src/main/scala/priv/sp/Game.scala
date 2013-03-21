@@ -109,19 +109,6 @@ class Game(val world: World, resources : GameResources) {
     }
   }
 
-  protected def getSlotTurnEffect(playerId : PlayerId) = {
-    val player = state.players(playerId)
-    player.slots.foldLeft(state){ case (acc, (numSlot, slotState)) =>
-      slotState.card.spec.effects(CardSpec.OnTurn) match {
-        case Some(f) =>
-          val env = new GameCardEffect.Env(playerId, this)
-          env.selected = numSlot
-          f(env) exec acc
-        case None => acc
-      }
-    }
-  }
-
   protected def run(playerId: PlayerId) {
     state.checkEnded match {
       case Some(player) => endGame(player)
@@ -134,7 +121,7 @@ class Game(val world: World, resources : GameResources) {
           case (numSlot, slot) if slot.attack > 0 && slot.hasRunOnce =>
             val slotButton = slotPanels(playerId).slots(numSlot)
 
-          new slotButton.AnimTask({
+          new slotButton.RunAnimTask({
             val result = persist(runSlot(playerId, numSlot, slot))
             board.refresh()
             result
@@ -143,7 +130,7 @@ class Game(val world: World, resources : GameResources) {
         reset {
           Task.chain(world, tasks).foreach(_.foreach(endGame _))
           persist(prepareNextTurn(otherPlayerId))
-          persistState(getSlotTurnEffect(otherPlayerId))
+          applySlotTurnEffects(otherPlayerId)
           board.refresh(silent = true)
           waitPlayer(otherPlayerId)
         }
@@ -180,6 +167,34 @@ class Game(val world: World, resources : GameResources) {
   def prepareNextTurn(playerId: PlayerId): State[GameState, Unit] = {
     playersLs(playerId).slotsToggleRun.flatMap { _ =>
       playersLs(playerId).housesIncrMana
+    }
+  }
+
+  protected def applySlotTurnEffects(playerId : PlayerId, numSlot : Int = 0) {
+    val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
+      getSlotTurnEffect(playerId, numSlot, slotState).collect { case f if slotState.card.isFocusable =>
+        val slotButton = slotPanels(playerId).slots(numSlot)
+
+        new slotButton.FocusAnimTask({
+          persist(f)
+          board.refresh()
+          state.checkEnded
+        })
+      }
+    }
+    reset {
+      Task.chain(world, tasks).foreach(_.foreach(endGame _))
+      if (numSlot < nbSlots){
+        applySlotTurnEffects(playerId, numSlot + 1)
+      }
+    }
+  }
+
+  def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState) = {
+    slotState.card.spec.effects(CardSpec.OnTurn) map { f =>
+      val env = new GameCardEffect.Env(playerId, this)
+      env.selected = numSlot
+      f(env)
     }
   }
 }

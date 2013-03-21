@@ -52,11 +52,24 @@ trait Bot {
         k.gameCard.debitAndSpawn(command).exec(applyEffect(state))
     }
 
-    val runState = (commandState /: commandState.players(playerId).slots) {
+    var runState = (commandState /: commandState.players(playerId).slots) {
       case (st, (numSlot, slot)) =>
         game.runSlot(playerId, numSlot, slot).exec(st)
     }
-    game.prepareNextTurn(other(playerId)).exec(runState)
+    runState = game.prepareNextTurn(other(playerId)) exec runState
+    applySlotTurnEffects(other(playerId)) exec runState
+  }
+
+  private def applySlotTurnEffects(playerId : PlayerId) = scalaz.State.modify[GameState]{ st =>
+    var newState = st
+    for(numSlot <- slotRange){
+      newState.players(playerId).slots.get(numSlot) foreach { slotState =>
+        game.getSlotTurnEffect(playerId, numSlot, slotState).foreach{ f =>
+          newState = f exec newState
+        }
+      }
+    }
+    newState
   }
 }
 

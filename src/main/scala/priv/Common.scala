@@ -18,6 +18,10 @@ object Coord2i {
     pow2(b.x - a.x) + pow2(b.y - a.y)
   }
 
+  /**
+   * for example, if one texture have to be displayed on a center coordinate
+   * @param c the point we want to become the center
+   */
   def recenter(c : Coord2i, size :Coord2i) = c - (size * 0.5)
 }
 
