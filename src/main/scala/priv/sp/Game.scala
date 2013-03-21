@@ -38,9 +38,11 @@ class Game(val world: World, resources : GameResources) {
   val board = new Board(slotPanels, cardPanels, topCardPanel, sp)
   val gameCard = new GameCard(desc, this)
   val surrenderButton = new SurrenderButton()
+  val skipButton = new SkipButton()
+  skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
 
   world.entities.add(board.panel)
-  world.entities.add(Column(List(surrenderButton)))
+  world.entities.add(Column(List(surrenderButton, skipButton)))
 
   waitPlayer(owner)
 
@@ -172,14 +174,19 @@ class Game(val world: World, resources : GameResources) {
 
   protected def applySlotTurnEffects(playerId : PlayerId, numSlot : Int = 0) {
     val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
-      getSlotTurnEffect(playerId, numSlot, slotState).collect { case f if slotState.card.isFocusable =>
-        val slotButton = slotPanels(playerId).slots(numSlot)
-
-        new slotButton.FocusAnimTask({
+      getSlotTurnEffect(playerId, numSlot, slotState).flatMap { f =>
+        def applyEffect() = {
           persist(f)
-          board.refresh()
+          board.refresh(silent = true)
           state.checkEnded
-        })
+        }
+        if (!slotState.card.isFocusable){
+          applyEffect()
+          None
+        } else {
+          val slotButton = slotPanels(playerId).slots(numSlot)
+          Some(new slotButton.FocusAnimTask(applyEffect()))
+        }
       }
     }
     reset {

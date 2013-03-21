@@ -40,7 +40,6 @@ trait Bot {
     simulateCommand(state, command.player, Some(command))
   }
 
-  // todo return if someone died instead of reading state!
   def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : GameState = {
     val commandState = commandOption match {
       case None => state
@@ -57,7 +56,10 @@ trait Bot {
         game.runSlot(playerId, numSlot, slot).exec(st)
     }
     runState = game.prepareNextTurn(other(playerId)) exec runState
-    applySlotTurnEffects(other(playerId)) exec runState
+    if (runState.checkEnded.isEmpty) {
+      runState = applySlotTurnEffects(playerId) exec runState
+    }
+    runState
   }
 
   private def applySlotTurnEffects(playerId : PlayerId) = scalaz.State.modify[GameState]{ st =>

@@ -35,8 +35,9 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
 }
 
 class CommandRecorder(game: Game) {
+  val contNoop = Function.const[Unit, Option[Command]]() _
   private var value = Option.empty[Command]
-  private var cont = Function.const[Unit, Option[Command]]() _
+  private var cont = contNoop
   def setCommand(command: Command) {
     game.slotPanels.foreach(_.disable())
     value = Some(command)
@@ -55,10 +56,19 @@ class CommandRecorder(game: Game) {
     }
   }
 
-  def nextStep() {
+  def skip(){
+    continue(None)
+  }
+
+  private def continue(c : Option[Command]) = {
+    cont(c)
+    cont = contNoop
+  }
+
+  private def nextStep() {
     value.foreach { command =>
       if (command.card.inputSpec.size == command.input.size) {
-        cont(Some(command))
+        continue(Some(command))
       } else {
         command.card.inputSpec.get match {
           case SelectOwnerSlot => game.slotPanels(owner).setSlotEnabled(empty = true)
@@ -75,5 +85,12 @@ class SurrenderButton extends GuiElem {
   val size = Coord2i(100, 40)
   def render(world: World) {
     Fonts.draw(0, 20, "Surrender", 'white)
+  }
+}
+
+class SkipButton extends GuiElem {
+  val size = Coord2i(100, 40)
+  def render(world: World) {
+    Fonts.draw(0, 20, "Skip turn", 'white)
   }
 }
