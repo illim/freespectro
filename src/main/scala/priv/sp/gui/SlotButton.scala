@@ -39,7 +39,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     tex.draw(slotTex.id, slotSize)
 
     card.foreach {
-      case (cardState, cardTex) =>
+      case (slotState, cardTex) =>
         glPushMatrix()
         glTranslatef(21, 33 + runAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f), 0)
         focusAnim.foreach{ anim =>
@@ -51,18 +51,34 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
         tex.draw(cardTex)
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
-        Fonts.draw(72, 1, cardState.card.cost, 'blue)
-        Fonts.draw(4, 80, cardState.attack, 'red)
-        Fonts.draw(70, 80, cardState.life, 'green)
+        Fonts.draw(72, 1, slotState.card.cost, 'blue)
+        Fonts.draw(4, 80, slotState.attack, 'red)
+        Fonts.draw(70, 80, slotState.life, 'green)
         getDamageAnimOpt.foreach{ anim =>
           Fonts.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
         }
+        lifeBar(slotState)
         glPopMatrix()
     }
 
     if (enabled) {
       dash(dashOffset, 81, 92, ((deltaT(world.time) / 100) % 16).intValue)
     }
+  }
+
+  def lifeBar(slotState : SlotState) = {
+    glDisable(GL_TEXTURE_2D)
+    val w = 66 * slotState.life / slotState.card.life
+    val h = 7
+    glColor4f(0.2f, 0.6f, 0.2f, 0.6f)
+    glBegin(GL_POLYGON)
+    glVertex2f(0, 0)
+    glVertex2f(w, 0)
+    glVertex2f(w, h)
+    glVertex2f(0, h)
+    glEnd()
+    glColor4f(1, 1, 1, 1f)
+    glEnable(GL_TEXTURE_2D)
   }
 
   def dash(c : Coord2i, w:Int, h : Int, t : Int){
