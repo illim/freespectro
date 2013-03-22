@@ -24,6 +24,7 @@ class Game(val world: World, resources : GameResources) {
   val sp = resources.sp
   val aiExecutor = resources.aiExecutor
   val shuffle = new CardShuffle(this)
+  val guess = new CardGuess(this)
   val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
   var state : GameState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))

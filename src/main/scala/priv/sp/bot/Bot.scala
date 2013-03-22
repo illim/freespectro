@@ -5,7 +5,9 @@ import priv.sp._
 class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
   val desc = ripPlayerState.exec(game.desc)
   val gameCard = new GameCard(desc, game)
-
+  println("AI K :" + otherPlayerDesc.houses.map{ h =>
+    h.house.name + "/" + h.cards.toList
+  })
   private def ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( _ => otherPlayerDesc)
 }
 
@@ -20,8 +22,7 @@ trait Bot {
   def updateKnowledge(command : Command, indexOfCardInHouse : Int) {
     import command._
     val c = (card, indexOfCardInHouse)
-    if (!knownCards.contains(c)
-        && k.otherPlayerDesc.houses(card.houseIndex).cards(indexOfCardInHouse) != card) {
+    if (!knownCards.contains(c)) {
       knownCards += c
       generateK(2).foreach{ k = _ }
     }
@@ -30,7 +31,7 @@ trait Bot {
   def generateK(timeLimit : Int = Int.MaxValue) = {
     println("generating AI fake player")
     val start = System.currentTimeMillis
-    game.shuffle.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
+    game.guess.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
       println("generated k in " + (System.currentTimeMillis -start)+" ms")
       new Knowledge(game, botPlayerId, knownCards, fakePlayerDesc)
     }

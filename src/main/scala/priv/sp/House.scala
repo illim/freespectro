@@ -2,6 +2,13 @@ package priv.sp
 
 case class House(name: String, cards: List[Card]){
   def costs = cards.map(_.cost)
+  override def hashCode() : Int = name.hashCode
+  override def equals(o : Any) = {
+    o match {
+      case h : House => h.hashCode() == hashCode()
+      case _ => false
+    }
+  }
 }
 
 object Houses {
@@ -9,6 +16,8 @@ object Houses {
     cost = 1
     houseIndex = 2
   }
+
+  def manaGens = List((0, 3), (1, 5), (3, 5))
 }
 
 class Houses extends HouseCardEffects {

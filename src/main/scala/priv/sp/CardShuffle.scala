@@ -22,22 +22,13 @@ class CardShuffle(game : Game) {
     new ManaShuffler(manaModel, p == owner).solve()
     (cardModel.toPlayerHouseDesc(sp.houses), manaModel.toHouseStates)
   }
-
-  def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
-    val getCardRange = new CardModel.ExcludePlayerCards(game.desc.players(other(botPlayerId)))
-    val cardModel = CardModel.build(sp.houses, getCardRange)
-    knownCards.foreach{ case (card, index) =>
-      cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
-    }
-    new CardShuffler(cardModel).solve(timeLimit)
-    if (cardModel.cp.isFailed) None
-    else Some(cardModel.toPlayerHouseDesc(sp.houses))
-  }
 }
 
 import oscar.cp.modeling._
 import oscar.search._
 import oscar.cp.core._
+import priv.util.CpHelper
+import priv.util.CpHelper._
 
 object CardModel {
 
@@ -56,14 +47,6 @@ object CardModel {
         case None => house.costs
       }
     }
-  }
-
-  def manaGens = List((0, 3), (1, 5), (3, 5))
-
-  // todo why _.randomValue not work?
-  def getRandom(x : CPVarInt) = {
-    val ind = Random.nextInt(x.size)
-    x.toArray.apply(ind)
   }
 }
 
@@ -98,10 +81,9 @@ class HModel(cp : CPSolver, house : House, spHouses : Houses, getCardRange : Get
   private def range = getCardRange(house).to[Set]
 }
 
-class CardShuffler(cardModel : CardModel) {
+class CardShuffler(cardModel : CardModel) extends CpHelper {
+  def cp = cardModel.cp
   import cardModel._
-
-  val MAXRETRY = 3
 
   def solve(timeLimit : Int = Int.MaxValue) = {
     cp.subjectTo{
@@ -140,28 +122,11 @@ class CardShuffler(cardModel : CardModel) {
     } exploration {
       cp.binary(allCards.toArray, _.size, getRandom _ )
     }
-
-    if (timeLimit != Int.MaxValue){
-      cp.timeLimit = timeLimit
-      cp.run(1)
-    } else {
-      var failed = true
-      var i = 0
-      while(failed && i < MAXRETRY){
-        cp.timeLimit = 1 + i
-        cp.run(1)
-        failed = cp.isFailed
-      }
-      if (cp.isFailed){
-        println("last retry")
-        cp.timeLimit = Int.MaxValue
-        cp.run(1)
-      }
-    }
+    softRun(cp, timeLimit)
   }
 
   def oneManaGen = sum(
-    manaGens.map{ case (houseIndex, cost) =>
+    Houses.manaGens.map{ case (houseIndex, cost) =>
       contains(cost, houses(houseIndex).cards)
     }) == 1
 
@@ -184,18 +149,6 @@ class CardShuffler(cardModel : CardModel) {
     contains(2, earth),
     contains(4, earth),
     contains(11, earth)))
-
-  def contains(x : Int, l : Traversable[CPVarInt]) = {
-    l.foldLeft(CPVarBool(cp, false)){ (acc, e) =>
-      acc || (e === x)
-    }
-  }
-
-  def notContains(x : Int, l : Traversable[CPVarInt]) = {
-    l.foldLeft(CPVarBool(cp, true)){ (acc, e) =>
-      acc && (e !== x)
-    }
-  }
 }
 
 class ManaModel(val cardModel : CardModel, val cp : CPSolver = CPSolver()){
@@ -228,7 +181,7 @@ class ManaShuffler(model : ManaModel, isFirst : Boolean){
   def findManaGen = {
     cardModel.houses.zipWithIndex.flatMap{ case (h, idx) =>
       val solveds = h.getSolveds
-      manaGens.collectFirst{ case (houseIndex, cost) if idx == houseIndex && solveds.contains(cost) =>
+      Houses.manaGens.collectFirst{ case (houseIndex, cost) if idx == houseIndex && solveds.contains(cost) =>
         (idx, cost)
       }
     }
