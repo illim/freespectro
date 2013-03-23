@@ -61,16 +61,18 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     var nbStep = 0
     var state = node.initState
     var end = state.checkEnded
-    var player = node.playerId
+    var player = other(node.playerId)
     perfStat.nbdefpol += 1
+    //println(node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
-      //println("def:"+nextCommand)
       state = bot.simulateCommand(state, player, nextCommand)
+      //print("- def:"+nextCommand + "/" + state.players.map(_.life))
       player = other(player)
       nbStep += 1
       end = state.checkEnded
     }
+    //println("end " +nbStep+","+ end)
     node.updateStatsFrom(state, end)
   }
 
