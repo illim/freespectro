@@ -86,6 +86,7 @@ class CardGuesser(cardModel : GCardModel) extends CpHelper {
   import cardModel._
 
   def solve(timeLimit : Int = Int.MaxValue) = {
+    cp.timeLimit = timeLimit
     cp.subjectTo{
       cp.add(oneManaGen)
       cp.add(oneWipe)
@@ -97,9 +98,7 @@ class CardGuesser(cardModel : GCardModel) extends CpHelper {
       cp.add(is(earth(5)) ==> not(earth(6)))
     } exploration {
       cp.binary(allCards.toArray, _.size, _.max)
-    }
-
-    softRun(cp, timeLimit)
+    } run(1)
   }
 
   def is(x : CPVarInt) = (x === 1)

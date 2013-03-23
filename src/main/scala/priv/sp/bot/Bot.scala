@@ -58,7 +58,7 @@ trait Bot {
     }
     runState = game.prepareNextTurn(other(playerId)) exec runState
     if (runState.checkEnded.isEmpty) {
-      runState = applySlotTurnEffects(playerId) exec runState
+      runState = applySlotTurnEffects(other(playerId)) exec runState
     }
     runState
   }
