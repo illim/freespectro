@@ -59,6 +59,7 @@ class Master(resources : GameResources)
   }
 
   // bs see client
+  // todo wait client to be ready
   class Server  {
     val serverSocket = new ServerSocket(4444)
     println("listening")
@@ -93,7 +94,7 @@ class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameRe
   }
 }
 
-class SlaveGameServer(val initState : GameState, val desc : GameDesc, peer : PeerInterface[MasterInterface]) extends GameServer with PeerCommon {
+class SlaveGameServer(val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer with PeerCommon {
   val playerId = owner
   peer.updateImpl(this)
 
@@ -128,16 +129,17 @@ trait PeerCommon {
   }
 }
 
-trait SlaveInterface {
+trait CommonInterface {
+  def submit(turnId : Int, c: Option[Command])
+}
+
+trait SlaveInterface extends CommonInterface {
   def init(state : GameState, desc : GameDesc)
-  def submit(turnId : Int, c: Option[Command])
 }
 
-trait MasterInterface {
-  def submit(turnId : Int, c: Option[Command])
-}
+trait MasterInterface extends CommonInterface
 
-class PeerInterface[O](val socket : Socket, impl : AnyRef) (implicit co : reflect.ClassTag[O]){
+class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : reflect.ClassTag[O]){
   private var currentImpl : AnyRef = impl
   private var methods = impl.getClass.getMethods.toList
   val in = socket.getInputStream
@@ -158,10 +160,7 @@ class PeerInterface[O](val socket : Socket, impl : AnyRef) (implicit co : reflec
       println("received " + message.name + "/" + Option(message.args).toList.flatten)
       val m = methods.find{ m => m.getName == message.name  }.getOrElse(sys.error(message.name + " method not found"))
       val res = m.invoke(currentImpl, message.args : _*)
-      if (m.getReturnType() != classOf[Unit]) {
-        oos.writeObject(res)
-      }
-      println("sent " + res)
+      assert(m.getReturnType() != classOf[Unit], "not managing return value for "+m.getName)
       obj = ois.readObject()
     }
   }
@@ -182,11 +181,8 @@ class PeerOut(in : ObjectInputStream, out : ObjectOutputStream) extends Invocati
   def invoke(obj : Any, m : Method, args : Array[Object]) = {
     out.writeObject(new Message(m.getName, args))
     out.flush()
-    if (m.getReturnType() != classOf[Unit]) {
-      in.readObject()
-    } else {
-      null
-    }
+    assert(m.getReturnType() != classOf[Unit], "not managing return value for "+m.getName)
+    null
   }
 }
 
