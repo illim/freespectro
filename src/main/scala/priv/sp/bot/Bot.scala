@@ -2,9 +2,9 @@ package priv.sp.bot
 
 import priv.sp._
 
-class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
-  val desc = ripPlayerState.exec(game.desc)
-  val gameCard = new GameCard(desc, game)
+class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
+  val desc = ripPlayerState.exec(gameDesc)
+  val gameCard = new GameCard(desc)
   println("AI K :" + otherPlayerDesc.houses.map{ h =>
     h.house.name + "/" + h.cards.toList
   })
@@ -12,10 +12,12 @@ class Knowledge(game : Game, botPlayerId : PlayerId, knownCards : Set[(Card, Int
 }
 
 trait Bot {
-  def game: Game
+  def gameDesc: GameDesc
+  def sp : SpWorld
   def botPlayerId: PlayerId
   def executeAI(state: GameState): Option[Command]
 
+  val guess = new CardGuess(gameDesc, sp)
   var knownCards = Set.empty[(Card, Int)]
   var k = generateK().get
 
@@ -31,9 +33,9 @@ trait Bot {
   def generateK(timeLimit : Int = Int.MaxValue) = {
     println("generating AI fake player")
     val start = System.currentTimeMillis
-    game.guess.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
+    guess.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
       println("generated k in " + (System.currentTimeMillis -start)+" ms")
-      new Knowledge(game, botPlayerId, knownCards, fakePlayerDesc)
+      new Knowledge(gameDesc, botPlayerId, knownCards, fakePlayerDesc)
     }
   }
 
@@ -46,7 +48,7 @@ trait Bot {
       case None => state
       case Some(command) =>
         def applyEffect(st : GameState) =
-          (st /: k.gameCard.getCommandEffect(command)) { (acc, f) =>
+          (st /: k.gameCard.getCommandEffect(command, st)) { (acc, f) =>
             f.exec(acc)
           }
         k.gameCard.debitAndSpawn(command).exec(applyEffect(state))
@@ -54,9 +56,9 @@ trait Bot {
 
     var runState = (commandState /: commandState.players(playerId).slots) {
       case (st, (numSlot, slot)) =>
-        game.runSlot(playerId, numSlot, slot).exec(st)
+        Game.runSlot(playerId, numSlot, slot).exec(st)
     }
-    runState = game.prepareNextTurn(other(playerId)) exec runState
+    runState = Game.prepareNextTurn(other(playerId)) exec runState
     if (runState.checkEnded.isEmpty) {
       runState = applySlotTurnEffects(other(playerId)) exec runState
     }
@@ -67,7 +69,7 @@ trait Bot {
     var newState = st
     for(numSlot <- slotRange){
       newState.players(playerId).slots.get(numSlot) foreach { slotState =>
-        game.getSlotTurnEffect(playerId, numSlot, slotState).foreach{ f =>
+        Game.getSlotTurnEffect(playerId, numSlot, slotState, newState).foreach{ f =>
           newState = f exec newState
         }
       }

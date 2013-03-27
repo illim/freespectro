@@ -4,11 +4,10 @@ import priv.sp._
 import collection._
 import util.Random
 
-class CardGuess(game : Game) {
-  import game.sp
+class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
 
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
-    val knowledge = new ModelFilter(knownCards, game.desc.players(botPlayerId))
+    val knowledge = new ModelFilter(knownCards, gameDesc.players(botPlayerId))
     val cardModel = GCardModel.build(sp.houses, knowledge)
     knownCards.foreach{ case (card, index) =>
       cardModel.houses(card.houseIndex).cards(index).assign(card.cost)

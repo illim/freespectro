@@ -2,8 +2,13 @@ package priv.sp
 
 import collection._
 import scalaz._
+import java.io._
 
-sealed trait Card {
+object Card {
+  val currentId = new java.util.concurrent.atomic.AtomicInteger
+}
+
+sealed abstract class Card extends Externalizable {
   def name : String
   def image: String
   def inputSpec: Option[CardInputSpec]
@@ -11,17 +16,20 @@ sealed trait Card {
   def isAvailable(house: HouseState) = cost <= house.mana
 
   var cost = 0
-  var id = 0
+  var id = Card.currentId.incrementAndGet
   var houseIndex = 0
   final val isSpell = isInstanceOf[Spell]
   override def toString() = s"Card($name)"
-  override def hashCode() : Int = cost + houseIndex * 32
+  override def hashCode() : Int = id
   override def equals(o : Any) = {
     o match {
       case c : Card => c.hashCode() == hashCode()
       case _ => false
     }
   }
+  def writeExternal(out : ObjectOutput ){  out.writeInt(id) }
+  def readExternal(in : ObjectInput  ){  id = in.readInt() }
+  protected def readResolve() : Object = HouseSingleton.getCardById(id)
 }
 case class Creature(
   name: String,
@@ -35,6 +43,7 @@ case class Creature(
   immune : Boolean = false,
   isFocusable : Boolean = true) // card is focused on effect after spawn. a bit ugly should be specified by effects
      extends Card {
+  def this() = this(null, None, 0)
 
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
@@ -47,7 +56,7 @@ case class Spell(
   name: String,
   inputSpec: Option[CardInputSpec] = None,
   spec: CardSpec = CardSpec.spell()) extends Card {
-
+  def this() = this(null)
   def image = name + ".tga"
 }
 case class Command(player: PlayerId, card: Card, input: Option[SlotInput])
@@ -60,7 +69,7 @@ case object SelectOwnerSlot extends CardInputSpec
 case object SelectOwnerCreature extends CardInputSpec
 case object SelectTargetCreature extends CardInputSpec
 
-class SlotInput(val num: Int) extends AnyVal
+class SlotInput(val num: Int) extends AnyVal with Serializable
 
 object CardSpec {
   type Phase = Int

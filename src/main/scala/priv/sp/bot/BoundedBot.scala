@@ -4,10 +4,9 @@ import priv.sp._
 import priv.util._
 import scalaz._
 import collection._
-import scala.util.control.TailCalls._
 
 // another stupid bot, faster because bounded in time, trying to use uct.
-class BoundedBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
+class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val sp : SpWorld) extends Bot {
   def executeAI(start: GameState) = {
     new BoundedBotAI(botPlayerId, start, this).execute()
   }
@@ -63,7 +62,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     var end = state.checkEnded
     var player = other(node.playerId)
     perfStat.nbdefpol += 1
-    //println(node.path+ "/" + state.players.map(_.life))
+    //println("path " + node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
       state = bot.simulateCommand(state, player, nextCommand)

@@ -10,7 +10,7 @@ import priv.GuiElem
 class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], game : Game) extends GuiElem with Damagable {
   import game.sp.baseTextures.slotTex
 
-  val direction = if (playerId == owner) -1 else 1
+  val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
   enabled = false
   private var card = getCard

@@ -1,4 +1,3 @@
-
 package priv.sp
 
 import collection._
@@ -20,51 +19,43 @@ class GameResources {
   }
 }
 
-class Game(val world: World, resources : GameResources) {
+
+class Game(val world: World, resources : GameResources, val server : GameServer) {
   val sp = resources.sp
   val aiExecutor = resources.aiExecutor
-  val shuffle = new CardShuffle(this)
-  val guess = new CardGuess(this)
-  val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
-  var state : GameState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
-  val desc = GameDesc(Array(p1Desc, p2Desc))
-  val playersLs = playerIds.map(GameState.playerLens(_))
-  private val bot = new BoundedBot(opponent, this)
+  var state : GameState = server.initState
+  val desc = server.desc
+  val myPlayerId = other(server.playerId)
+  val otherPlayerId = server.playerId
 
   // gui
   val commandRecorder = new CommandRecorder(this)
   val cardPanels = playerIds.map(new CardPanel(_, this))
   val slotPanels = playerIds.map(new SlotPanel(_, this))
-  val topCardPanel = new TopCardPanel(playerIds(opponent), this)
-  val board = new Board(slotPanels, cardPanels, topCardPanel, sp)
-  val gameCard = new GameCard(desc, this)
-  val surrenderButton = new SurrenderButton()
-  val skipButton = new SkipButton()
+  val topCardPanel = new TopCardPanel(playerIds(otherPlayerId), this)
+  val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, sp)
+  val gameCard = new GameCard(desc)
+  val surrenderButton = new GuiButton("Surrender")
+  val skipButton = new GuiButton("Skip turn")
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
 
   world.entities.add(board.panel)
-  world.entities.add(Column(List(surrenderButton, skipButton)))
+  world.entities.add(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton))))
 
   waitPlayer(owner)
 
   protected def waitPlayer(player: PlayerId) {
     reset {
-      val k = if (player == opponent) {
+      val k = if (player == server.playerId) {
         shift { k: (Option[Command] => Unit) =>
-          aiExecutor.submit(
-            runnable {
-              cardPanels(player).setEnabled(true)
-              k(bot.executeAI(state))
-            })
+          cardPanels(player).setEnabled(true)
+          server.waitNextCommand(k, state)
         }
       } else {
         val commandOption = commandRecorder.startWith {
           cardPanels(player).setEnabled(true)
         }
-        commandOption.foreach{ c =>
-          val cardIdx = desc.players(player).getIndexOfCardInHouse(c.card)
-          aiExecutor.submit(runnable(bot.updateKnowledge(c, cardIdx)))
-        }
+        server.submitCommand(commandOption)
         commandOption
       }
       world.addTask(new SimpleTask(submit(k, player))) // to avoid to be done in ai thread
@@ -102,7 +93,7 @@ class Game(val world: World, resources : GameResources) {
           } else {
             shiftUnit0[Int, Unit](0)
           }
-          gameCard.getCommandEffect(c).foreach(persist(_))
+          gameCard.getCommandEffect(c, state).foreach(persist(_))
           board.refresh()
           persist(gameCard.debitAndSpawn(c))
           board.refresh(silent = true)
@@ -125,14 +116,14 @@ class Game(val world: World, resources : GameResources) {
             val slotButton = slotPanels(playerId).slots(numSlot)
 
           new slotButton.RunAnimTask({
-            val result = persist(runSlot(playerId, numSlot, slot))
+            val result = persist(Game.runSlot(playerId, numSlot, slot))
             board.refresh()
             result
           })
         }
         reset {
           Task.chain(world, tasks).foreach(_.foreach(endGame _))
-          persist(prepareNextTurn(otherPlayerId))
+          persist(Game.prepareNextTurn(otherPlayerId))
           applySlotTurnEffects(otherPlayerId)
           board.refresh(silent = true)
           waitPlayer(otherPlayerId)
@@ -140,6 +131,37 @@ class Game(val world: World, resources : GameResources) {
     }
   }
 
+
+  protected def applySlotTurnEffects(playerId : PlayerId, numSlot : Int = 0) {
+    val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
+      Game.getSlotTurnEffect(playerId, numSlot, slotState, state).flatMap { f =>
+        def applyEffect() = {
+          persist(f)
+          board.refresh(silent = true)
+          state.checkEnded
+        }
+        if (!slotState.card.isFocusable){
+          applyEffect()
+          None
+        } else {
+          val slotButton = slotPanels(playerId).slots(numSlot)
+          Some(new slotButton.FocusAnimTask(applyEffect()))
+        }
+      }
+    }
+    reset {
+      Task.chain(world, tasks).foreach(_.foreach(endGame _))
+      if (numSlot < nbSlots){
+        applySlotTurnEffects(playerId, numSlot + 1)
+      }
+    }
+  }
+
+}
+
+
+object Game {
+  
   def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Option[PlayerId]] = {
     val otherPlayerLs = playersLs(other(playerId))
 
@@ -172,35 +194,10 @@ class Game(val world: World, resources : GameResources) {
       playersLs(playerId).housesIncrMana
     }
   }
-
-  protected def applySlotTurnEffects(playerId : PlayerId, numSlot : Int = 0) {
-    val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
-      getSlotTurnEffect(playerId, numSlot, slotState).flatMap { f =>
-        def applyEffect() = {
-          persist(f)
-          board.refresh(silent = true)
-          state.checkEnded
-        }
-        if (!slotState.card.isFocusable){
-          applyEffect()
-          None
-        } else {
-          val slotButton = slotPanels(playerId).slots(numSlot)
-          Some(new slotButton.FocusAnimTask(applyEffect()))
-        }
-      }
-    }
-    reset {
-      Task.chain(world, tasks).foreach(_.foreach(endGame _))
-      if (numSlot < nbSlots){
-        applySlotTurnEffects(playerId, numSlot + 1)
-      }
-    }
-  }
-
-  def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState) = {
+  
+  def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState, snapshot : GameState) = {
     slotState.card.spec.effects(CardSpec.OnTurn) map { f =>
-      val env = new GameCardEffect.Env(playerId, this)
+      val env = new GameCardEffect.Env(playerId, snapshot)
       env.selected = numSlot
       f(env)
     }
@@ -209,8 +206,7 @@ class Game(val world: World, resources : GameResources) {
 
 
 // separated from game for ai to hack the description
-class GameCard(desc : GameDesc, game : Game) {
-  import game._
+class GameCard(desc : GameDesc) {
 
   def debitAndSpawn(command: Command): State[GameState, Unit] = {
     val playerLs = playersLs(command.player)
@@ -229,9 +225,9 @@ class GameCard(desc : GameDesc, game : Game) {
     debitMana.flatMap(_ => summonIfCreature)
   }
 
-  def getCommandEffect(command : Command) : Option[State[GameState, Unit]] = {
+  def getCommandEffect(command : Command, state : GameState) : Option[State[GameState, Unit]] = {
     command.card.spec.effects(CardSpec.Direct) map { f =>
-      val env = new GameCardEffect.Env(command.player, game)
+      val env = new GameCardEffect.Env(command.player, state)
       command.input foreach { slotInput => env.selected = slotInput.num }
       f(env)
     }

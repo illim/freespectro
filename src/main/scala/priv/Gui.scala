@@ -117,3 +117,13 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer with Atta
 case class Column(elts: Traversable[GuiElem]) extends Flow(diry = 1)
 
 case class Row(elts: Traversable[GuiElem]) extends Flow(dirx = 1)
+
+
+class GuiButton(name : String) extends GuiElem {
+  val (w, h) = (Fonts.getWidth(name), Fonts.getHeight(name))
+  val size = Coord2i(w, h)
+
+  def render(world: World) {
+    Fonts.draw(0, 0, name, 'white)
+  }
+}

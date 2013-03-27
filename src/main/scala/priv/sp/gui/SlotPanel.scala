@@ -18,7 +18,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         game)).toList
   val elts = lifeLabel :: /**testButton ::: */ slots
 
-  def testButton = (if (playerId == owner) List(TestButton(game.sp)) else Nil)
+  def testButton = (if (playerId == game.myPlayerId) List(TestButton(game.sp)) else Nil)
 
   val slotOffset = lifeLabel.size
   val slotSize = slots(0).size
@@ -93,7 +93,6 @@ class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends Spel
   val fireTex = sp.baseTextures.fire
   val offset = Coord2i(slotOffset.x + slotSize.x / 2,  slotSize.y / 2)
   val partTimeLine = slotRange.toList.flatMap{ numSlot =>
-    val slotTime = numSlot * 150
     val nbPart = 4 + Random.nextInt(2)
     val slotOffset = offset.xProj + (slotSize.x * numSlot)
     (List.empty[(Int, Coord2i)] /: (0 to nbPart)){ (acc, n) =>

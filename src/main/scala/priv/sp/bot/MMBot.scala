@@ -5,7 +5,7 @@ import priv.util._
 import scalaz._
 
 // another very stupid bot, but a bit less slow using minmax with pruning, horrible mess pretty sure it doesn't work :)
-class MMBot(val botPlayerId: PlayerId, val game: Game) extends Bot {
+class MMBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val sp : SpWorld) extends Bot {
 
   def executeAI(start: GameState) = {
     new MMBotAI(botPlayerId, start, this).execute()

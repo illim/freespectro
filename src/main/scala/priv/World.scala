@@ -49,10 +49,12 @@ trait Attachable {
   }
 
   def forEntity[A : reflect.ClassTag](f : A => Unit){
+    var ls = List.empty[A]
     iterate(entities.iterator){
-      case elem : A => f(elem)
+      case elem : A => ls = elem :: ls
       case _ =>
     }
+    ls.foreach(f)
   }
 
   def clear(){
@@ -65,6 +67,8 @@ trait Attachable {
     task.init()
     tasks.add(task)
   }
+
+  def doInRenderThread(f: => Unit) = addTask(new SimpleTask(f))
 }
 
 object Entity {

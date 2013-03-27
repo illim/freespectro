@@ -5,7 +5,7 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
 
-class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) {
+class Board(playerId : PlayerId, slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) {
 
   val panel = getPanel()
 
@@ -16,7 +16,7 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
   }
 
   private def getPanel() = {
-    val opponentPanel = playerPanels(opponent).panel
+    val opponentPanel = playerPanels(other(playerId)).panel
 
     Column(
       List(
@@ -25,11 +25,11 @@ class Board(slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardP
         Translate(
           Coord2i(320, 0),
           Column(List(
-            slotPanels(opponent).panel,
+            slotPanels(other(playerId)).panel,
             Translate(
-              Coord2i(0, -30), slotPanels(owner).panel)))),
+              Coord2i(0, -30), slotPanels(playerId).panel)))),
         Translate(
-          Coord2i(500, 0), playerPanels(owner).panel)))
+          Coord2i(500, 0), playerPanels(playerId).panel)))
   }
 
 }
@@ -71,26 +71,11 @@ class CommandRecorder(game: Game) {
         continue(Some(command))
       } else {
         command.card.inputSpec.get match {
-          case SelectOwnerSlot => game.slotPanels(owner).setSlotEnabled(empty = true)
-          case SelectOwnerCreature => game.slotPanels(owner).setSlotEnabled(empty = false)
-          case SelectTargetCreature => game.slotPanels(opponent).setSlotEnabled(empty = false)
+          case SelectOwnerSlot => game.slotPanels(game.myPlayerId).setSlotEnabled(empty = true)
+          case SelectOwnerCreature => game.slotPanels(game.myPlayerId).setSlotEnabled(empty = false)
+          case SelectTargetCreature => game.slotPanels(game.otherPlayerId).setSlotEnabled(empty = false)
         }
       }
     }
-  }
-
-}
-
-class SurrenderButton extends GuiElem {
-  val size = Coord2i(100, 40)
-  def render(world: World) {
-    Fonts.draw(0, 20, "Surrender", 'white)
-  }
-}
-
-class SkipButton extends GuiElem {
-  val size = Coord2i(100, 40)
-  def render(world: World) {
-    Fonts.draw(0, 20, "Skip turn", 'white)
   }
 }

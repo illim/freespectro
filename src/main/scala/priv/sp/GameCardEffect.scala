@@ -7,17 +7,17 @@ import CardSpec._
 object GameCardEffect {
 
   // state is used directly when it is evaluated late enough
-  class Env(val playerId: PlayerId, val game: Game) {
+  class Env(val playerId: PlayerId, val state: GameState) {
     var selected = 0
-    @inline def player = game.playersLs(playerId)
-    @inline def otherPlayer = game.playersLs(other(playerId))
-    @inline def getMana(houseIndex : Int) : Int = game.state.players(playerId).houses(houseIndex).mana
-    @inline def guard(amount : Int) = game.state.players(other(playerId)).guard(amount)
-    @inline def guardSelf(amount : Int) = game.state.players(playerId).guard(amount)
+    @inline def player = playersLs(playerId)
+    @inline def otherPlayer = playersLs(other(playerId))
+    @inline def getMana(houseIndex : Int) : Int = state.players(playerId).houses(houseIndex).mana
+    @inline def guard(amount : Int) = state.players(other(playerId)).guard(amount)
+    @inline def guardSelf(amount : Int) = state.players(playerId).guard(amount)
 
     def mod(d : Damage) = {
       if (d.isSpell) {
-        d.copy(amount = ((d.amount /: game.state.players(playerId).mods){
+        d.copy(amount = ((d.amount /: state.players(playerId).mods){
           case (acc, m : SpellMod) => m.modify(acc)
           case (acc, _) => acc
         }))

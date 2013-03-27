@@ -27,7 +27,10 @@ object Fonts {
         case _ => Color.black
       }
     }
-    Fonts.font.drawString(x, y, s.toString, c)
+    font.drawString(x, y, s.toString, c)
     glColor4f(1, 1, 1, 1) // recover color
   }
+
+  def getWidth(s : String)= font.getWidth(s)
+  def getHeight(s : String)= font.getHeight(s)
 }

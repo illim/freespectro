@@ -2,8 +2,9 @@ package priv.sp
 
 import util.Random
 import collection._
+import java.io.Serializable
 
-case class GameState(players: List[PlayerState]){
+case class GameState(players: List[PlayerState]) {
   def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
 }
 case class PlayerState(
@@ -21,7 +22,7 @@ case class PlayerState(
     }
   }
 }
-class HouseState(val mana: Int) extends AnyVal
+class HouseState(val mana: Int) extends AnyVal with Serializable
 case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int = 0){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)

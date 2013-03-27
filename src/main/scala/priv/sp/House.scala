@@ -20,6 +20,18 @@ object Houses {
   def manaGens = List((0, 3), (1, 5), (3, 5))
 }
 
+// hacks for serialization
+object HouseSingleton extends Houses
+class FireDrake extends Creature("FireDrake", Some(4), 18) {
+  override val runOnce = true
+}
+class GiantTurtle extends Creature ("GiantTurtle", Some(5), 17){
+  override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
+}
+class SteelGolem extends Creature("SteelGolem", Some(6), 20, immune = true){
+  override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
+}
+
 class Houses extends HouseCardEffects {
   import CardSpec._
   import GameCardEffect._
@@ -28,9 +40,7 @@ class Houses extends HouseCardEffects {
     Creature("GoblinBerserker", Some(4), 16, spec = creature(OnTurn ->goblinBerserker)),
     Creature("WallofFire", Some(0), 5, spec = creature(Direct -> damageCreatures(Damage(5, isAbility = true)))),
     Creature("PriestOfFire", Some(3), 13, spec = creature(OnTurn -> addMana(1, 0)), isFocusable = false),
-    new Creature("FireDrake", Some(4), 18){
-      override val runOnce = true
-    },
+    new FireDrake,
     Creature("OrcChieftain", Some(3), 16, boardEffect = Some(AddAttack(2, around = true))),
     Spell("FlameWave", spec = spell(Direct -> damageCreatures(Damage(9, isSpell = true)))),
     Creature("MinotaurCommander", Some(6), 20, boardEffect = Some(AddAttack(1))),
@@ -48,9 +58,7 @@ class Houses extends HouseCardEffects {
     Creature("IceGolem", Some(4), 12, immune = true),
     Creature("MerfolkElder", Some(3), 16, spec = creature(OnTurn -> addMana(1, 2)), isFocusable = false),
     Creature("IceGuard", Some(3), 20, mod = Some(new SpellProtectOwner(x => math.ceil(x / 2.0).intValue))),
-    new Creature("GiantTurtle", Some(5), 17){
-      override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
-    },
+    new GiantTurtle,
     Spell("AcidicRain", spec = spell(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
       env.otherPlayer.houses.%=={ houses => HouseState.incrMana(houses, -1 , 0, 1, 2, 3, 4) }
     })),
@@ -114,9 +122,7 @@ class Houses extends HouseCardEffects {
     Creature("DwarvenRifleman", Some(4), 17, mod = Some(InterceptSpawn(Damage(4, isAbility = true)))),
     Creature("DwarvenCraftsman", Some(2), 17, spec = creature(OnTurn -> addMana(1, 4)), isFocusable = false),
     Creature("Ornithopter", Some(4), 24, spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
-    new Creature("SteelGolem", Some(6), 20, immune = true){
-      override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
-    },
+    new SteelGolem,
     Creature("Cannon", Some(8), 29, spec=creature(OnTurn -> cannon)),
     Spell("Cannonade", spec = spell(Direct -> damageCreatures(Damage(19, isSpell = true)))),
     Creature("SteamTank", Some(6), 60, spec = creature(Direct -> damageCreatures(Damage(12, isAbility = true))))))
@@ -133,6 +139,8 @@ class Houses extends HouseCardEffects {
   val special = List(Mecanic)
   val specialNames = special.map(_.name).to[Set]
   val list = base ++ special
+  private val allCards = list.flatMap(_.cards)
+  def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
 
   def isSpecial(house : House)= specialNames.contains(house.name)
 

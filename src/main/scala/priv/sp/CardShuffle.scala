@@ -2,8 +2,7 @@ package priv.sp
 
 import util.Random
 
-class CardShuffle(game : Game) {
-  import game.sp
+class CardShuffle(sp : SpWorld) {
 
   def get() = {
     val p1 = createPlayer(owner, None)
