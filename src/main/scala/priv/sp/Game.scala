@@ -9,17 +9,6 @@ import priv.sp.bot._
 import java.util.concurrent._
 import util.Utils.runnable
 
-class GameResources {
-  val sp = new SpWorld
-  val aiExecutor = Executors.newSingleThreadExecutor
-  def release(){
-    println("releasing resources")
-    sp.clean()
-    aiExecutor.shutdown()
-  }
-}
-
-
 class Game(val world: World, resources : GameResources, val server : GameServer) {
   val sp = resources.sp
   val aiExecutor = resources.aiExecutor
@@ -161,7 +150,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
 
 object Game {
-  
+
   def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState): State[GameState, Option[PlayerId]] = {
     val otherPlayerLs = playersLs(other(playerId))
 
@@ -194,7 +183,7 @@ object Game {
       playersLs(playerId).housesIncrMana
     }
   }
-  
+
   def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState, snapshot : GameState) = {
     slotState.card.spec.effects(CardSpec.OnTurn) map { f =>
       val env = new GameCardEffect.Env(playerId, snapshot)

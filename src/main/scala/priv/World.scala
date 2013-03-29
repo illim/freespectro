@@ -8,6 +8,7 @@ import org.lwjgl.opengl.GL13._
 import org.lwjgl.opengl.GL15._
 import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
+import priv.util.Utils.iterate
 
 class World(ginited : GInited) extends Attachable {
   var time: Long = 0
@@ -39,12 +40,6 @@ trait Attachable {
         tasks.remove(task)
         task.finish()
       }
-    }
-  }
-
-  def iterate[A](ite: java.util.Iterator[A])(f: A => Unit) {
-    while (ite.hasNext) {
-      f(ite.next)
     }
   }
 

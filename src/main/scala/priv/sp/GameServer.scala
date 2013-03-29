@@ -14,8 +14,6 @@ trait GameServer {
 
   def waitNextCommand(k : (Option[Command] => Unit), state : GameState)
   def submitCommand(commandOption : Option[Command])
-
-  def release()
 }
 
 class Local(resources : GameResources) extends GameServer {
@@ -39,70 +37,46 @@ class Local(resources : GameResources) extends GameServer {
       })
     }
   }
-
-  def release(){}
 }
 
-class Master(resources : GameResources)
-  extends GameServer with MasterInterface with PeerCommon { self =>
-
+class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
-
   def initState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
-  val playerId = opponent
-  var server = new Server
 
-  def remoteSubmit(turnId : Int, commandOption : Option[Command]) = {
-    server.clientPeer.foreach(_.proxy.submit(turnId, commandOption))
+  val serverSocketAddr = new InetSocketAddress(4444)
+  val serverSocket = resources.serverSocket(new ServerSocket())
+  serverSocket.setReuseAddress(true)
+  serverSocket.setSoTimeout(3 * 60 * 1000)
+  serverSocket.bind(serverSocketAddr)
+  println("Listening, waiting for client ...")
+
+  priv.util.Utils.threaded {
+    val cs = resources.clientSocket(serverSocket.accept())
+    println("Connected to "+ cs.getInetAddress())
+    val peer = new PeerInterface[SlaveInterface](cs, this)
+    peer.proxy.init(initState, desc)
+    k(new CommonGameServer(opponent, initState, desc, peer))
   }
-
-  // bs see client
-  // todo wait client to be ready
-  class Server  {
-    val serverSocket = new ServerSocket(4444)
-    println("listening")
-    var clientPeer = Option.empty[PeerInterface[SlaveInterface]]
-    priv.util.Utils.threaded {
-      val cs = serverSocket.accept() // todo enable panel when client connected
-      val slavePeer = new PeerInterface[SlaveInterface](cs, self)
-      clientPeer = Some(slavePeer)
-      slavePeer.proxy.init(initState, desc)
-    }
-
-    def release(){
-      clientPeer.foreach(_.release())
-      serverSocket.close()
-    }
-  }
-
-  def release() = server.release()
 }
-
-import java.lang.reflect.{Proxy, Method, InvocationHandler}
 
 class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameResources) {
   val socket = new Socket(address, 4444)
-  println("connected")
+  println("Connected to " + socket.getInetAddress)
   val peer = new PeerInterface[MasterInterface](socket, this)
-  var gameServer : GameServer = null
 
   def init(state : GameState, desc : GameDesc) = {
-    gameServer = new SlaveGameServer(state, desc, peer)
-    k(gameServer)
+    k(new CommonGameServer(owner, state, desc, peer))
   }
 }
 
-class SlaveGameServer(val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer with PeerCommon {
-  val playerId = owner
+class CommonGameServer(val playerId : PlayerId, val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer with PeerCommon {
   peer.updateImpl(this)
 
   def remoteSubmit(turnId : Int, commandOption : Option[Command]) = {
     peer.proxy.submit(turnId, commandOption)
   }
-
-  def release() { peer.release() }
 }
 
 trait PeerCommon {
@@ -139,6 +113,9 @@ trait SlaveInterface extends CommonInterface {
 
 trait MasterInterface extends CommonInterface
 
+
+import java.lang.reflect.{Proxy, Method, InvocationHandler}
+
 class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : reflect.ClassTag[O]){
   private var currentImpl : AnyRef = impl
   private var methods = impl.getClass.getMethods.toList
@@ -160,7 +137,7 @@ class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : refle
       println("received " + message.name + "/" + Option(message.args).toList.flatten)
       val m = methods.find{ m => m.getName == message.name  }.getOrElse(sys.error(message.name + " method not found"))
       val res = m.invoke(currentImpl, message.args : _*)
-      assert(m.getReturnType() != classOf[Unit], "not managing return value for "+m.getName)
+      assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
       obj = ois.readObject()
     }
   }
@@ -181,7 +158,7 @@ class PeerOut(in : ObjectInputStream, out : ObjectOutputStream) extends Invocati
   def invoke(obj : Any, m : Method, args : Array[Object]) = {
     out.writeObject(new Message(m.getName, args))
     out.flush()
-    assert(m.getReturnType() != classOf[Unit], "not managing return value for "+m.getName)
+    assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
     null
   }
 }

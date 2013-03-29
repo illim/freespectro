@@ -97,6 +97,12 @@ object Utils {
       case _ => None
     }
   }
+
+  def iterate[A](ite: java.util.Iterator[A])(f: A => Unit) {
+    while (ite.hasNext) {
+      f(ite.next)
+    }
+  }
 }
 
 trait ResourceCache[A, B] {

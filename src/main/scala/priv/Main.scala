@@ -33,7 +33,6 @@ object Main extends App {
 
   mainLoop()
   resources.release()
-  currentGame.server.release()
   g.cleanUp()
   multi.dispose()
 
@@ -118,11 +117,12 @@ object Main extends App {
   import java.awt.event._
   class Multi extends JFrame with ActionListener {
     val p = new JPanel
-    def addBtn(name : String){
+    def addBtn(name : String) = {
       val b = new JButton(name)
       b.setActionCommand(name)
       b.addActionListener(this)
       p.add(b)
+      b
     }
     setSize(200, 200)
     val ipTxts = (0 to 3).map{ _ =>
@@ -134,27 +134,35 @@ object Main extends App {
     val serveBtn = addBtn("serve")
     add(p)
 
+    def setEnable(b : Boolean){
+      List(connectBtn, serveBtn).foreach { btn =>
+        btn.setEnabled(b)
+      }
+    }
+
     def actionPerformed(e : ActionEvent){
       e.getActionCommand() match {
         case "serve" =>
-          currentGame.server.release()
-          val gameServer = new Master(resources)
-          world.doInRenderThread{
-            currentGame = createGame(gameServer)
-          }
+          newServer(k => new MasterBoot(k, resources))
         case "connect" =>
-          currentGame.server.release()
           val address = java.net.InetAddress.getByAddress(ipTxts.map{_.getText().toByte}.toArray)
-          reset {
-            val gameServer = shift { k: (GameServer => Unit) =>
-              new SlaveBoot(k, address, resources)
-            }
-            world.doInRenderThread{
-              currentGame = createGame(gameServer)
-            }
-          }
+          newServer(k => new SlaveBoot(k, address, resources))
       }
     }
+
+    def newServer(boot : ((GameServer => Unit) => Any)) {
+      reset {
+        val gameServer = shift { k: (GameServer => Unit) =>
+          setEnable(false)
+          boot(k)
+        }
+        setEnable(true)
+        world.doInRenderThread{
+          currentGame = createGame(gameServer)
+        }
+      }
+    }
+
   }
 }
 
