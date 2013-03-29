@@ -209,7 +209,7 @@ trait SelectExpandLoop[A <: LeafableNode] {
   }
 
   private def selectChild(treeLoc : TreeLoc[A]) : TreeLoc[A] = {
-    val isFairOnly = depth % 2 == 0
+    val isFairOnly = depth % 2 == 0 // if this is opponent turn, just try fairly to avoid being too optimistic
     var result = treeLoc
     var next = treeLoc.right
     while(next.isDefined){

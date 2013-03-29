@@ -63,6 +63,10 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
     }.toArray)
 }
 
+/**
+ * this could have been modeled differently with a list of boolean like in cardguess.
+ * Dunno what's better. The alldifferent constraint could be a bit consuming, on the other side there's less variables.
+ */
 class HModel(cp : CPSolver, house : House, spHouses : Houses, getCardRange : GetCardRange){
   val isSpecial = spHouses.isSpecial(house)
   val cards = if (isSpecial) {
@@ -121,6 +125,9 @@ class CardShuffler(cardModel : CardModel) extends CpHelper {
     } exploration {
       cp.binary(allCards.toArray, _.size, getRandom _ )
     }
+    // maybe this can be considered as a hack and hide a real problem
+    // or is it just a variable relaxing method by retrying and hoping random doesn't lead to a dead end
+    // i don't really know (todo use vizualisation tool)
     softRun(cp, timeLimit)
   }
 

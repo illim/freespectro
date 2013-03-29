@@ -4,6 +4,11 @@ import priv.sp._
 import collection._
 import util.Random
 
+/**
+ * the ai opponent is deduced from the known cards and shuffle rules
+ * he has more cards than the normal player so the ai can try all possible moves. One weak point
+ * is that currently there's no difference between a 100%certain and a 50%probable card for the ai.
+ */
 class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
 
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
@@ -61,6 +66,10 @@ class GHModel(cp : CPSolver, house : House, spHouses : Houses, knowledge : Model
   val cards = Vector.fill(house.cards.size)(CPVarInt(cp, 0 to 2))
   val knownCards = knowledge.knownCards.filter{ case (card, _) => spHouses.list(card.houseIndex) == house}.toList.sortBy(_._2)
   knownCards.foreach{ case (card, idx) => apply(card.cost).assign(1) }
+
+  /**
+   * Exclusion relative to card position (ex: if sea sprite is on 0, the player don't have meditation)
+   */
   val (lastidx, lastcost) = ((-1, 0) /: knownCards){ case ((lastidx, lastcost), (card, idx)) =>
     excludeKnownInterval(lastidx, lastcost, idx, card.cost)
     (idx, card.cost)

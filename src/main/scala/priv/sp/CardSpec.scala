@@ -29,7 +29,7 @@ sealed abstract class Card extends Externalizable {
   }
   def writeExternal(out : ObjectOutput ){  out.writeInt(id) }
   def readExternal(in : ObjectInput  ){  id = in.readInt() }
-  protected def readResolve() : Object = HouseSingleton.getCardById(id)
+  protected def readResolve() : Object = HouseSingleton.getCardById(id)  // this is not great(dunno if i can plug somewhere a serializer for this type)
 }
 case class Creature(
   name: String,
