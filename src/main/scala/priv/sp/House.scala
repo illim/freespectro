@@ -52,7 +52,7 @@ class Houses extends HouseCardEffects {
 
   val Water = House("water", List(
     Spell("Meditation", spec = spell(Direct -> addMana(1, 0, 2, 3))),
-    Creature("SeaSprite", Some(5), 22,
+    Creature("seasprite", Some(5), 22,
       spec = creature(OnTurn -> { env : Env => env.player.life.%==( _ - env.guardSelf(2)) })),
     Creature("MerfolkApostate", Some(3), 10, spec = creature(Direct -> addMana(2, 0))),
     Creature("IceGolem", Some(4), 12, immune = true),

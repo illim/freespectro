@@ -6,6 +6,8 @@ import scalaz._
 import collection._
 
 // another stupid bot, faster because bounded in time, trying to use uct.
+// select best reward and not numsim due to boost(leafed node when early win/loss detected)
+// not using flat uct for opponent next move fairness?
 class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val sp : SpWorld) extends Bot {
   def executeAI(start: GameState) = {
     new BoundedBotAI(botPlayerId, start, this).execute()
@@ -16,6 +18,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   val duration = 4000
   val defaultPolicyMaxTurn = 15
   val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?
+  val boostFactor = 3
 
   val selector = new Selector()
   val perfStat = new PerfStat()
@@ -45,7 +48,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       case (acc @ Some(node), childTree) =>
         val child = childTree.rootLabel
         println(child)
-        if (node.numSim < child.numSim)
+        if (node.getAvgReward < child.getAvgReward)
           Some(childTree.rootLabel)
         else acc
     }
@@ -83,7 +86,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       label.state.checkEnded match {
         case Some(p) =>
           label.leafed = true
-          label.updateStatsFrom(label.state, Some(p), boost = label.commandChoices.size * (1 + maxDepth - depth)) // FIXME not great
+          label.updateStatsFrom(label.state, Some(p), boost = boostFactor * (1 + maxDepth - depth)) // FIXME not great
           Stream.Empty
         case None =>
           label.commandChoices.map { command =>
@@ -92,7 +95,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       }
     }
 
-    def select(x : Node, y : Node) : Boolean = x.getUct > y.getUct
+    def select(x : Node, y : Node, fairOnly : Boolean) : Boolean = if (fairOnly) x.getFair > y.getFair else x.getUct > y.getUct
   }
 
   case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command] = None) extends LeafableNode {
@@ -104,6 +107,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     def getUct : Float =  parent.map{ p =>
       getAvgReward + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
+    def getFair = parent.map{ p =>
+      math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
+    }.getOrElse(0f)
 
     lazy val state = commandOpt.map{ cmd =>
       perfStat.nbsim += 1
@@ -112,7 +118,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
 
     def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
     def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1){
-      numSim += boost
+      numSim += 1
       // stupid heuristic again
       val deltaReward = end.map{ p =>
         if (p == botPlayerId) 1f else -1f
@@ -147,7 +153,7 @@ trait SelectExpandLoop[A <: LeafableNode] {
 
   def getNexts(label : A) : Stream[Tree[A]]
 
-  def select(x :A, y : A) : Boolean
+  def select(x :A, y : A, fairOnly : Boolean) : Boolean
 
   var depth = 0
 
@@ -203,10 +209,11 @@ trait SelectExpandLoop[A <: LeafableNode] {
   }
 
   private def selectChild(treeLoc : TreeLoc[A]) : TreeLoc[A] = {
+    val isFairOnly = depth % 2 == 0
     var result = treeLoc
     var next = treeLoc.right
     while(next.isDefined){
-      if (result.getLabel.leafed || select(next.get.getLabel, result.getLabel)) {
+      if (result.getLabel.leafed || select(next.get.getLabel, result.getLabel, isFairOnly)) {
         result = next.get
       }
       next = next.get.right
