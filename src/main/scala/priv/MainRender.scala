@@ -2,7 +2,6 @@ package priv
 
 
 import collection.JavaConversions._
-import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL12._
@@ -41,7 +40,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
   }
 
   def mainLoop() {
-    while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested() && ! world.ended) {
+    while (!Display.isCloseRequested() && ! world.ended) {
       if (Display.isVisible()) {
         clearScreen()
         world.tick()

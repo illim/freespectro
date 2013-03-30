@@ -22,6 +22,7 @@ object Main extends JFrame with App {
   panel.add(canvas)
   panel.add(settingsPanel)
   show()
+  canvas.requestFocus()
 
   thread("render"){
     val r = new MainRender(canvas, mode, settingsPanel)
@@ -48,12 +49,12 @@ object Main extends JFrame with App {
     def display() {
       doInDispatch {
         setVisible(!isVisible())
-        if (canvas.getHeight == 768) {
-          tabs.requestFocus()
+        if (isVisible()) {
+          canvas.setEnabled(false)
           canvas.setSize(1024, 400)
         } else {
+          canvas.setEnabled(true)
           canvas.setSize(1024, 768)
-          canvas.requestFocus()
         }
         panel.repaint()
         panel.revalidate()
