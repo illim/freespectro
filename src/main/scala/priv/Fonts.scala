@@ -9,6 +9,12 @@ import org.lwjgl.opengl.GL11._
 
 object Fonts {
   private val awtFont = new Font("Times New Roman", Font.BOLD, 14)
+  private val awtFontBig = new Font("Times New Roman", Font.BOLD, 24)
+  val font = new PimpFont(awtFont)
+  val big = new PimpFont(awtFontBig)
+}
+
+class PimpFont(awtFont : Font) {
   val font = new UnicodeFont(awtFont)
   font.addAsciiGlyphs();
   font.getEffects().asInstanceOf[java.util.List[Effect]].add(new ColorEffect())

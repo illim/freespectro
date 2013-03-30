@@ -51,11 +51,11 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
         tex.draw(cardTex)
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
-        Fonts.draw(72, 1, slotState.card.cost, 'blue)
-        Fonts.draw(4, 80, slotState.attack, 'red)
-        Fonts.draw(70, 80, slotState.life, 'green)
+        Fonts.font.draw(72, 1, slotState.card.cost, 'blue)
+        Fonts.font.draw(4, 80, slotState.attack, 'red)
+        Fonts.font.draw(70, 80, slotState.life, 'green)
         getDamageAnimOpt.foreach{ anim =>
-          Fonts.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
+          Fonts.font.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
         }
         lifeBar(slotState)
         glPopMatrix()

@@ -26,6 +26,10 @@ object Main extends JFrame with App {
 
   thread("render"){
     val r = new MainRender(canvas, mode, settingsPanel)
+    if (!Shader.isSupported){
+      r.world.ended = true
+      println("Shader not supported")
+    }
     addWindowListener(new WindowAdapter {
       override def windowClosing(e : WindowEvent) {
         r.world.ended = true
@@ -50,6 +54,7 @@ object Main extends JFrame with App {
       doInDispatch {
         setVisible(!isVisible())
         if (isVisible()) {
+          canvas.requestFocus() // dunno, black magic?
           canvas.setEnabled(false)
           canvas.setSize(1024, 400)
         } else {
@@ -67,5 +72,5 @@ object Main extends JFrame with App {
       }
     }
   }
-}
 
+}

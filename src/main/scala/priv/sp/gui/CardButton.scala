@@ -65,11 +65,11 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
 
     card match {
       case spell: Spell =>
-        Fonts.draw(72, 9, spell.cost, 'blue)
+        Fonts.font.draw(72, 9, spell.cost, 'blue)
       case creature: Creature =>
-        Fonts.draw(72, 1, creature.cost, 'blue)
-        Fonts.draw(4, 80, creature.attack.map(_.toString) getOrElse "?", 'red)
-        Fonts.draw(70, 80, creature.life, 'green)
+        Fonts.font.draw(72, 1, creature.cost, 'blue)
+        Fonts.font.draw(4, 80, creature.attack.map(_.toString) getOrElse "?", 'red)
+        Fonts.font.draw(70, 80, creature.life, 'green)
     }
     if (!isActive) grey.end()
   }

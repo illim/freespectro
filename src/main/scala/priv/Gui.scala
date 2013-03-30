@@ -50,14 +50,11 @@ trait GuiContainer extends GuiElem {
 
   var lastElem = Option.empty[GuiElem]
   def fireEvent(mouseEvent: GuiEvent) = {
-    findElem(mouseEvent.coord).foreach { elem =>
-      if (Some(elem) != lastElem) {
-        lastElem.foreach { e =>
-          if (e != elem) {
-            e.handle(MouseLeaved(mouseEvent.coord))
-          }
-        }
-      }
+    val elemOption = findElem(mouseEvent.coord)
+    if (lastElem.isDefined && elemOption != lastElem) {
+      lastElem.get.handle(MouseLeaved(mouseEvent.coord))
+    }
+    elemOption.foreach { elem =>
       elem.handle(mouseEvent) // todo filter redondant move?
       lastElem = Some(elem)
     }
@@ -119,11 +116,11 @@ case class Column(elts: Traversable[GuiElem]) extends Flow(diry = 1)
 case class Row(elts: Traversable[GuiElem]) extends Flow(dirx = 1)
 
 
-class GuiButton(name : String) extends GuiElem {
-  val (w, h) = (Fonts.getWidth(name), Fonts.getHeight(name))
+class GuiButton(name : String, font : PimpFont = Fonts.font) extends GuiElem {
+  val (w, h) = (font.getWidth(name), font.getHeight(name))
   val size = Coord2i(w, h)
 
   def render(world: World) {
-    Fonts.draw(0, 0, name, 'white)
+    font.draw(0, 0, name, 'white)
   }
 }

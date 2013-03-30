@@ -12,9 +12,9 @@ class HouseLabel (val mana : DamagableInt, house : House, game : Game, flip : Bo
   def render(world: World) {
     glColor4f(1, 1, 1, 1)
     tex.draw(texture.id, texture.size, flip)
-    Fonts.draw(10, 22, house.name + " : " + mana.current)
+    Fonts.font.draw(10, 22, house.name + " : " + mana.current)
     mana.getDamageAnimOpt.foreach{ anim =>
-      Fonts.draw(20, 22 - direction * ( 10 + anim.delta(world.time)), anim.text, anim.color)
+      Fonts.font.draw(20, 22 - direction * ( 10 + anim.delta(world.time)), anim.text, anim.color)
     }
   }
 

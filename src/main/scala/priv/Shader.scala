@@ -12,15 +12,12 @@ object Shader {
 	}
 }
 
-
 trait Shader {
   private var started = false
   def program: Int
   def begin() {
-    if (Shader.isSupported){
-      glUseProgram(program)
-      started = true
-    }
+    glUseProgram(program)
+    started = true
   }
 
   def used[A](f: => A) = {
@@ -31,11 +28,9 @@ trait Shader {
   }
 
   def end() {
-    if (Shader.isSupported){
-      assert(started)
-      glUseProgram(0)
-      started = false
-    }
+    assert(started)
+    glUseProgram(0)
+    started = false
   }
 
   def getUniformLocations(names : String*) : List[Int] = names.map(getUniformLocation(_))(breakOut)

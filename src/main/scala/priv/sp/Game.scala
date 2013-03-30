@@ -11,11 +11,11 @@ import util.Utils.runnable
 
 class Game(val world: World, resources : GameResources, val server : GameServer) {
   val sp = resources.sp
-  val aiExecutor = resources.aiExecutor
   var state : GameState = server.initState
   val desc = server.desc
   val myPlayerId = other(server.playerId)
   val otherPlayerId = server.playerId
+  val names = playerIds.map{id => if (id == myPlayerId) "me" else server.name }
 
   // gui
   val commandRecorder = new CommandRecorder(this)
@@ -49,13 +49,13 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         server.submitCommand(commandOption)
         commandOption
       }
-      world.addTask(new SimpleTask(submit(k, player))) // to avoid to be done in ai thread
+      world.doInRenderThread(submit(k, player))
     }
   }
 
   protected def endGame(player: PlayerId) {
-    println("winner : " + player)
-    world.ended = true
+    val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
+    world.entities.add(Translate(Coord2i(300, 350), new GuiButton(msg, Fonts.big)))
   }
 
   protected def persist[A](stateFunc: State[GameState, A]) : A = {
@@ -109,15 +109,18 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
           new slotButton.RunAnimTask({
             val result = persist(Game.runSlot(playerId, numSlot, slot))
             board.refresh()
+            state.checkEnded.foreach(endGame _)
             result
           })
         }
         reset {
-          Task.chain(world, tasks).foreach(_.foreach(endGame _))
-          persist(Game.prepareNextTurn(otherPlayerId))
-          applySlotTurnEffects(otherPlayerId)
-          board.refresh(silent = true)
-          waitPlayer(otherPlayerId)
+          Task.chain(world, tasks)
+          if (state.checkEnded.isEmpty){
+            persist(Game.prepareNextTurn(otherPlayerId))
+            applySlotTurnEffects(otherPlayerId)
+            board.refresh(silent = true)
+            waitPlayer(otherPlayerId)
+          }
         }
     }
   }

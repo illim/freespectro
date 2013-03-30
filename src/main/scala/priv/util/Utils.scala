@@ -119,6 +119,11 @@ object Utils {
     component.setAlignmentX(alignment)
     component
   }
+  def createAction(name: String)(f: => Unit) : AbstractAction = {
+    new AbstractAction(name) {
+      def actionPerformed(e: ActionEvent){ f }
+    }
+  }
 }
 
 trait ResourceCache[A, B] {

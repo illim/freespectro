@@ -8,7 +8,7 @@ import scala.util.continuations._
 import scala.util.Random
 
 class SlotPanel(playerId : PlayerId, val game : Game) {
-  val lifeLabel = new LifeLabel(new DamagableInt(game.state.players(playerId).life, game), game)
+  val lifeLabel = new LifeLabel(game.names(playerId), new DamagableInt(game.state.players(playerId).life, game), game)
   val slots =
     slotRange.map(num =>
       new SlotButton(
