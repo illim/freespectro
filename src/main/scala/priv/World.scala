@@ -10,10 +10,10 @@ import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
 import priv.util.Utils.iterate
 
-class World(ginited : GInited) extends Attachable {
+class World(displayConf : DisplayConf) extends Attachable {
   var time: Long = 0
   var ended = false
-  val resolution = ginited.resolution
+  val resolution = displayConf.resolution
 
   def render() {
     renderAttacheds(this)

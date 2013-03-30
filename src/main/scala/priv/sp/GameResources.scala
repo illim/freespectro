@@ -42,7 +42,7 @@ trait Resource {
 }
 
 abstract class One[A] extends Resource {
-  var x = Option.empty[A]
+  private var x = Option.empty[A]
   def apply(v : => A) : A = {
     release()
     val a = v

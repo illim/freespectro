@@ -1,8 +1,10 @@
 package priv.util
 
 import java.io._
-import collection.JavaConversions._
 import java.nio._
+import javax.swing._
+import java.awt.event._
+import collection.JavaConversions._
 import org.lwjgl.opengl._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.util.glu.GLU._
@@ -88,7 +90,7 @@ object Utils {
     if (fl == 0) fl else num.toFloat(n) * math.abs(1 / fl)
   }
 
-  def threaded(f: => Unit) = new Thread(runnable(f)).start()
+  def thread(name : String)(f: => Unit) = new Thread(runnable(f), name).start()
   def runnable(f: => Unit) = new Runnable() { def run() = f  }
 
   def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
@@ -102,6 +104,20 @@ object Utils {
     while (ite.hasNext) {
       f(ite.next)
     }
+  }
+
+  // swing
+  def doInDispatch(f : => Unit) = SwingUtilities.invokeLater(runnable(f))
+  def addBtn(name : String, target : java.awt.Container with ActionListener) = {
+    val b = new JButton(name)
+    b.setActionCommand(name)
+    b.addActionListener(target)
+    target.add(b)
+    b
+  }
+  def alignX[A<: JComponent](component : A, alignment : Float = java.awt.Component.LEFT_ALIGNMENT) : A = {
+    component.setAlignmentX(alignment)
+    component
   }
 }
 

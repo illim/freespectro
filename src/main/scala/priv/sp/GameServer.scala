@@ -7,6 +7,10 @@ import priv.util.Utils._
 import collection.JavaConversions._
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * Player plays against game server hiding that it can be local(ai) or remote.
+ * In remote play, the master shuffle the cards and send to the slave.
+ */
 trait GameServer {
   def initState() : GameState
   def desc() : GameDesc
@@ -39,6 +43,36 @@ class Local(resources : GameResources) extends GameServer {
   }
 }
 
+// remote game server common for master or slave
+class CommonGameServer(val playerId : PlayerId, val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer {
+  peer.updateImpl(this)
+
+  val currentTurnId = new AtomicInteger
+  val defaultCont : (Option[Command] => Unit) =  { c : Option[Command] => ()}
+  var cont = defaultCont
+
+  def waitNextCommand(k : (Option[Command] => Unit), state : GameState) {
+    cont = k
+    currentTurnId.incrementAndGet
+  }
+  def submitCommand(commandOption : Option[Command]){
+    remoteSubmit(currentTurnId.incrementAndGet, commandOption)
+  }
+
+  // out
+  def remoteSubmit(turnId : Int, commandOption : Option[Command]) = {
+    peer.proxy.submit(turnId, commandOption)
+  }
+
+  // in
+  def submit(turnId : Int, commandOption : Option[Command]) {
+    assert(turnId == currentTurnId.get)
+    cont(commandOption)
+    cont = defaultCont
+  }
+}
+
+
 class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
@@ -52,7 +86,7 @@ class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   serverSocket.bind(serverSocketAddr)
   println("Listening, waiting for client ...")
 
-  priv.util.Utils.threaded {
+  thread("waitclient") {
     val cs = resources.clientSocket(serverSocket.accept())
     println("Connected to "+ cs.getInetAddress())
     val peer = new PeerInterface[SlaveInterface](cs, this)
@@ -68,38 +102,6 @@ class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameRe
 
   def init(state : GameState, desc : GameDesc) = {
     k(new CommonGameServer(owner, state, desc, peer))
-  }
-}
-
-class CommonGameServer(val playerId : PlayerId, val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer with PeerCommon {
-  peer.updateImpl(this)
-
-  def remoteSubmit(turnId : Int, commandOption : Option[Command]) = {
-    peer.proxy.submit(turnId, commandOption)
-  }
-}
-
-trait PeerCommon {
-  val currentTurnId = new AtomicInteger
-  val defaultCont : (Option[Command] => Unit) =  { c : Option[Command] => ()}
-  var cont = defaultCont
-
-  def waitNextCommand(k : (Option[Command] => Unit), state : GameState) {
-    cont = k
-    currentTurnId.incrementAndGet
-  }
-  def submitCommand(commandOption : Option[Command]){
-    remoteSubmit(currentTurnId.incrementAndGet, commandOption)
-  }
-
-  // out
-  def remoteSubmit(turnId : Int, commandOption : Option[Command])
-
-  // in
-  def submit(turnId : Int, commandOption : Option[Command]) {
-    assert(turnId == currentTurnId.get)
-    cont(commandOption)
-    cont = defaultCont
   }
 }
 
@@ -130,7 +132,7 @@ class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : refle
 		Array(co.erasure),
 		new PeerOut(ois, oos)).asInstanceOf[O]
 
-  priv.util.Utils.threaded { // /!\ blocking thread
+  thread("listenpeer") { // /!\ blocking thread
     var obj = ois.readObject()
     while ( obj != null && !ended) {
       val message = obj.asInstanceOf[Message]

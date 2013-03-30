@@ -24,12 +24,14 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val topCardPanel = new TopCardPanel(playerIds(otherPlayerId), this)
   val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, sp)
   val gameCard = new GameCard(desc)
+
   val surrenderButton = new GuiButton("Surrender")
   val skipButton = new GuiButton("Skip turn")
-  skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
+  val settingsButton = new GuiButton("Settings")
 
+  skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.entities.add(board.panel)
-  world.entities.add(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton))))
+  world.entities.add(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
 
   waitPlayer(owner)
 

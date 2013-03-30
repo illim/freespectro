@@ -1,179 +1,70 @@
 package priv
 
-import scala.util.continuations._
-import collection.JavaConversions._
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.IntBuffer
-import org.lwjgl.LWJGLException
-import org.lwjgl.input.Keyboard
-import org.lwjgl.opengl._
-import org.lwjgl.util.vector.Vector2f
-import org.lwjgl.opengl.GL11._
-import org.lwjgl.opengl.GL12._
-import org.lwjgl.opengl.GL13._
-import org.lwjgl.opengl.GL15._
-import org.lwjgl.opengl.GL20._
-import org.lwjgl.util.glu.GLU._
-import org.lwjgl.opengl.Util.checkGLError
+import javax.swing._
+import java.awt.event._
 import sp._
-import org.lwjgl.input.Mouse
-import priv.util.Repere
+import priv.util.Utils._
 
-object Main extends App {
-  var offsety = 0
-  val g = GInit()
+object Main extends JFrame with App {
+  val mode = InitDisplay.findDisplayMode(1024, 768, 32).get
+  val fgc = getGraphicsConfiguration
+  val gbounds = fgc.getBounds()
+  setSize(mode.getWidth, mode.getHeight)
+  setExtendedState(java.awt.Frame.MAXIMIZED_VERT)
+  setUndecorated(true)
+  setLocation(gbounds.width/2 - mode.getWidth/2, gbounds.height/2 - mode.getHeight / 2)
 
-  val multi = new Multi
-  multi.show()
+  val panel = getContentPane
+  panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS))
+  val canvas = new java.awt.Canvas()
+  val settingsPanel = new SettingsPanel
+  settingsPanel.setVisible(false)
+  panel.add(canvas)
+  panel.add(settingsPanel)
+  show()
 
-  val world = new World(g)
-  val resources= new GameResources
-  var currentGame = createGame()
-
-  mainLoop()
-  resources.release()
-  g.cleanUp()
-  multi.dispose()
-
-  private def init(gm : Game) : Game = {
-    offsety = 0
-    world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
-    world.entities.add(Repere)
-    gm.surrenderButton.on{ case MouseClicked(c) =>
-      currentGame = createGame()
-    }
-    gm
-  }
-
-  def createGame(gameServer : GameServer = new Local(resources) ) = {
-    world.clear()
-    val game = new Game(world, resources, gameServer )
-    init(game)
-    game
-  }
-
-  private def mainLoop() {
-    while (!Keyboard.isKeyDown(Keyboard.KEY_ESCAPE) && !Display.isCloseRequested() && ! world.ended) {
-      if (Display.isVisible()) {
-        clearScreen()
-        world.tick()
-        glPushMatrix()
-        world.render()
-        glPopMatrix()
-        pollInput().foreach{
-          case MouseDrag(y) => scroll(world, y)
-          case MouseWheel(w) => scroll(world, -w)
-          case e : GuiEvent => world.forEntity[GuiContainer](_.fireEvent(e))
-        }
-        Display.update()
-        Display.sync(60)
-      } else {
-        try {
-          Thread.sleep(100)
-        } catch {
-          case _: Throwable =>
-        }
+  thread("render"){
+    val r = new MainRender(canvas, mode, settingsPanel)
+    addWindowListener(new WindowAdapter {
+      override def windowClosing(e : WindowEvent) {
+        r.world.ended = true
       }
+    })
+    doInDispatch {
+      settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { gameServer =>
+        r.currentGame = r.createGame(gameServer)
+      }))
     }
+    r.mainLoop()
+    dispose()
   }
 
-  private def pollInput() = {
-    var result = Option.empty[MouseEvent]
-    while (Mouse.next()) {
-      result = if (Mouse.getEventButton() != -1 && Mouse.isButtonDown(0)) {
-        Some(MouseClicked(Coord2i(Mouse.getX(), g.height - offsety - Mouse.getY())))
-      } else {
-        val wheel = Mouse.getDWheel()
-        if  (Mouse.isButtonDown(0)){
-          Some(MouseDrag(Mouse.getDY()))
-        } else if (wheel != 0){
-          Some(MouseWheel(wheel))
+  class SettingsPanel extends JPanel with ActionListener {
+    setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS))
+    alignX(addBtn("hide", this), java.awt.Component.RIGHT_ALIGNMENT)
+    val tabs = new JTabbedPane
+    add(tabs)
+
+    def display() {
+      doInDispatch {
+        setVisible(!isVisible())
+        if (canvas.getHeight == 768) {
+          tabs.requestFocus()
+          canvas.setSize(1024, 400)
         } else {
-          Some(MouseMoved(Coord2i(Mouse.getX(), g.height - offsety - Mouse.getY())))
+          canvas.setSize(1024, 768)
+          canvas.requestFocus()
         }
-      }
-    }
-    result
-  }
-
-  private def scroll(world : World, y : Int){
-    if (math.abs(y) > 2){
-      val newy = offsety - y
-      val diff = math.abs(newy - g.height/2) - g.height/2
-      val dy = if (diff > 0) - y + math.signum(y) * diff else -y
-      offsety = offsety + dy
-      glTranslatef(0, dy, 0)
-      world.forEntity[GuiElem](_.updateCoord(Coord2i(0, offsety)))
-    }
-  }
-
-  private def clearScreen() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glMatrixMode(GL_MODELVIEW)
-  }
-
-  import javax.swing._
-  import java.awt.event._
-  class Multi extends JFrame with ActionListener {
-    val p = new JPanel
-    def addBtn(name : String) = {
-      val b = new JButton(name)
-      b.setActionCommand(name)
-      b.addActionListener(this)
-      p.add(b)
-      b
-    }
-    setSize(200, 200)
-    val ipTxts = (0 to 3).map{ _ =>
-      val t = new JTextField(3)
-      p.add(t)
-      t
-    }
-    val connectBtn = addBtn("connect")
-    val serveBtn = addBtn("serve")
-    add(p)
-
-    def setEnable(b : Boolean){
-      List(connectBtn, serveBtn).foreach { btn =>
-        btn.setEnabled(b)
+        panel.repaint()
+        panel.revalidate()
       }
     }
 
     def actionPerformed(e : ActionEvent){
       e.getActionCommand() match {
-        case "serve" =>
-          newServer(k => new MasterBoot(k, resources))
-        case "connect" =>
-          val address = java.net.InetAddress.getByAddress(ipTxts.map{_.getText().toByte}.toArray)
-          newServer(k => new SlaveBoot(k, address, resources))
+        case "hide" => display()
       }
     }
-
-    def newServer(boot : ((GameServer => Unit) => Any)) {
-      reset {
-        val gameServer = shift { k: (GameServer => Unit) =>
-          setEnable(false)
-          boot(k)
-        }
-        setEnable(true)
-        world.doInRenderThread{
-          currentGame = createGame(gameServer)
-        }
-      }
-    }
-
   }
 }
 
-
-sealed trait MouseEvent
-
-sealed trait GuiEvent extends MouseEvent{
-  def coord: Coord2i
-}
-case class MouseMoved(coord: Coord2i) extends GuiEvent
-case class MouseClicked(coord: Coord2i) extends GuiEvent
-case class MouseLeaved(coord: Coord2i) extends GuiEvent
-case class MouseDrag(y : Int) extends MouseEvent
-case class MouseWheel(w : Int) extends MouseEvent

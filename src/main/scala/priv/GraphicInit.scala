@@ -13,23 +13,27 @@ import org.lwjgl.opengl.GL12._
 import org.lwjgl.util.glu.GLU._
 import javax.swing._
 
-object GInit {
+object InitDisplay {
 
-  def apply() = {
-    val width = 1024
-    val height = 768
+  def findDisplayMode(width: Int, height: Int, bpp: Int) = {
+    val modes = Display.getAvailableDisplayModes()
+    modes.find { mode =>
+      (mode.getWidth() == width && mode.getHeight() == height && mode.getBitsPerPixel() >= bpp)
+    }
+  }
 
-    val mode = findDisplayMode(width, height, 32).get
+  def apply(canvas : java.awt.Canvas, mode : DisplayMode) = {
     Display.setDisplayMode(mode)
+    Display.setParent(canvas)
     Display.create()
     Display.setVSyncEnabled(true)
     initGLState(mode)
     Keyboard.create()
 
-    GInited(width, height)
+    DisplayConf(Display.getWidth, Display.getHeight)
   }
 
-  def initGLState(mode: DisplayMode) {
+  private def initGLState(mode: DisplayMode) {
     def initDepth() {
       glClearDepth(1.0f)
       glEnable(GL_DEPTH_TEST)
@@ -45,16 +49,9 @@ object GInit {
     glViewport(0, 0, mode.getWidth(), mode.getHeight)
     org.lwjgl.opengl.Util.checkGLError()
   }
-
-  private def findDisplayMode(width: Int, height: Int, bpp: Int) = {
-    val modes = Display.getAvailableDisplayModes()
-    modes.find { mode =>
-      (mode.getWidth() == width && mode.getHeight() == height && mode.getBitsPerPixel() >= bpp)
-    }
-  }
 }
 
-case class GInited(val width: Int, val height: Int) {
+case class DisplayConf(val width: Int, val height: Int) {
   val resolution = Coord2i(width, height)
 
   val offscreenTex = new OffscreenTexture(width, height)
