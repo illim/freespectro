@@ -21,7 +21,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
   if (playerId == game.myPlayerId){
     cardButtons.foreach { cardButton =>
       cardButton.on {
-        case MouseClicked(_) if cardButton.enabled =>
+        case MouseClicked(_) if cardButton.getIsActive =>
           import cardButton.card
           game.commandRecorder.setCommand(Command(game.myPlayerId, card, None))
           if (card.inputSpec.isDefined) {

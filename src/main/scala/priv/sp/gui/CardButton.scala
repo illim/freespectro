@@ -16,11 +16,12 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
   private val hoverGlow = sp.baseShaders.hoverGlow
   private val selectedGlow = sp.baseShaders.selectedGlow("selcard", 200)
   var selected = false
+  def getIsActive = card.isAvailable(houseState) && enabled
 
   def render(world: World) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    val isActive = card.isAvailable(houseState) && enabled
+    val isActive = getIsActive
     glColor4f(1, 1, 1, 1)
 
     if (!isActive) {
