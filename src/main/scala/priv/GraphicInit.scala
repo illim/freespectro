@@ -28,8 +28,6 @@ object InitDisplay {
     Display.create()
     Display.setVSyncEnabled(true)
     initGLState(mode)
-    Keyboard.create()
-
     DisplayConf(Display.getWidth, Display.getHeight)
   }
 

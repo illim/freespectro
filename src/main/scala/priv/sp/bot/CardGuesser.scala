@@ -14,9 +14,6 @@ class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
     val knowledge = new ModelFilter(knownCards, gameDesc.players(botPlayerId))
     val cardModel = GCardModel.build(sp.houses, knowledge)
-    knownCards.foreach{ case (card, index) =>
-      cardModel.houses(card.houseIndex).cards(index).assign(card.cost)
-    }
     new CardGuesser(cardModel).solve(timeLimit)
     if (cardModel.cp.isFailed) None
     else Some(cardModel.toPlayerHouseDesc(sp.houses))
