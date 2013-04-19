@@ -1,6 +1,5 @@
 target
 project/boot
-src/main/resources
 *~
 *#
 .#*
