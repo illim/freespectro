@@ -77,6 +77,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       case Some(c) =>
         reset {
           if (c.card.isSpell){
+            notifySpellPlayed(c.card)
             val sourceCoord = cardPanels(player).getPositionOf(c.card)
             val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
               player
@@ -152,6 +153,14 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
   }
 
+  private def notifySpellPlayed(card : Card) {
+    import org.lwjgl.opengl.GL11._
+    val cardTex = sp.textures.get("Images/Cards/" + card.image)
+    world.addTask(TaskSpawn(world, duration = 1000L){
+      glColor4f(1, 1, 1, 1)
+      tex.drawAt(Coord2i(200, 100), cardTex.id, cardTex.size)
+    })
+  }
 }
 
 
@@ -197,6 +206,7 @@ object Game {
       f(env)
     }
   }
+
 }
 
 

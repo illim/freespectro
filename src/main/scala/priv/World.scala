@@ -89,6 +89,10 @@ trait Entity {
   override def hashCode() = id
 }
 
+class SimpleEntity(f : => Unit) extends Entity {
+  def render() = f
+}
+
 object Task {
   import collection._
   import scala.util.continuations._
@@ -126,6 +130,12 @@ class SimpleTask(f : => Unit) extends Task[Unit]{
   val duration = 0L
   def init(){}
   def end(){f}
+}
+
+case class TaskSpawn(world : World, duration : Long)(f : => Unit) extends Task[Unit]{
+  val entity = new SimpleEntity(f)
+  def init(){world.spawn(entity)}
+  def end(){world.unspawn(entity)}
 }
 
 class TexAnim(
