@@ -22,7 +22,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
   private def init(gm : Game) : Game = {
     offsety = 0
     world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
-    world.entities.add(Repere)
+    world.spawn(Repere)
     gm.surrenderButton.on{ case MouseClicked(c) =>
       currentGame = createGame()
     }

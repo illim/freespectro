@@ -9,7 +9,7 @@ class HouseLabel (val mana : DamagableInt, house : House, game : Game, flip : Bo
   val size = texture.size
   val direction = if (flip) -1 else 1
 
-  def render(world: World) {
+  def render() {
     glColor4f(1, 1, 1, 1)
     tex.draw(texture.id, texture.size, flip)
     Fonts.font.draw(10, 22, house.name + " : " + mana.current)

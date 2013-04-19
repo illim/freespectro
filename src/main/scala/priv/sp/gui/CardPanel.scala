@@ -11,7 +11,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
       val house = game.desc.players(playerId).houses(idx)
 
       new HouseLabel(new DamagableInt(getHouseState.mana, game), house.house, game) -> house.cards.map { card =>
-        new CardButton(card, getHouseState, game.sp)
+        new CardButton(card, getHouseState, game)
       }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)

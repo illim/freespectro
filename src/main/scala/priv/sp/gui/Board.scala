@@ -5,31 +5,32 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
 
-class Board(playerId : PlayerId, slotPanels: List[SlotPanel], playerPanels: List[CardPanel], topCardPanel: TopCardPanel, val sp: SpWorld) {
+class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel : DescriptionPanel, val sp: SpWorld) {
 
   val panel = getPanel()
 
   def refresh(silent : Boolean = false) {
     slotPanels.foreach(_.refresh())
-    playerPanels.foreach(_.refresh(silent))
+    cardPanels.foreach(_.refresh(silent))
     topCardPanel.refresh(silent)
   }
 
   private def getPanel() = {
-    val opponentPanel = playerPanels(other(playerId)).panel
+    val opponentPanel = cardPanels(other(playerId)).panel
 
     Column(
       List(
         Translate(Coord2i(500, - opponentPanel.size.y), opponentPanel),
-        Translate(Coord2i(500, 0),topCardPanel.panel),
+        Translate(Coord2i(500, 0), topCardPanel.panel),
         Translate(
           Coord2i(320, 0),
           Column(List(
             slotPanels(other(playerId)).panel,
             Translate(
               Coord2i(0, -30), slotPanels(playerId).panel)))),
-        Translate(
-          Coord2i(500, 0), playerPanels(playerId).panel)))
+        Row(List(
+          Translate(Coord2i(50, 10), descriptionPanel),
+          Translate(Coord2i(250, 0), cardPanels(playerId).panel)))))
   }
 
 }

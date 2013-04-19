@@ -59,16 +59,20 @@ trait GuiContainer extends GuiElem {
       lastElem = Some(elem)
     }
   }
+  override def setWorld(w : World){
+    super.setWorld(w)
+    elems.foreach(_._2.setWorld(w)) // supposing no elem is added to the container after spawn
+  }
 }
 
 case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
   val size = Coord2i(elt.size.x + at.x, elt.size.y + at.y)
   add(at, elt)
 
-  def render(world: World) {
+  def render() {
     glPushMatrix()
     glTranslatef(at.x, at.y, 0)
-    elt.render(world)
+    elt.render()
     glPopMatrix()
   }
   override def updateCoord(c : Coord2i){
@@ -77,7 +81,7 @@ case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
   }
 }
 
-abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer with Attachable {
+abstract class Flow(dirx: Int = 0, diry: Int = 0) extends Attachable with GuiContainer {
   def elts: Traversable[GuiElem]
 
   val last = (Coord2i(0, 0) /: elts) { (acc, elt) =>
@@ -91,14 +95,14 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends GuiContainer with Atta
     last.copy(y = if (elts.isEmpty) 0 else elts.maxBy(_.size.y).size.y)
   }
 
-  def render(world: World) {
+  override def render() {
     glPushMatrix()
     elts.foreach { elt =>
-      elt.render(world)
+      elt.render()
       glTranslatef(dirx * elt.size.x, diry * elt.size.y, 0)
     }
     glPopMatrix()
-    renderAttacheds(world)
+    super.render()
   }
 
   override def updateCoord(c : Coord2i){
@@ -120,7 +124,7 @@ class GuiButton(name : String, font : PimpFont = Fonts.font) extends GuiElem {
   val (w, h) = (font.getWidth(name), font.getHeight(name))
   val size = Coord2i(w, h)
 
-  def render(world: World) {
+  def render() {
     font.draw(0, 0, name, 'white)
   }
 }

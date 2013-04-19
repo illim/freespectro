@@ -8,7 +8,7 @@ class LifeLabel(name : String, val life : DamagableInt, game : Game) extends Gui
   val nameWidth = Fonts.font.getWidth(name)
   val size = Coord2i(30, 30)
 
-  def render(world: World) {
+  def render() {
     Fonts.font.draw(-nameWidth, 22, name, 'white)
     Fonts.font.draw(10, 22, life.current, 'white)
     life.getDamageAnimOpt.foreach{ anim =>

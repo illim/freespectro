@@ -30,7 +30,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
   class SpellAnim(k : Int => Unit, entity : SpellEntity, isRelative : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
     def duration = entity.duration
-    def init() { attach.entities.add(entity)  }
+    def init() { attach.spawn(entity)  }
     def end() = {
       attach.unspawn(entity)
       k(duration.intValue)
@@ -104,7 +104,7 @@ class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends Spel
   var shownParts = List.empty[(Coord2i, Long)]
   var nbPart = partTimeLine.size
 
-  def render(world: World) {
+  def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
     val delta = deltaT(world.time)
     if (currentPart < nbPart && delta > partTimeLine(currentPart)._1){
@@ -130,7 +130,7 @@ class Lightning(sp : SpWorld, points : Coord2i*) extends SpellEntity {
   val ctTex = sp.baseTextures.callthunder
   val trailRange = 0 to 10
 
-  def render(world: World) {
+  def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
     val delta = deltaT(world.time)
     trailRange.foreach{ x =>

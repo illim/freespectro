@@ -14,6 +14,7 @@ sealed abstract class Card extends Externalizable {
   def inputSpec: Option[CardInputSpec]
   def spec: CardSpec
   def isAvailable(house: HouseState) = cost <= house.mana
+  def description : String
 
   var cost = 0
   var id = Card.currentId.incrementAndGet
@@ -35,6 +36,7 @@ case class Creature(
   name: String,
   attack: Option[Int],
   life: Int,
+  description : String = "",
   inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
   spec: CardSpec = CardSpec.creature(),
   mod : Option[Mod] = None,
@@ -54,6 +56,7 @@ case class Creature(
 
 case class Spell(
   name: String,
+  description : String = "",
   inputSpec: Option[CardInputSpec] = None,
   spec: CardSpec = CardSpec.spell()) extends Card {
   def this() = this(null)
@@ -119,3 +122,8 @@ trait BoardEffect
 case class AddAttack(amount : Int, around : Boolean = false) extends BoardEffect
 case class Reborn(player : PlayerState => Boolean) extends BoardEffect
 case object ToggleRunAround extends BoardEffect
+
+sealed trait BoardEvent
+case class Dead(slot : Int, card : Card) extends BoardEvent
+case class Spawned(slot : Int, card : Card) extends BoardEvent
+

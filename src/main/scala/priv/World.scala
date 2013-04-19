@@ -14,27 +14,32 @@ class World(displayConf : DisplayConf) extends Attachable {
   var time: Long = 0
   var ended = false
   val resolution = displayConf.resolution
-
-  def render() {
-    renderAttacheds(this)
-  }
+  setWorld(this)
 
   def tick() {
     time = System.currentTimeMillis
   }
 }
 
-trait Attachable {
-
-  val entities = new ConcurrentLinkedQueue[Entity]
+trait Attachable extends Entity {
+  private val entities = new ConcurrentLinkedQueue[Entity]
   private val tasks = new ConcurrentLinkedQueue[Task[_]]
+
+  def spawn(entity: Entity) {
+    entity.setWorld(world)
+    entities.add(entity)
+  }
 
   def unspawn(entity: Entity) {
     entities.remove(entity)
   }
+  override def setWorld(w : World){
+    super.setWorld(w)
+    iterate(entities.iterator)(_.setWorld(w))
+  }
 
-  def renderAttacheds(world : World) {
-    iterate(entities.iterator)(_.render(world))
+  def render() {
+    iterate(entities.iterator)(_.render())
     iterate(tasks.iterator()) { task =>
       if (world.time - task.start > task.duration) {
         tasks.remove(task)
@@ -74,9 +79,11 @@ object Entity {
 trait Entity {
   val creationTime = System.currentTimeMillis
   val id = Entity.lastId.incrementAndGet()
+  protected var world : World = null
 
-  def render(world: World)
+  def render()
 
+  def setWorld(w : World){  world = w }
   protected def deltaT(time: Long) = time - creationTime
   @inline def stdspeed = Entity.stdspeed
   override def hashCode() = id

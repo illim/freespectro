@@ -32,7 +32,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   private def getCard = slot.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }
 
 
-  def render(world: World) {
+  def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(1, 1, 1, 1)
 
@@ -120,5 +120,12 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
       onEnd
     }
     def getDelta(time: Long) = amplitude * math.sin((time - start).toDouble / duration * math.Pi)
+  }
+
+  on {
+    case MouseMoved(_) =>
+      game.descriptionPanel.cardOption = card.map(_._1.card)
+    case MouseLeaved(_) =>
+      game.descriptionPanel.cardOption = None
   }
 }

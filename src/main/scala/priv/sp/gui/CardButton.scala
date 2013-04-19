@@ -6,7 +6,8 @@ import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.util._
 
-class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extends GuiElem {
+class CardButton(val card : Card, houseState: => HouseState, game : Game) extends GuiElem {
+  import game.sp
 
   private val cardTex = sp.textures.get("Images/Cards/" + card.image)
   private val (borderTex, maskTex) = sp.baseTextures.getBorder(card)
@@ -18,7 +19,7 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
   var selected = false
   def getIsActive = card.isAvailable(houseState) && enabled
 
-  def render(world: World) {
+  def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     val isActive = getIsActive
@@ -75,8 +76,12 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
   }
 
   on {
-    case MouseMoved(_) => hovered = true
-    case MouseLeaved(_) => hovered = false
+    case MouseMoved(_) =>
+      game.descriptionPanel.cardOption = Some(card)
+      hovered = true
+    case MouseLeaved(_) =>
+      game.descriptionPanel.cardOption = None
+      hovered = false
   }
 
 }
@@ -84,7 +89,7 @@ class CardButton(val card : Card, houseState: => HouseState, sp: SpWorld) extend
 case class TestButton(sp: SpWorld) extends GuiElem {
   val size = Coord2i(200, 200)//sp.baseTextures.blank.coord
   val selectedGlow = sp.baseShaders.selectedGlow("test", size.x)
-  def render(world: World) {
+  def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glDisable(GL_TEXTURE_2D)
     glColor4f(1, 1, 1, 1)

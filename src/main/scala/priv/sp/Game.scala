@@ -19,10 +19,11 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   // gui
   val commandRecorder = new CommandRecorder(this)
+  val descriptionPanel = new DescriptionPanel(this)
   val cardPanels = playerIds.map(new CardPanel(_, this))
   val slotPanels = playerIds.map(new SlotPanel(_, this))
   val topCardPanel = new TopCardPanel(playerIds(otherPlayerId), this)
-  val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, sp)
+  val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, sp)
   val gameCard = new GameCard(desc)
 
   val surrenderButton = new GuiButton("Surrender")
@@ -30,8 +31,8 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val settingsButton = new GuiButton("Settings")
 
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
-  world.entities.add(board.panel)
-  world.entities.add(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
+  world.spawn(board.panel)
+  world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
 
   waitPlayer(owner)
 
@@ -55,7 +56,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   protected def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
-    world.entities.add(Translate(Coord2i(300, 350), new GuiButton(msg, Fonts.big)))
+    world.spawn(Translate(Coord2i(300, 350), new GuiButton(msg, Fonts.big)))
   }
 
   protected def persist[A](stateFunc: State[GameState, A]) : A = {
