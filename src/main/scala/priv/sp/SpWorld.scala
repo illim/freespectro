@@ -28,11 +28,11 @@ class Textures extends ResourceCache[String, Texture] {
 }
 class BaseTextures(textures: Textures) {
   val borderTex :: borderTexSpell :: maskTex :: cardGlow :: slotTex :: blank :: _ = textures.gets(
-    "Images/Combat/ramka.tga",
-    "Images/Combat/ramkaSpell.tga",
+    "Images/Combat/raka.tga",
+    "Images/Combat/rakaSpell.tga",
     "Images/Combat/spellmask.tga",
     "Images/Combat/cardglow.tga",
-    "Images/Combat/bottomslot.tga",
+    "Images/Combat/slot.tga",
     "blank.png")
   lazy val fire = textures.getOrElseUpdate("fire", _ => loadTexture("Images/Combat/particles.tga", 352, 0, 32, 32))
   lazy val callthunder = textures.getOrElseUpdate("callthunder", _ => loadTexture("Images/Combat/particles.tga", 208, 80, 32, 32))

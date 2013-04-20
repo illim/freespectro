@@ -71,7 +71,7 @@ class Houses extends HouseCardEffects {
 
   val Air = House("air", List(
     Creature("FaerieApprentice", Some(4), 11, "Increase spell damage by 1", mod = Some(new SpellMod(x => x + 1))),
-    Creature("Griffin", Some(3), 15, "If Air mana > 5 deals 5 damage to opponent when summoned",
+    Creature("Griffin", Some(3), 15, "If Air mana >= 5 deals 5 damage to opponent when summoned",
       spec = creature(Direct -> { env : Env =>
         if (env.getMana(2) > 4) env.otherPlayer.life.%==( _ - env.guard(5)) else GameState.unit
       })),
