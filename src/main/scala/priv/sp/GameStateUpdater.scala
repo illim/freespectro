@@ -151,9 +151,6 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
 
       def destroy(num : Int){
-        if (slots.get(num).isEmpty){
-          println(slots + "/" + num + "/" + self.value)
-        }
         val creature = slots(num).card
         creature.boardEffect.collect{ case bonus : AddAttack =>
           write(applyAttackBonus(num, bonus, -1))
@@ -195,7 +192,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       def reactDeath(num : Int, creature : Creature) = {
         creature.boardEffect match {
           case Some(Reborn(cond)) if cond(pstate) =>
-            summon(num, creature)
+            add(num, creature)
           case _ =>
         }
       }
