@@ -91,7 +91,13 @@ object Utils {
   }
 
   def thread(name : String)(f: => Unit) = new Thread(runnable(f), name).start()
-  def runnable(f: => Unit) = new Runnable() { def run() = f  }
+  def runnable(f: => Unit) = new Runnable() { def run() = {
+    try {
+    f
+    } catch { case t : Throwable =>
+      t.printStackTrace
+    }
+  }  }
 
   def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
     treeLoc.rights match {
@@ -138,4 +144,39 @@ trait ResourceCache[A, B] {
   def getOrElseUpdate[C <: B](path: A, create: A => C): C = resources.getOrElseUpdate(path, create(path)).asInstanceOf[C]
   def load(path: A): B
   def clean()
+}
+
+abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) {
+  var tid = 0
+  var dirty = false
+  var value = getValue
+
+  def initNewUpdate(value : A) : this.type = {
+    write(value)
+    tid += 1
+    this
+  }
+
+  def reinit() : this.type = {
+    if (tid != parent.get.tid) {
+      dirty = false
+      value = getValue
+      tid = parent.get.tid
+    }
+    this
+  }
+
+  def write(v : A){
+    value = v
+    setDirty()
+  }
+
+  def isDirty = parent.exists(_.tid == tid && dirty)
+  private def setDirty(){
+    parent.foreach{ p =>
+      p.setDirty()
+      dirty = true
+    }
+  }
+
 }

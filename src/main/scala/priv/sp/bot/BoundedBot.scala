@@ -17,7 +17,7 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val sp : Sp
 class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   val duration = 4000
   val defaultPolicyMaxTurn = 15
-  val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?
+  val expansionTreeMaxDepth = 3  // todo shuffle the nodes before increase maxDepth?
   val boostFactor = 3
 
   val selector = new Selector()
@@ -69,7 +69,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
       state = bot.simulateCommand(state, player, nextCommand)
-      //print("- def:"+nextCommand + "/" + state.players.map(_.life))
+      //print("- def:"+nextCommand + "/" + player + "/" + state.players.map(_.houses))
       player = other(player)
       nbStep += 1
       end = state.checkEnded

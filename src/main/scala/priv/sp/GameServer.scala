@@ -22,7 +22,7 @@ trait GameServer {
 }
 
 class Local(resources : GameResources) extends GameServer {
-  private val shuffle = new CardShuffle(resources.sp)
+  private val shuffle = new CardShuffle(resources.sp.houses)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
 
   def initState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
@@ -46,6 +46,7 @@ class Local(resources : GameResources) extends GameServer {
 }
 
 // remote game server common for master or slave
+// retarded code, assuming that the continuation is set before receiving the message
 class CommonGameServer(val playerId : PlayerId, val name : String, val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer {
   peer.updateImpl(this)
 
@@ -76,7 +77,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 
 
 class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
-  private val shuffle = new CardShuffle(resources.sp)
+  private val shuffle = new CardShuffle(resources.sp.houses)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
   def initState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))

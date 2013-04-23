@@ -4,7 +4,6 @@ import priv.sp._
 
 class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
   val desc = ripPlayerState.exec(gameDesc)
-  val gameCard = new GameCard(desc)
   println("AI K :" + otherPlayerDesc.houses.map{ h =>
     h.house.name + "/" + h.cards.toList
   })
@@ -20,6 +19,7 @@ trait Bot {
   val guess = new CardGuess(gameDesc, sp)
   var knownCards = Set.empty[(Card, Int)]
   var k = generateK().get
+  val gameUpdate = new GameUpdate
 
   def updateKnowledge(command : Command, indexOfCardInHouse : Int) {
     import command._
@@ -39,7 +39,14 @@ trait Bot {
     }
   }
 
+  private def initGameUpdate(state : GameState){
+    if (gameUpdate.updater == null){
+      gameUpdate.updater = new GameStateUpdater(state)
+    }
+  }
+
   def simulateCommand(state: GameState, command: Command) : GameState = {
+    initGameUpdate(state)
     simulateCommand(state, command.player, Some(command))
   }
 
@@ -48,17 +55,17 @@ trait Bot {
       case None => state
       case Some(command) =>
         def applyEffect(st : GameState) =
-          (st /: k.gameCard.getCommandEffect(command, st)) { (acc, f) =>
+          (st /: gameUpdate.getCommandEffect(command)) { (acc, f) =>
             f.exec(acc)
           }
-        k.gameCard.debitAndSpawn(command).exec(applyEffect(state))
+        gameUpdate.debitAndSpawn(command).exec(applyEffect(state))
     }
 
     var runState = (commandState /: commandState.players(playerId).slots) {
       case (st, (numSlot, slot)) =>
-        Game.runSlot(playerId, numSlot, slot).exec(st)
+        gameUpdate.runSlot(playerId, numSlot, slot).exec(st)
     }
-    runState = Game.prepareNextTurn(other(playerId)) exec runState
+    runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
     if (runState.checkEnded.isEmpty) {
       runState = applySlotTurnEffects(other(playerId)) exec runState
     }
@@ -69,7 +76,7 @@ trait Bot {
     var newState = st
     for(numSlot <- slotRange){
       newState.players(playerId).slots.get(numSlot) foreach { slotState =>
-        Game.getSlotTurnEffect(playerId, numSlot, slotState, newState).foreach{ f =>
+        gameUpdate.getSlotTurnEffect(playerId, numSlot, slotState).foreach{ f =>
           newState = f exec newState
         }
       }

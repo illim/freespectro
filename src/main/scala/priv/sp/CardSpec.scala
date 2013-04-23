@@ -1,7 +1,6 @@
 package priv.sp
 
 import collection._
-import scalaz._
 import java.io._
 
 object Card {
@@ -80,7 +79,7 @@ object CardSpec {
   val OnTurn = 1
   val phases = Array(Direct, OnTurn)
 
-  type Effect = GameCardEffect.Env => scalaz.State[GameState, Unit]
+  type Effect = GameCardEffect.Env => Unit
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
 
   def creature(effects: PhaseEffect*) = CardSpec(true, toEffectMap(effects))
@@ -98,11 +97,9 @@ object CardSpec {
   }
   val noEffects = phases.map(_ => Option.empty[Effect])
 
-  class ComposedEffect(effects : Traversable[Effect]) extends Function[GameCardEffect.Env, scalaz.State[GameState, Unit]]{
+  class ComposedEffect(effects : Traversable[Effect]) extends Function[GameCardEffect.Env, Unit]{
     def apply(env : GameCardEffect.Env) = {
-      effects.foldLeft(GameState.unit) { (acc, f) =>
-        acc.flatMap(_ => f(env))
-      }
+      effects.foreach(_(env))
     }
   }
 }
@@ -113,17 +110,12 @@ case class CardSpec(
 
 // mods are gathered at player state level, and are not dependent on the slots
 trait Mod
-class SpellMod(val modify : Int => Int) extends Mod
-class SpellProtectOwner(val modify : Int => Int) extends Mod
-case class InterceptSpawn(damage : Damage) extends Mod // TODO manage as an effect (anim)
+case class SpellMod(modify : Int => Int) extends Mod
+case class SpellProtectOwner(modify : Int => Int) extends Mod
 
-// board effect are applied per slot during board change
+// board effect are applied per slot during board change and affect own slots
 trait BoardEffect
 case class AddAttack(amount : Int, around : Boolean = false) extends BoardEffect
 case class Reborn(player : PlayerState => Boolean) extends BoardEffect
 case object ToggleRunAround extends BoardEffect
-
-sealed trait BoardEvent
-case class Dead(slot : Int, card : Card) extends BoardEvent
-case class Spawned(slot : Int, card : Card) extends BoardEvent
-
+case class InterceptSpawn(damage : Damage) extends BoardEffect

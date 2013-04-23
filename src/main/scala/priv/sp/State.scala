@@ -10,20 +10,9 @@ case class GameState(players: List[PlayerState]) {
 case class PlayerState(
   houses: PlayerState.HousesType,
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
-  life: Int = 60) {
-
-  var mods : List[Mod] = Nil // /!\ recomputed in lens
-  var isSlotDependsMana = false
-
-  def guard(amount : Int) = {
-    (amount /: mods){
-      case (acc, mod : SpellProtectOwner) => mod.modify(acc)
-      case (acc, _) => acc
-    }
-  }
-}
+  life: Int = 60)
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int = 0){
+case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
@@ -55,10 +44,6 @@ object PlayerState {
   type HousesType = Vector[HouseState]
   val emptySlots = immutable.Map.empty[Int, SlotState]
 
-  val housesL = Lens.lensu[PlayerState, Vector[HouseState]]((p, h) => p.copy(houses = h), _.houses)
-  val slotsL = Lens.lensu[PlayerState, SlotsType]((p, s) => p.copy(slots = s), _.slots)
-  val lifeL = Lens.lensu[PlayerState, Int]((p, l) => p.copy(life = l), _.life)
-
   def resetSlotAttack(slots : SlotsType, houses : HousesType)={
     slots.mapValues{ slot => slot.copy(attack = slot.card.attack getOrElse houses(slot.card.houseIndex).mana) }
   }
@@ -72,124 +57,18 @@ object HouseState{
   }
 }
 object SlotState {
-  def creature(card: Card) = {
+  def asCreature(card: Card) = {
     card match {
-      case creature: Creature =>
-        SlotState(creature, creature.life, creature.runOnce)
+      case creature: Creature => creature
       case _ => sys.error(card + " is not a creature")
-    }
-  }
-  val lifeL = Lens.lensu[SlotState, Int]((p, l) => p.copy(life = l), _.life)
-
-  @inline def inflictCreature(player: PlayerStateLenses, numSlot : Int, damage : Damage) : State[GameState, Unit] = {
-    player.slots.%== { slots =>
-      slots.get(numSlot) match {
-        case None => slots // for example titan on unopposed slot
-        case Some(slot) =>
-          slot.inflict(damage) match {
-            case None => slots - numSlot
-            case Some(newSlot) => slots + (numSlot -> newSlot)
-          }
-      }
     }
   }
 
   @inline def addLife(slot : SlotState, amount : Int) = {
     slot.copy(life = math.min(slot.card.life, slot.life + amount))
   }
-
-  @inline def inflictCreatures(player: PlayerStateLenses, damage : Damage) : State[GameState, Unit] = {
-    player.slots.%==( damageSlots(damage) _)
-  }
-
-  def damageSlots(damage : Damage)(slots: PlayerState.SlotsType) = {
-    var result = PlayerState.emptySlots
-    slots.foreach { case (num, slot) =>
-      slot.inflict(damage) foreach { newslot =>
-        result += (num -> newslot)
-      }
-    }
-    result
-  }
-}
-class PlayerStateLenses(val player : Lens[GameState, PlayerState]){
-  val houses = player andThen PlayerState.housesL
-  val slots  = player andThen PlayerState.slotsL
-  val life   = player andThen PlayerState.lifeL
-  def slotsToggleRun = slots.%==(_.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
-  def housesIncrMana = houses.%== (_.map{ house =>
-    val newmana = house.mana + 1
-    new HouseState(math.max(0, newmana))
-  })
-  def house(id : Int) = player andThen Lens.lensu[PlayerState, HouseState]((p, x) => p.copy(houses = p.houses.updated(id, x)), _.houses(id))
 }
 object GameState {
-  val playersL = Lens.lensu[GameState, List[PlayerState]]((p, x) => p.copy(players = x), _.players)
-
-  def playerLens(id : Int) = new PlayerStateLenses(Lens.lensu[GameState, PlayerState]({ (state, p) =>
-    val oldp = state.players(id)
-
-    // recompute all when house mana increase or slots number modified
-    // /!\ suppose that no slot is replaced in one pass so that mod list is coherent
-    // mods should not be used before state update
-    val newp = if (oldp.slots.size == p.slots.size && (!oldp.isSlotDependsMana || oldp.houses.eq(p.houses))) {
-      p.mods = oldp.mods
-      p.isSlotDependsMana = oldp.isSlotDependsMana
-      p
-    } else {
-      var newslots = p.slots
-      oldp.slots.foreach{ case (num, slot) =>
-        slot.card.boardEffect.foreach {
-          case Reborn(f) if ! newslots.isDefinedAt(num) =>
-            if (f(p)) newslots += (num -> SlotState.creature(slot.card))
-          case _ =>
-        }
-      }
-      val intereceptSpawns = state.players(other(id)).mods.collect{ case InterceptSpawn(d) => d }
-      if (intereceptSpawns.nonEmpty){
-        newslots.foreach{ case (num, slot) =>
-          if (!oldp.slots.isDefinedAt(num)){
-            intereceptSpawns.foreach{ d =>
-              slot.inflict(d) match {
-                case None => newslots -= num
-                case Some(s) => newslots += (num -> s)
-              }
-            }
-          }
-        }
-      }
-      newslots = PlayerState.resetSlotAttack(newslots, p.houses)
-      val mods = (List.empty[Mod] /: newslots){ case (acc, (num, slot)) =>
-        slot.card.boardEffect.foreach {
-          case AddAttack(x, around) =>
-            if (around){
-              newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.addAttack(x)))
-              newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.addAttack(x)))
-            } else {
-              newslots = newslots.map{ case (n, s) =>
-                (n -> (if (n == num) s else s.addAttack(x)))
-              }
-            }
-          case ToggleRunAround =>
-            newslots.get(num - 1).foreach( s => newslots += ((num -1) -> s.copy(hasRunOnce =true)))
-            newslots.get(num + 1).foreach( s => newslots += ((num +1) -> s.copy(hasRunOnce =true)))
-            case _ =>
-        }
-
-        slot.card.mod match {
-          case None => acc
-          case Some(mod) => (mod :: acc)
-        }
-      }
-      val newp = p.copy(slots = newslots)
-      newp.isSlotDependsMana = newp.slots.values.exists(_.card.attack.isEmpty)
-      newp.mods = mods
-      newp
-    }
-
-    state.copy(players = state.players.updated(id, newp))
-  }, _.players(id)))
-
   val unit = State[GameState, Unit](gs => (gs, ()))
   def none[A] = State[GameState, Option[A]](gs => (gs, None))
 }

@@ -2,7 +2,7 @@ package priv.sp
 
 import util.Random
 
-class CardShuffle(sp : SpWorld) {
+class CardShuffle(houses : Houses) {
 
   def get() = {
     val p1 = createPlayer(owner, None)
@@ -15,11 +15,11 @@ class CardShuffle(sp : SpWorld) {
       case Some(p) => new CardModel.ExcludePlayerCards(p)
       case None => CardModel.BasicCardRange
     }
-    val cardModel = CardModel.build(sp.houses, getCardRange)
+    val cardModel = CardModel.build(houses, getCardRange)
     new CardShuffler(cardModel).solve()
     val manaModel = new ManaModel(cardModel)
     new ManaShuffler(manaModel, p == owner).solve()
-    (cardModel.toPlayerHouseDesc(sp.houses), manaModel.toHouseStates)
+    (cardModel.toPlayerHouseDesc(houses), manaModel.toHouseStates)
   }
 }
 
@@ -31,8 +31,8 @@ import priv.util.CpHelper._
 
 object CardModel {
 
-  def build(spHouses : Houses, getCardRange : GetCardRange = BasicCardRange, cp : CPSolver = CPSolver()) =
-    new CardModel(cp, spHouses.list.map(h => new HModel(cp, h, spHouses, getCardRange)))
+  def build(houses : Houses, getCardRange : GetCardRange = BasicCardRange, cp : CPSolver = CPSolver()) =
+    new CardModel(cp, houses.list.map(h => new HModel(cp, h, houses, getCardRange)))
 
   trait GetCardRange{ def apply(house : House) : List[Int]  }
   case object BasicCardRange extends GetCardRange {

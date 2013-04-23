@@ -5,12 +5,10 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 
 class CardPanel(playerId: PlayerId, game: Game) {
-  private val playerLs = playersLs(playerId)
-  private val houseCardButtons = playerLs.houses.get(game.state).zipWithIndex.map { case (_, idx) =>
-      def getHouseState = playerLs.houses.get(game.state).apply(idx)
-      val house = game.desc.players(playerId).houses(idx)
+  private val houseCardButtons = game.desc.players(playerId).houses.zipWithIndex.map { case (houseDesc, idx) =>
+      def getHouseState = game.state.players(playerId).houses(idx)
 
-      new HouseLabel(new DamagableInt(getHouseState.mana, game), house.house, game) -> house.cards.map { card =>
+      new HouseLabel(new DamagableInt(getHouseState.mana, game), houseDesc.house, game) -> houseDesc.cards.map { card =>
         new CardButton(card, getHouseState, game)
       }
   }
@@ -54,10 +52,9 @@ class CardPanel(playerId: PlayerId, game: Game) {
 }
 
 class TopCardPanel(playerId: PlayerId, game: Game) {
-  private val playerLs = playersLs(playerId)
-  val houseLabels = playerLs.houses.get(game.state).zipWithIndex.map {
-    case (_, idx) =>
-      new HouseLabel(new DamagableInt(playerLs.houses.get(game.state).apply(idx).mana, game), game.desc.players(playerId).houses(idx).house, game, flip = true)
+  val houseLabels = game.desc.players(playerId).houses.zipWithIndex.map {
+    case (houseDesc, idx) =>
+      new HouseLabel(new DamagableInt(game.state.players(playerId).houses(idx).mana, game), houseDesc.house, game, flip = true)
   }
   val panel = Row(houseLabels)
   def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
