@@ -10,25 +10,26 @@ import java.util.concurrent._
 import util.Utils.runnable
 
 class Game(val world: World, resources : GameResources, val server : GameServer) {
-  val sp = resources.sp
-  var state : GameState = server.initState
-  val gameUpdate = GameUpdate(new GameStateUpdater(state))
-  val desc = server.desc
-  val myPlayerId = other(server.playerId)
+  var state      = server.initState
+  val sp         = resources.sp
+  val desc       = server.desc
+  val myPlayerId    = other(server.playerId)
   val otherPlayerId = server.playerId
-  val names = playerIds.map{id => if (id == myPlayerId) "me" else server.name }
+  val names         = playerIds.map{id => if (id == myPlayerId) "me" else server.name }
 
   // gui
-  val commandRecorder = new CommandRecorder(this)
+  val commandRecorder  = new CommandRecorder(this)
   val descriptionPanel = new DescriptionPanel(this)
-  val cardPanels = playerIds.map(new CardPanel(_, this))
-  val slotPanels = playerIds.map(new SlotPanel(_, this))
-  val topCardPanel = new TopCardPanel(playerIds(otherPlayerId), this)
-  val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, sp)
+  val cardPanels       = playerIds.map(new CardPanel(_, this))
+  val slotPanels       = playerIds.map(new SlotPanel(_, this))
+  val topCardPanel     = new TopCardPanel(playerIds(otherPlayerId), this)
+  val board            = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, sp)
 
   val surrenderButton = new GuiButton("Surrender")
-  val skipButton = new GuiButton("Skip turn")
-  val settingsButton = new GuiButton("Settings")
+  val skipButton      = new GuiButton("Skip turn")
+  val settingsButton  = new GuiButton("Settings")
+
+  private val gameUpdate = GameUpdate(new GameStateUpdater(state))
 
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)

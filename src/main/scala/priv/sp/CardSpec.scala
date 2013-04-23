@@ -88,9 +88,9 @@ object CardSpec {
   def toEffectMap(effects : Traversable[PhaseEffect]) ={
     def effectAt(phase : Phase) : Option[Effect] = {
       val filtereds = effects.collect{ case (ph, f) if ph == phase => f}
-      if (filtereds.nonEmpty) {
-        Some(new ComposedEffect(filtereds))
-      } else None
+      if (filtereds.isEmpty) None
+      else if (filtereds.size == 1) Some(filtereds.head)
+      else Some(new ComposedEffect(filtereds))
     }
 
     phases.map(effectAt _)

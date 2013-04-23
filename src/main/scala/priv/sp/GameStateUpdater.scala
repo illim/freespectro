@@ -30,11 +30,11 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     private var houseFieldUpdate = new HouseFieldUpdate
 
     def otherPlayer = players(other(id)) // not great
-    def result = pstate.copy(slots = getSlots, houses = getHouses)
-    def getHouses = if (houseFieldUpdate.isDirty) houseFieldUpdate.value  else pstate.houses
-    def getSlots = if (slotFieldUpdate.isDirty) slotFieldUpdate.value  else pstate.slots
-    def slots = slotFieldUpdate.reinit()
-    def houses = houseFieldUpdate.reinit()
+    def result      = pstate.copy(slots = getSlots, houses = getHouses)
+    def getHouses   = if (houseFieldUpdate.isDirty) houseFieldUpdate.value else pstate.houses
+    def getSlots    = if (slotFieldUpdate.isDirty)  slotFieldUpdate.value  else pstate.slots
+    def slots       = slotFieldUpdate.reinit()
+    def houses      = houseFieldUpdate.reinit()
 
     def inflict(d : Damage) = {
       if (!ended) {
@@ -54,23 +54,21 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
     def mod(d : Damage) = {
       if (d.isSpell) {
-        d.copy(amount = ((d.amount /: otherPlayer.getSlots){
-          case (acc, (_, slot)) =>
-            slot.card.mod match {
-              case Some(SpellMod(mod)) => mod(acc)
-              case _ => acc
-            }
-        }))
+        (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
+          slot.card.mod match {
+            case Some(SpellMod(mod)) => acc.copy(amount = mod(acc.amount))
+            case _ => acc
+          }
+        }
       } else d
     }
 
     def guard(amount : Int) = {
-      (amount /: getSlots) {
-        case (acc, (_, slot)) =>
-          slot.card.mod match {
-            case Some(SpellProtectOwner(mod)) => mod(acc)
-            case _ => acc
-          }
+      (amount /: getSlots) { case (acc, (_, slot)) =>
+        slot.card.mod match {
+          case Some(SpellProtectOwner(mod)) => mod(acc)
+          case _ => acc
+        }
       }
     }
 
@@ -108,9 +106,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     class SlotFieldUpdate extends FieldUpdate(Some(playerFieldUpdate), pstate.slots){
       def slots = value
 
-      def toggleRun()= {
-        write(slots.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
-      }
+      def toggleRun()= write(slots.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
 
       def inflictCreature(num : Int, damage : Damage){
         slots.get(num) foreach { slot =>
@@ -145,9 +141,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
 
       // beware not mising effect
-      def update(f : PlayerState.SlotsType => PlayerState.SlotsType) = {
-        write(f(slots))
-      }
+      def update(f : PlayerState.SlotsType => PlayerState.SlotsType) = write(f(slots))
 
       private def damageSlot(damage : Damage, num : Int, slot : SlotState) = {
         slot.inflict(damage) match {
@@ -168,23 +162,21 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         reactDeath(num, creature)
       }
 
+      val noAttBonus = Function.const[Int, Int](0) _
       def attackBonusGetter : Int => Int = {
-        (Function.const[Int, Int](0) _ /: slots){ case (acc, (num, slot)) =>
+        (noAttBonus /: slots){ case (acc, (num, slot)) =>
           slot.card.boardEffect match {
-            case Some(AddAttack(amount, around)) => { n : Int =>
-              if (!around || math.abs(n - num) == 1) acc(n) + amount else acc(n)
-            }
+            case Some(AddAttack(amount, around)) => { n : Int => if (!around || math.abs(n - num) == 1) acc(n) + amount else acc(n)  }
             case _ => acc
           }
         }
       }
 
+      val noRoBonus = Function.const[Boolean, Int](false) _
       def runOnceBonusGetter : Int => Boolean = {
-        (Function.const[Boolean, Int](false) _ /: slots){ case (acc, (num, slot)) =>
+        (noRoBonus /: slots){ case (acc, (num, slot)) =>
           slot.card.boardEffect match {
-            case Some(ToggleRunAround) => { n : Int =>
-              if (math.abs(n - num) == 1) true else acc(n)
-            }
+            case Some(ToggleRunAround) => { n : Int => (math.abs(n - num) == 1) || acc(n)   }
             case _ => acc
           }
         }

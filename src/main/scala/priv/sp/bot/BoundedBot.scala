@@ -170,7 +170,9 @@ trait SelectExpandLoop[A <: LeafableNode] {
           if (depth < maxDepth && !treeLoc.hasChildren && !label.leafed) {
             expand(treeLoc)
           } else {
-            if (depth == maxDepth - 1) { // if there's no move available, will is there a risk to come back here until the select score change? (maybe a flag to not reselect this?)
+ // if there's no move available, will is there a risk to come back here until the select score change? (maybe a flag to not reselect this?)
+            if (depth == maxDepth - 1
+                || label.leafed) { // workaround todo fix this case
               end = true
             }
             treeLoc.firstChild.map{ child =>
