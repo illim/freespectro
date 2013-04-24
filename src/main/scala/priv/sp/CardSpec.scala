@@ -17,6 +17,7 @@ sealed abstract class Card extends Externalizable {
 
   var cost = 0
   var id = Card.currentId.incrementAndGet
+  var houseId = 0
   var houseIndex = 0
   final val isSpell = isInstanceOf[Spell]
   override def toString() = s"Card($name)"

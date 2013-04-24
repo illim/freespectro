@@ -1,7 +1,25 @@
 package priv.sp
 
-case class House(name: String, cards: List[Card]){
+import special._
+
+object House {
+  val currentId = new java.util.concurrent.atomic.AtomicInteger
+}
+
+case class House(name: String, cards: List[Card], houseIndex : Int = 4){
+  val houseId = House.currentId.incrementAndGet()
+
   def costs = cards.map(_.cost)
+
+  def initCards(costFn: Int => Int) {
+    cards.zipWithIndex.foreach { case (c, i) =>
+      c.cost = costFn(i)
+      c.houseIndex = houseIndex
+      c.houseId = houseId
+    }
+  }
+
+  override def toString() = name
   override def hashCode() : Int = name.hashCode
   override def equals(o : Any) = {
     o match {
@@ -12,9 +30,11 @@ case class House(name: String, cards: List[Card]){
 }
 
 object Houses {
+  val basicCostFunc = { i: Int => i + 1 }
   val forestSpider = new Creature("ForestSpider", Some(2), 11){
     cost = 1
     houseIndex = 2
+    houseId = 2
   }
 
   def manaGens = List((0, 3), (1, 5), (3, 5))
@@ -32,7 +52,8 @@ class SteelGolem extends Creature("SteelGolem", Some(6), 20, "Immune to spell an
   override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
 }
 
-class Houses extends HouseCardEffects {
+class Houses extends HouseCardEffects
+  with JunkMage with Mecanic {
   import CardSpec._
   import GameCardEffect._
 
@@ -48,7 +69,8 @@ class Houses extends HouseCardEffects {
     Spell("Inferno", "Deals 18 damage to target and 10 to other opponent creatures", inputSpec = Some(SelectTargetCreature), spec = spell(Direct -> inferno)),
     Creature("FireElemental", None, 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", spec = creature(Direct -> damageCreatures(Damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
     Spell("Armageddon", "Damage any creature and opponent by 8 + fire mana", spec = spell(Direct -> armageddon)),
-    Creature("Dragon", Some(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue)))))
+    Creature("Dragon", Some(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue))))
+    , houseIndex = 0)
 
   val Water = House("water", List(
     Spell("Meditate", "Increase normal mana by 1", spec = spell(Direct -> addMana(1, 0, 2, 3))),
@@ -67,7 +89,7 @@ class Houses extends HouseCardEffects {
     Creature("MindMaster", Some(6), 22, "Increase mana growth by 1", spec = creature(OnTurn -> addMana(1, 0, 1, 2, 3, 4))),
     Creature("AstralGuard", Some(1), 17, "Decrease mana growth by 1", spec = creature(OnTurn -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
-    }))))
+    }))), houseIndex = 1)
 
   val Air = House("air", List(
     Creature("FaerieApprentice", Some(4), 11, "Increase spell damage by 1", mod = Some(new SpellMod(x => x + 1))),
@@ -95,7 +117,8 @@ class Houses extends HouseCardEffects {
       spec = spell(Direct -> { env: Env => env.otherPlayer.slots.destroy(env.selected) })),
     Creature("AirElemental", None, 44, "Air elemental deals 8 damage to opponent when summoned", spec = creature(Direct -> damage(Damage(8, isAbility = true)), OnTurn -> addMana(1, 2))),
     Creature("Titan", Some(9), 40, "Deals 15 damage to opposite creature when summoned",
-      spec = creature(Direct -> { env : Env => env.otherPlayer.slots.inflictCreature(env.selected, Damage(15, isAbility = true))}))))
+      spec = creature(Direct -> { env : Env => env.otherPlayer.slots.inflictCreature(env.selected, Damage(15, isAbility = true))})))
+      , houseIndex = 2)
 
   val Earth = House("earth", List(
     Creature("ElvenHealer", Some(2), 12, "Heals owner by 2 every turn", spec = creature(OnTurn -> heal(2))),
@@ -115,38 +138,18 @@ class Houses extends HouseCardEffects {
       spec = creature(OnTurn -> heal(3), OnTurn -> healCreatures(3))),
     Creature("Hydra", Some(3), 40, "Attack all opponent creatures",
       multipleTarget = true,
-      spec = creature(OnTurn -> healCreature(4)))))
-
-  val Mecanic = House("Mechanics", List(
-    Spell("Overtime", "Increase mechanic mana by 1", spec = spell(Direct -> addMana(1, 4))),
-    Creature("DwarvenRifleman", Some(4), 17, "Deals 4 damage to summoned opponent creatures", boardEffect = Some(InterceptSpawn(Damage(4, isAbility = true)))),
-    Creature("DwarvenCraftsman", Some(2), 17, "Increase mechanic mana growth by 1", spec = creature(OnTurn -> addMana(1, 4)), isFocusable = false),
-    Creature("Ornithopter", Some(4), 24, "Every turn deals 2 damage to opponent creatures", spec = creature(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
-    new SteelGolem,
-    Creature("Cannon", Some(8), 29, "Every turn deals 8 damage to opponent creature with most life", spec=creature(OnTurn -> cannon)),
-    Spell("Cannonade", "Deals 19 damage to opponent creatures", spec = spell(Direct -> damageCreatures(Damage(19, isSpell = true)))),
-    Creature("SteamTank", Some(6), 60, "When summoned deals 12 damage to opponent creatures", spec = creature(Direct -> damageCreatures(Damage(12, isAbility = true))))))
-
-  private def initCard(house: House, houseIndex : Int, costFn: Int => Int) {
-    house.cards.zipWithIndex.foreach {
-      case (c, i) =>
-        c.cost = costFn(i)
-        c.houseIndex = houseIndex
-    }
-  }
+      spec = creature(OnTurn -> healCreature(4)))), houseIndex = 3)
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(Mecanic)
+  val special = List(Mecanic, Junk)
   val specialNames = special.map(_.name).to[Set]
-  val list = base ++ special
-  private val allCards = list.flatMap(_.cards)
+  private val allHouses = base ++ special
+  private val allCards = allHouses.flatMap(_.cards)
+
+  val getHouseById = allHouses.map(h => h.houseId -> h).toMap
   def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
 
   def isSpecial(house : House)= specialNames.contains(house.name)
 
-  val basicCostFonction = { i: Int => i + 1 }
-  base.zipWithIndex.foreach{ case (house, index) => initCard(house, index, basicCostFonction) }
-  special.foreach(h => initCard(h, 4, { i: Int =>
-    if (i == 0) i else i + 1
-  }))
+  base.zipWithIndex.foreach{ case (house, index) => house.initCards(Houses.basicCostFunc) }
 }

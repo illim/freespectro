@@ -93,12 +93,4 @@ trait HouseCardEffects {
     spawnForestSpiderAt(env.selected + 1)
   }
 
-
-  def cannon = { env: Env =>
-    import env._
-
-    otherPlayer.slots.slots.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption foreach { case (num, slot) =>
-      otherPlayer.slots.inflictCreature(num, (Damage(8, isAbility = true)))
-    }
-  }
 }

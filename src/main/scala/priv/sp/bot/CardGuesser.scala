@@ -13,10 +13,10 @@ class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
 
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
     val knowledge = new ModelFilter(knownCards, gameDesc.players(botPlayerId))
-    val cardModel = GCardModel.build(sp.houses, knowledge)
+    val cardModel = GCardModel.build(sp.houses, gameDesc.players(other(botPlayerId)), knowledge)
     new CardGuesser(cardModel).solve(timeLimit)
     if (cardModel.cp.isFailed) None
-    else Some(cardModel.toPlayerHouseDesc(sp.houses))
+    else Some(cardModel.toPlayerHouseDesc)
   }
 }
 
@@ -38,30 +38,30 @@ import priv.util.CpHelper
 import priv.util.CpHelper._
 
 object GCardModel {
-  def build(spHouses : Houses, knowledge : ModelFilter, cp : CPSolver = CPSolver()) =
-    new GCardModel(cp, spHouses.list.map(h => new GHModel(cp, h, spHouses, knowledge)))
+  def build(spHouses : Houses, playerDesc : PlayerDesc, knowledge : ModelFilter, cp : CPSolver = CPSolver()) =
+    new GCardModel(cp, playerDesc.houses.map(h => new GHModel(cp, h.house, spHouses, knowledge)).toList)
 }
 
 class GCardModel(val cp : CPSolver, val houses : List[GHModel]){
   val fire :: water :: air :: earth :: special :: Nil = houses
   val allCards = houses.flatMap(_.cards)
 
-  def toPlayerHouseDesc(spHouses : Houses) = PlayerDesc(
+  def toPlayerHouseDesc = PlayerDesc(
     (0 to 4).map{ i =>
-      val house = spHouses.list(i)
+      val house = houses(i).house
       val solveds = houses(i).getSolveds
       println("house " + house.name + " : " + solveds.toList)
       PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c)).to[Array])
     }.toArray)
 }
 
-class GHModel(cp : CPSolver, house : House, spHouses : Houses, knowledge : ModelFilter){
+class GHModel(cp : CPSolver, val house : House, spHouses : Houses, knowledge : ModelFilter){
   private val costToIndex = house.cards.zipWithIndex.map{ case (c, i) =>
     c.cost -> i
   }.toMap
   // 0 : exclude, 1: sure, 2 : maybe
   val cards = Vector.fill(house.cards.size)(CPVarInt(cp, 0 to 2))
-  val knownCards = knowledge.knownCards.filter{ case (card, _) => spHouses.list(card.houseIndex) == house}.toList.sortBy(_._2)
+  val knownCards = knowledge.knownCards.filter{ case (card, _) => spHouses.getHouseById(card.houseId) == house}.toList.sortBy(_._2)
   knownCards.foreach{ case (card, idx) => apply(card.cost).assign(1) }
 
   /**

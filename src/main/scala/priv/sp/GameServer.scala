@@ -23,7 +23,7 @@ trait GameServer {
 
 class Local(resources : GameResources) extends GameServer {
   private val shuffle = new CardShuffle(resources.sp.houses)
-  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
+  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.playerChoices)
 
   def initState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
@@ -78,7 +78,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 
 class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp.houses)
-  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get()
+  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.playerChoices)
   def initState = GameState(List(PlayerState(p1State), PlayerState(p2State)))
   val desc = GameDesc(Array(p1Desc, p2Desc))
 

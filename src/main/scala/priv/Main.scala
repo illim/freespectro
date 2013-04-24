@@ -36,6 +36,7 @@ object Main extends JFrame with App {
       }
     })
     doInDispatch {
+      settingsPanel.tabs.addTab("houses", new GameSettings(r.resources))
       settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { gameServer =>
         r.currentGame = r.createGame(gameServer)
       }))

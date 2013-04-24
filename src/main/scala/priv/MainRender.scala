@@ -20,6 +20,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
   var currentGame = createGame()
 
   private def init(gm : Game) : Game = {
+    glTranslatef(0, - offsety, 0)
     offsety = 0
     world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
     world.spawn(Repere)

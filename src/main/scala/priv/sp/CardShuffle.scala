@@ -4,22 +4,23 @@ import util.Random
 
 class CardShuffle(houses : Houses) {
 
-  def get() = {
-    val p1 = createPlayer(owner, None)
-    val p2 = createPlayer(opponent, Some(p1._1))
+  def get(specialHouses : List[House]) = {
+    println(specialHouses)
+    val p1 = createPlayer(owner, specialHouses(owner), None)
+    val p2 = createPlayer(opponent, specialHouses(opponent), Some(p1._1))
     List(p1, p2)
   }
 
-  def createPlayer(p : PlayerId, exclusion : Option[PlayerDesc]) = {
+  def createPlayer(p : PlayerId, specialHouse : House, exclusion : Option[PlayerDesc] = None) = {
     val getCardRange = exclusion match {
       case Some(p) => new CardModel.ExcludePlayerCards(p)
       case None => CardModel.BasicCardRange
     }
-    val cardModel = CardModel.build(houses, getCardRange)
+    val cardModel = CardModel.build(houses, specialHouse, getCardRange)
     new CardShuffler(cardModel).solve()
     val manaModel = new ManaModel(cardModel)
     new ManaShuffler(manaModel, p == owner).solve()
-    (cardModel.toPlayerHouseDesc(houses), manaModel.toHouseStates)
+    (cardModel.toPlayerHouseDesc, manaModel.toHouseStates)
   }
 }
 
@@ -31,8 +32,8 @@ import priv.util.CpHelper._
 
 object CardModel {
 
-  def build(houses : Houses, getCardRange : GetCardRange = BasicCardRange, cp : CPSolver = CPSolver()) =
-    new CardModel(cp, houses.list.map(h => new HModel(cp, h, houses, getCardRange)))
+  def build(houses : Houses, specialHouse : House, getCardRange : GetCardRange = BasicCardRange, cp : CPSolver = CPSolver()) =
+    new CardModel(cp, (houses.base :+ specialHouse).map(h => new HModel(cp, h, houses, getCardRange)))
 
   trait GetCardRange{ def apply(house : House) : List[Int]  }
   case object BasicCardRange extends GetCardRange {
@@ -55,9 +56,9 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
   val fire :: water :: air :: earth :: special :: Nil = houses.map(_.cards)
   val allCards = houses.flatMap(_.cards)
 
-  def toPlayerHouseDesc(spHouses : Houses) = PlayerDesc(
+  def toPlayerHouseDesc = PlayerDesc(
     (0 to 4).map{ i =>
-      val house = spHouses.list(i)
+      val house = houses(i).house
       val solveds = houses(i).getSolveds
       PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c.cost)).to[Array])
     }.toArray)
@@ -67,7 +68,7 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
  * this could have been modeled differently with a list of boolean like in cardguess.
  * Dunno what's better. The alldifferent constraint could be a bit consuming, on the other side there's less variables.
  */
-class HModel(cp : CPSolver, house : House, spHouses : Houses, getCardRange : GetCardRange){
+class HModel(cp : CPSolver, val house : House, spHouses : Houses, getCardRange : GetCardRange){
   val isSpecial = spHouses.isSpecial(house)
   val cards = if (isSpecial) {
     val (c1, ctemp) = range.partition(_ < 5)
