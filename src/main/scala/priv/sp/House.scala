@@ -31,12 +31,6 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4){
 
 object Houses {
   val basicCostFunc = { i: Int => i + 1 }
-  val forestSpider = new Creature("ForestSpider", Some(2), 11){
-    cost = 1
-    houseIndex = 2
-    houseId = 2
-  }
-
   def manaGens = List((0, 3), (1, 5), (3, 5))
 }
 
@@ -44,7 +38,7 @@ object Houses {
 object HouseSingleton extends Houses
 
 class Houses
-  extends Fire with Water with Air with Earth with Mecanic with JunkMage {
+  extends Fire with Water with Air with EarthHouse with Mecanic with JunkMage {
   import CardSpec._
   import GameCardEffect._
 

@@ -36,6 +36,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     def houses      = houseFieldUpdate.reinit()
     def result = {
       if (slotFieldUpdate.isDirty){
+        // dumb hack (should be a mutable queue) to avoid case of card moving during mass damage
         slotFieldUpdate.logs.foreach{
           case dead : Dead =>
             dead.card.reaction.onDeath(dead.num, dead)
@@ -138,6 +139,10 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       def inflictMultiTarget(damage : Damage) {
         inflict(damage)
         inflictCreatures(damage)
+      }
+
+      def healCreature(num : Int, amount : Int) = {
+        write(slots + (num -> SlotState.addLife(slots(num), amount)))
       }
 
       def summon(num : Int, creature : Creature) {

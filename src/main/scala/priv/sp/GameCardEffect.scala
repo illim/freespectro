@@ -27,9 +27,7 @@ object GameCardEffect {
 
   def heal(amount : Int) = { env : Env => env.player.heal(amount) }
   def healCreature(amount : Int) : Effect  = { env : Env =>
-    env.player.slots.update{ slots =>
-      slots + (env.selected -> SlotState.addLife(slots(env.selected), amount))
-    }
+    env.player.slots.healCreature(env.selected, amount)
   }
   def healCreatures(amount : Int) : Effect  = { env : Env =>
     env.player.slots.update{ slots =>
@@ -42,30 +40,4 @@ object GameCardEffect {
   def addMana(amount : Int, houseIndex : Int*) = {env : Env =>
     env.player.houses.incrMana(amount, houseIndex : _*)
   }
-}
-
-trait HouseCardEffects {
-  import GameCardEffect._
-
-  // specific card effects
-
-
-  def fury = { env: Env =>
-    import env._
-
-    val attack = (player.slots.slots.values.map(_.attack)(breakOut) : Seq[Int]).sorted(math.Ordering.Int.reverse).take(2).sum
-    env.otherPlayer.inflict(Damage(attack, isSpell = true))
-  }
-
-
-  def spider = { env: Env =>
-    def spawnForestSpiderAt(num : Int){
-      if (env.player.slots.slots.get(num).isEmpty && num > -1 && num < 6){
-        env.player.slots.add(num, SlotState.asCreature(Houses.forestSpider))
-      }
-    }
-    spawnForestSpiderAt(env.selected - 1)
-    spawnForestSpiderAt(env.selected + 1)
-  }
-
 }

@@ -3,11 +3,11 @@ package priv.sp.house
 import collection._
 import priv.sp._
 
-trait Earth {
+trait EarthHouse {
   import CardSpec._
   import GameCardEffect._
 
-  val Earth = House("earth", List(
+  val Earth : House = House("earth", List(
     Creature("ElvenHealer", Some(2), 12, "Heals owner by 2 every turn", effects = effects(OnTurn -> heal(2))),
     Spell("NaturesRitual", "heals target and owner by 8",
       inputSpec = Some(SelectOwnerCreature),
@@ -27,6 +27,12 @@ trait Earth {
       multipleTarget = true,
       effects = effects(OnTurn -> healCreature(4)))), houseIndex = 3)
 
+  private val forestSpider = new Creature("ForestSpider", Some(2), 11){
+    cost = 1
+    houseIndex = Earth.houseIndex
+    houseId = Earth.houseId
+  }
+
   private def fury = { env: Env =>
     import env._
 
@@ -37,7 +43,7 @@ trait Earth {
   private def spider = { env: Env =>
     def spawnForestSpiderAt(num : Int){
       if (env.player.slots.slots.get(num).isEmpty && num > -1 && num < 6){
-        env.player.slots.add(num, SlotState.asCreature(Houses.forestSpider))
+        env.player.slots.add(num, forestSpider)
       }
     }
     spawnForestSpiderAt(env.selected - 1)
