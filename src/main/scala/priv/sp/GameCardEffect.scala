@@ -49,15 +49,6 @@ trait HouseCardEffects {
 
   // specific card effects
 
-  def inferno = { env: Env =>
-    import env._
-
-    val damage = Damage(10, isSpell = true)
-    otherPlayer.slots.slots.foreach{ case (num, slot) => // suck
-      otherPlayer.slots.inflictCreature(num,
-        if (num == selected) Damage(18, true) else damage)
-    }
-  }
 
   def fury = { env: Env =>
     import env._
@@ -66,22 +57,6 @@ trait HouseCardEffects {
     env.otherPlayer.inflict(Damage(attack, isSpell = true))
   }
 
-  def armageddon = { env: Env =>
-    import env._
-
-    val d = Damage(getMana(0) + 8, isSpell = true)
-    env.otherPlayer.inflict(d)
-    massDamage(d)(env)
-  }
-
-  def goblinBerserker = { env: Env =>
-    val damage = Damage(2, isAbility = true)
-    env.player.slots.slots.foreach { case (num, slot) =>
-      if (math.abs(num - env.selected) == 1) {
-        env.player.slots.inflictCreature(num, damage)
-      }
-    }
-  }
 
   def spider = { env: Env =>
     def spawnForestSpiderAt(num : Int){

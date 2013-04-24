@@ -195,7 +195,7 @@ class GameUpdate {
   }
 
   def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState) = {
-    slotState.card.spec.effects(CardSpec.OnTurn) map { f =>
+    slotState.card.effects(CardSpec.OnTurn) map { f =>
       updater.lift{ u =>
         val env = new GameCardEffect.Env(playerId, u)
         env.selected = numSlot
@@ -208,7 +208,7 @@ class GameUpdate {
     val playerUpdate = u.players(command.player)
 
     playerUpdate.houses.incrMana(- command.card.cost, command.card.houseIndex)
-    if (command.card.spec.summon) {
+    if (!command.card.isSpell) {
       command.input.foreach{ slotInput =>
         playerUpdate.slots.summon(slotInput.num, SlotState.asCreature(command.card))
       }
@@ -216,7 +216,7 @@ class GameUpdate {
   }
 
   def getCommandEffect(command : Command) : Option[State[GameState, Unit]] = {
-    command.card.spec.effects(CardSpec.Direct) map { f =>
+    command.card.effects(CardSpec.Direct) map { f =>
       updater.lift{ u =>
         val env = new GameCardEffect.Env(command.player, u)
         command.input foreach { slotInput => env.selected = slotInput.num }

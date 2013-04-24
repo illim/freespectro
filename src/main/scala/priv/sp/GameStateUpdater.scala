@@ -93,10 +93,9 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def updateElementals(){
         if (getSlots.exists(_._2.card.attack.isEmpty)){
-          val getBonus = slots.attackBonusGetter
-          slots.update{ slots =>
-            slots.map{ case (num, slot) =>
-              num -> (if (slot.card.attack.isEmpty) slot.copy(attack = houses(slot.card.houseIndex).mana + getBonus(num)) else slot)
+          slots.update{ s =>
+            s.map{ case (num, slot) =>
+              num -> (if (slot.card.attack.isEmpty) slots.applySlotEffects(num, slot.copy(attack = houses(slot.card.houseIndex).mana)) else slot)
             }
           }
         }
@@ -132,16 +131,20 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
 
       def add(num : Int, creature : Creature){
-        val attack = attackBonusGetter(num) + creature.attack.getOrElse(0)
-        val runOnce = runOnceBonusGetter(num) || creature.runOnce
-        creature.boardEffect.collect{ case bonus : AddAttack =>
-          write(applyAttackBonus(num, bonus))
-        }
-        write(slots + (num -> SlotState(creature, creature.life, runOnce, attack)))
+        val slotState = applySlotEffects(num,
+          SlotState(creature, creature.life, creature.runOnce, creature.attack getOrElse 0))
+        val newSlots = creature.slotEffect.applySlots(num, slots + (num -> slotState))
+        write(newSlots)
       }
 
       // beware not mising effect
       def update(f : PlayerState.SlotsType => PlayerState.SlotsType) = write(f(slots))
+
+      def applySlotEffects(num : Int, slotState : SlotState) = {
+        (slotState /: slots){ case (acc, (n, s)) =>
+          s.card.slotEffect.applySlot(n, num, acc)
+        }
+      }
 
       private def damageSlot(damage : Damage, num : Int, slot : SlotState) = {
         slot.inflict(damage) match {
@@ -152,31 +155,9 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def destroy(num : Int){
         val creature = slots(num).card
-        creature.boardEffect.collect{ case bonus : AddAttack =>
-          write(applyAttackBonus(num, bonus, -1))
-        }
-        write(slots - num)
+        val newSlots = creature.slotEffect.unapplySlots(num, slots)
+        write(newSlots - num)
         reactDeath(num, creature)
-      }
-
-      val noAttBonus = Function.const[Int, Int](0) _
-      def attackBonusGetter : Int => Int = {
-        (noAttBonus /: slots){ case (acc, (num, slot)) =>
-          slot.card.boardEffect match {
-            case Some(AddAttack(amount, around)) => { n : Int => if (!around || math.abs(n - num) == 1) acc(n) + amount else acc(n)  }
-            case _ => acc
-          }
-        }
-      }
-
-      val noRoBonus = Function.const[Boolean, Int](false) _
-      def runOnceBonusGetter : Int => Boolean = {
-        (noRoBonus /: slots){ case (acc, (num, slot)) =>
-          slot.card.boardEffect match {
-            case Some(ToggleRunAround) => { n : Int => (math.abs(n - num) == 1) || acc(n)   }
-            case _ => acc
-          }
-        }
       }
 
       def reactSummon(num : Int) = {
@@ -194,14 +175,6 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
           case Some(Reborn(cond)) if cond(pstate) =>
             add(num, creature)
           case _ =>
-        }
-      }
-
-      def applyAttackBonus(num : Int, bonus : AddAttack, fact : Int = 1) = {
-        (slots /: slots){ case (acc, (n, slot)) =>
-          acc + (n -> (if (!bonus.around || math.abs(n - num) == 1){
-            slot.copy(attack = slot.attack + fact * bonus.amount)
-          } else slot))
         }
       }
     }

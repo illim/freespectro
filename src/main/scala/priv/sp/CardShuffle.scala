@@ -5,7 +5,6 @@ import util.Random
 class CardShuffle(houses : Houses) {
 
   def get(specialHouses : List[House]) = {
-    println(specialHouses)
     val p1 = createPlayer(owner, specialHouses(owner), None)
     val p2 = createPlayer(opponent, specialHouses(opponent), Some(p1._1))
     List(p1, p2)

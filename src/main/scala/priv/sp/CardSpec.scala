@@ -11,7 +11,7 @@ sealed abstract class Card extends Externalizable {
   def name : String
   def image: String
   def inputSpec: Option[CardInputSpec]
-  def spec: CardSpec
+  def effects: Array[Option[CardSpec.Effect]]
   def isAvailable(house: HouseState) = cost <= house.mana
   def description : String
 
@@ -33,24 +33,25 @@ sealed abstract class Card extends Externalizable {
   protected def readResolve() : Object = HouseSingleton.getCardById(id)  // this is not great(dunno if i can plug somewhere a serializer for this type)
 }
 case class Creature(
-  name: String,
-  attack: Option[Int],
-  life: Int,
-  description : String = "",
-  inputSpec: Option[CardInputSpec] = Some(SelectOwnerSlot),
-  spec: CardSpec = CardSpec.creature(),
-  mod : Option[Mod] = None,
-  boardEffect : Option[BoardEffect] = None,
+  name : String,
+  attack : Option[Int],
+  life : Int,
+  description    : String = "",
+  inputSpec      : Option[CardInputSpec] = Some(SelectOwnerSlot),
+  effects        : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
+  mod            : Option[Mod] = None,
+  boardEffect    : Option[BoardEffect] = None,
+  slotEffect     : SlotEffect = CardSpec.defaultSlotEffect,
   multipleTarget : Boolean = false,
-  immune : Boolean = false,
-  isFocusable : Boolean = true) // card is focused on effect after spawn. a bit ugly should be specified by effects
+  immune      : Boolean = false,
+  isFocusable : Boolean = true,
+  runOnce     : Boolean = false) // card is focused on effect after spawn. a bit ugly should be specified by effects
      extends Card {
   def this() = this(null, None, 0)
 
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
   }
-  val runOnce = false
   def image = name + ".JPG"
 }
 
@@ -58,7 +59,7 @@ case class Spell(
   name: String,
   description : String = "",
   inputSpec: Option[CardInputSpec] = None,
-  spec: CardSpec = CardSpec.spell()) extends Card {
+  effects : Array[Option[CardSpec.Effect]] = CardSpec.noEffects) extends Card {
   def this() = this(null)
   def image = name + ".tga"
 }
@@ -83,8 +84,7 @@ object CardSpec {
   type Effect = GameCardEffect.Env => Unit
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
 
-  def creature(effects: PhaseEffect*) = CardSpec(true, toEffectMap(effects))
-  def spell(effects: PhaseEffect*) = CardSpec(false, toEffectMap(effects))
+  def effects(effects: PhaseEffect*) = toEffectMap(effects)
 
   def toEffectMap(effects : Traversable[PhaseEffect]) ={
     def effectAt(phase : Phase) : Option[Effect] = {
@@ -103,11 +103,8 @@ object CardSpec {
       effects.foreach(_(env))
     }
   }
+  val defaultSlotEffect = new DefaultSlotEffect
 }
-
-case class CardSpec(
-  summon: Boolean,
-  effects: Array[Option[CardSpec.Effect]] = CardSpec.noEffects )
 
 // mods are gathered at player state level, and are not dependent on the slots
 trait Mod
@@ -116,7 +113,17 @@ case class SpellProtectOwner(modify : Int => Int) extends Mod
 
 // board effect are applied per slot during board change and affect own slots
 trait BoardEffect
-case class AddAttack(amount : Int, around : Boolean = false) extends BoardEffect
 case class Reborn(player : PlayerState => Boolean) extends BoardEffect
-case object ToggleRunAround extends BoardEffect
 case class InterceptSpawn(damage : Damage) extends BoardEffect
+
+trait SlotEffect {
+  def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState
+  def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
+  def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
+}
+
+class DefaultSlotEffect extends SlotEffect {
+  def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState = slot
+  def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
+  def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
+}
