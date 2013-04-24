@@ -4,7 +4,7 @@ import util.Random
 import scalaz._
 import org.scalatest._
 import org.scalatest.matchers._
-
+/**
 class CardModelSpec extends FlatSpec with ShouldMatchers {
   val spHouses = new Houses
 
@@ -35,3 +35,4 @@ class CardModelSpec extends FlatSpec with ShouldMatchers {
   }
 
 }
+*/

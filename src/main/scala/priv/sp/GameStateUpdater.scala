@@ -30,11 +30,24 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     private var houseFieldUpdate = new HouseFieldUpdate
 
     def otherPlayer = players(other(id)) // not great
-    def result      = pstate.copy(slots = getSlots, houses = getHouses)
     def getHouses   = if (houseFieldUpdate.isDirty) houseFieldUpdate.value else pstate.houses
     def getSlots    = if (slotFieldUpdate.isDirty)  slotFieldUpdate.value  else pstate.slots
     def slots       = slotFieldUpdate.reinit()
     def houses      = houseFieldUpdate.reinit()
+    def result = {
+      if (slotFieldUpdate.isDirty){
+        slotFieldUpdate.logs.foreach{
+          case dead : Dead =>
+            dead.card.reaction.onDeath(dead.num, dead)
+            slots.value.foreach{ case (n, slot) =>
+              if (n != dead.num) slot.card.reaction.onDeath(n, dead)
+            }
+        }
+        slots.logs = Nil
+      }
+      pstate.copy(slots = getSlots, houses = getHouses)
+    }
+
 
     def inflict(d : Damage) = {
       if (!ended) {
@@ -103,6 +116,8 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     }
 
     class SlotFieldUpdate extends FieldUpdate(Some(playerFieldUpdate), pstate.slots){
+      var logs = List.empty[BoardEvent]
+
       def slots = value
 
       def toggleRun()= write(slots.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
@@ -130,10 +145,10 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         otherPlayer.slots.reactSummon(num)
       }
 
-      def add(num : Int, creature : Creature){
+      def add(num : Int, card : Creature){
         val slotState = applySlotEffects(num,
-          SlotState(creature, creature.life, creature.runOnce, creature.attack getOrElse 0))
-        val newSlots = creature.slotEffect.applySlots(num, slots + (num -> slotState))
+          SlotState(card, card.life, card.runOnce, card.attack getOrElse houses.value(card.houseIndex).mana))
+        val newSlots = card.slotEffect.applySlots(num, slots + (num -> slotState))
         write(newSlots)
       }
 
@@ -146,6 +161,15 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         }
       }
 
+      def move(num : Int, dest : Int){
+        slots.get(num).foreach{ slot =>
+          // HACK (have to recreate the slot to recalcul attack)
+          val newSlot = applySlotEffects(num,
+            SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana))
+          write((slots - num) + (dest -> newSlot))
+        }
+      }
+
       private def damageSlot(damage : Damage, num : Int, slot : SlotState) = {
         slot.inflict(damage) match {
           case None          => destroy(num)
@@ -154,10 +178,11 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
 
       def destroy(num : Int){
-        val creature = slots(num).card
-        val newSlots = creature.slotEffect.unapplySlots(num, slots)
+        val card = slots(num).card
+        val newSlots = card.slotEffect.unapplySlots(num, slots)
         write(newSlots - num)
-        reactDeath(num, creature)
+        val dead = Dead(num, card, id, self)
+        logs = dead :: logs
       }
 
       def reactSummon(num : Int) = {
@@ -167,14 +192,6 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
               otherPlayer.slots.inflictCreature(num, d)
             case _ =>
           }
-        }
-      }
-
-      def reactDeath(num : Int, creature : Creature) = {
-        creature.boardEffect match {
-          case Some(Reborn(cond)) if cond(pstate) =>
-            add(num, creature)
-          case _ =>
         }
       }
     }

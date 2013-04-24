@@ -51,22 +51,27 @@ trait Bot {
   }
 
   def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : GameState = {
-    val commandState = commandOption match {
-      case None => state
-      case Some(command) =>
-        val stateEffect = gameUpdate.getCommandEffect(command).map(_.exec(state)).getOrElse(state)
-        gameUpdate.debitAndSpawn(command).exec(stateEffect)
-    }
+    try {
+      val commandState = commandOption match {
+        case None => state
+        case Some(command) =>
+          val stateEffect = gameUpdate.getCommandEffect(command).map(_.exec(state)).getOrElse(state)
+          gameUpdate.debitAndSpawn(command).exec(stateEffect)
+      }
 
-    var runState = (commandState /: commandState.players(playerId).slots) {
-      case (st, (numSlot, slot)) =>
-        gameUpdate.runSlot(playerId, numSlot, slot).exec(st)
+      var runState = (commandState /: commandState.players(playerId).slots) {
+        case (st, (numSlot, slot)) =>
+          gameUpdate.runSlot(playerId, numSlot, slot).exec(st)
+      }
+      runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
+      if (runState.checkEnded.isEmpty) {
+        runState = applySlotTurnEffects(other(playerId)) exec runState
+      }
+      runState
+    } catch { case t : Throwable =>
+      println("Failed on " + commandOption + "/" + state)
+      throw t
     }
-    runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
-    if (runState.checkEnded.isEmpty) {
-      runState = applySlotTurnEffects(other(playerId)) exec runState
-    }
-    runState
   }
 
   private def applySlotTurnEffects(playerId : PlayerId) = scalaz.State.modify[GameState]{ st =>

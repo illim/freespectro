@@ -11,7 +11,7 @@ trait JunkMage {
     Spell("PoisonFlower", "Deals 5 damage to target and creatures around. Deals 3 damage to opponent.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
-    Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby"),
+    Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6"),
     Creature("RoamingAssassin", Some(6), 27, "If unblocked, move to the closest next unblocked opponent and deals 5 damage to it"),
     Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 onto it, it produce 2 creatures in its adjacent slots, and deals 3 damage to owner"),
@@ -52,6 +52,25 @@ trait JunkMage {
             slot.copy(attack = slot.attack + fact * 1)
           }
         } else slot))
+      }
+    }
+  }
+}
+
+class ChainControllerReaction extends Reaction {
+  def onDeath(selected : Int, dead : Dead){
+    import dead._
+    val step = num - selected
+    if (card.cost < 6 && math.abs(step) == 1){
+      val playerUpdate = updater.players(playerId)
+      playerUpdate.slots.value.get(num + step) match {
+        case Some(slot) if slot.card.cost < 6 =>
+          playerUpdate.slots.move(num + step, num)
+        case _ =>
+          playerUpdate.slots.value.get(selected - step) match {
+            case Some(slot) if slot.card.cost < 6 => playerUpdate.slots.move(selected -step, num)
+            case _ =>
+          }
       }
     }
   }

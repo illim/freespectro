@@ -42,6 +42,7 @@ case class Creature(
   mod            : Option[Mod] = None,
   boardEffect    : Option[BoardEffect] = None,
   slotEffect     : SlotEffect = CardSpec.defaultSlotEffect,
+  reaction       : Reaction = CardSpec.defaultReaction,
   multipleTarget : Boolean = false,
   immune      : Boolean = false,
   isFocusable : Boolean = true,
@@ -79,7 +80,8 @@ object CardSpec {
   type Phase = Int
   val Direct = 0
   val OnTurn = 1
-  val phases = Array(Direct, OnTurn)
+  val OnOtherTurn = 2
+  val phases = Array(Direct, OnTurn, OnOtherTurn)
 
   type Effect = GameCardEffect.Env => Unit
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
@@ -104,6 +106,7 @@ object CardSpec {
     }
   }
   val defaultSlotEffect = new DefaultSlotEffect
+  val defaultReaction = new DefaultReaction
 }
 
 // mods are gathered at player state level, and are not dependent on the slots
@@ -113,12 +116,14 @@ case class SpellProtectOwner(modify : Int => Int) extends Mod
 
 // board effect are applied per slot during board change and affect own slots
 trait BoardEffect
-case class Reborn(player : PlayerState => Boolean) extends BoardEffect
 case class InterceptSpawn(damage : Damage) extends BoardEffect
 
 trait SlotEffect {
+  // update elemental or a creature just summoned
   def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState
+  // applied when effective creature is summoned
   def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
+  // applied when effective creature is dead
   def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
 }
 
@@ -126,4 +131,15 @@ class DefaultSlotEffect extends SlotEffect {
   def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState = slot
   def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
   def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
+}
+
+sealed trait BoardEvent
+case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+
+trait Reaction {
+  def onDeath(selected : Int, dead : Dead)
+}
+
+class DefaultReaction extends Reaction {
+  def onDeath(selected : Int, dead : Dead) {}
 }
