@@ -9,7 +9,7 @@ trait Mecanic {
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", "Increase mechanic mana by 1", effects = effects(Direct -> addMana(1, 4))),
-    Creature("DwarvenRifleman", Some(4), 17, "Deals 4 damage to summoned opponent creatures", boardEffect = Some(InterceptSpawn(Damage(4, isAbility = true)))),
+    Creature("DwarvenRifleman", Some(4), 17, "Deals 4 damage to summoned opponent creatures", reaction = new DwarfRiflemanReaction),
     Creature("DwarvenCraftsman", Some(2), 17, "Increase mechanic mana growth by 1", effects = effects(OnTurn -> addMana(1, 4)), isFocusable = false),
     Creature("Ornithopter", Some(4), 24, "Every turn deals 2 damage to opponent creatures", effects = effects(OnTurn -> damageCreatures(Damage(2, isAbility = true)))),
     new SteelGolem,
@@ -25,6 +25,17 @@ trait Mecanic {
 
     otherPlayer.slots.slots.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption foreach { case (num, slot) =>
       otherPlayer.slots.inflictCreature(num, (Damage(8, isAbility = true)))
+    }
+  }
+}
+
+
+class DwarfRiflemanReaction extends DefaultReaction {
+  val damage = Damage(4, isAbility = true)
+  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+    import summoned._
+    if (selectedPlayerId != playerId){
+      updater.players(playerId).slots.inflictCreature(num, damage)
     }
   }
 }

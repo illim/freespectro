@@ -39,6 +39,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         // dumb hack (should be a mutable queue) to avoid case of card moving during mass damage
         slotFieldUpdate.logs.foreach{
           case dead : Dead =>
+            slots.update(s => dead.card.slotEffect.unapplySlots(dead.num, s))
             dead.card.reaction.onDeath(dead.num, dead)
             slots.value.foreach{ case (n, slot) =>
               if (n != dead.num) slot.card.reaction.onDeath(n, dead)
@@ -155,7 +156,9 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def summon(num : Int, creature : Creature) {
         add(num, creature)
-        otherPlayer.slots.reactSummon(num)
+        val summonEvent = SummonEvent(num, creature, id, self)
+        otherPlayer.slots.reactSummon(summonEvent)
+        reactSummon(summonEvent)
       }
 
       def add(num : Int, card : Creature){
@@ -198,19 +201,14 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def destroy(num : Int){
         val card = slots(num).card
-        val newSlots = card.slotEffect.unapplySlots(num, slots)
-        write(newSlots - num)
+        write(slots - num)
         val dead = Dead(num, card, id, self)
         logs = dead :: logs
       }
 
-      def reactSummon(num : Int) = {
-        slots.foreach{ case (_, slot) =>
-          slot.card.boardEffect match {
-            case Some(InterceptSpawn(d)) =>
-              otherPlayer.slots.inflictCreature(num, d)
-            case _ =>
-          }
+      def reactSummon(summonEvent : SummonEvent) = {
+        slots.foreach{ case (num, slot) =>
+          slot.card.reaction.onSummon(num, id, summonEvent)
         }
       }
     }

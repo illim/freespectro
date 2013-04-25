@@ -14,9 +14,9 @@ trait JunkMage {
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
     Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
-    Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6", reaction = new JGSlotReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
-    Creature("RoamingAssassin", Some(6), 27, "If unblocked, move to the closest next unblocked opponent and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 onto it, it produce 2 creatures in its adjacent slots, and deals 3 damage to owner"),
+    Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6", reaction = new JunkyardGoddessReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
+    Creature("RoamingAssassin", Some(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
+    Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 near to it, it produce a mirror in the other adjacent slot", reaction = new FactoryReaction),
     Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full, heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg))
 
@@ -103,7 +103,7 @@ trait JunkMage {
   }
 }
 
-class JGSlotReaction extends DefaultReaction {
+class JunkyardGoddessReaction extends DefaultReaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
     val playerUpdate = updater.players(playerId)
@@ -130,6 +130,22 @@ class ChainControllerReaction extends DefaultReaction {
             case Some(slot) if slot.card.cost < 6 => playerUpdate.slots.move(selected -step, num)
             case _ =>
           }
+      }
+    }
+  }
+}
+
+class FactoryReaction extends DefaultReaction {
+  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+    import summoned._
+    val step = selected - num
+    if (selectedPlayerId == playerId
+        && math.abs(step) == 1
+        && card.cost < 6){
+      val slots = updater.players(playerId).slots
+      val pos = selected + step
+      if (!slots.value.isDefinedAt(pos)){
+        slots.add(pos, card)
       }
     }
   }

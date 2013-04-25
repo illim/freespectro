@@ -40,7 +40,6 @@ case class Creature(
   inputSpec      : Option[CardInputSpec] = Some(SelectOwnerSlot),
   effects        : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
   mod            : Option[Mod] = None,
-  boardEffect    : Option[BoardEffect] = None,
   slotEffect     : SlotEffect = CardSpec.defaultSlotEffect,
   reaction       : Reaction = CardSpec.defaultReaction,
   data           : AnyRef = null, // initialize slot custom data
@@ -115,10 +114,6 @@ trait Mod
 case class SpellMod(modify : Int => Int) extends Mod
 case class SpellProtectOwner(modify : Int => Int) extends Mod
 
-// board effect are applied per slot during board change and affect own slots
-trait BoardEffect
-case class InterceptSpawn(damage : Damage) extends BoardEffect
-
 trait SlotEffect {
   // update elemental or a creature just summoned
   def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState
@@ -137,13 +132,16 @@ class DefaultSlotEffect extends SlotEffect {
 sealed trait BoardEvent
 case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 case class DamageEvent(amount : Int, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+case class SummonEvent(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 
 trait Reaction {
   def onProtect(selected : Int, d : DamageEvent) : Int
   def onDeath(selected : Int, dead : Dead)
+  def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
 }
 
 class DefaultReaction extends Reaction {
   def onProtect(selected : Int, d : DamageEvent) = d.amount
   def onDeath(selected : Int, dead : Dead) {}
+  def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
 }

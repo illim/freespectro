@@ -61,11 +61,12 @@ private class BullSlotEffect extends AttackBonusSlotEffect {
 }
 
 private abstract class AttackBonusSlotEffect extends DefaultSlotEffect {
+  private val some0 = Some(0)
   def cond(selected : Int, num : Int) : Boolean
   def amount : Int
 
   final override def applySlot(selected : Int, num : Int, slot : SlotState) = {
-    if (cond(selected, num)){
+    if (cond(selected, num) && slot.card.attack != some0){
       slot.copy(attack = slot.attack + amount)
     } else slot
   }
@@ -80,7 +81,7 @@ private abstract class AttackBonusSlotEffect extends DefaultSlotEffect {
 
   private def applyAttackBonus(selected : Int, slots : PlayerState.SlotsType, fact : Int = 1) = {
     (slots /: slots){ case (acc, (n, slot)) =>
-      acc + (n -> (if (cond(selected, n)){
+      acc + (n -> (if (cond(selected, n) && slot.card.attack != some0){
         slot.copy(attack = slot.attack + fact * amount)
       } else slot))
     }
