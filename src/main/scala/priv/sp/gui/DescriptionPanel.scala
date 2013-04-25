@@ -16,7 +16,13 @@ class DescriptionPanel(game : Game) extends GuiElem {
           Fonts.font.draw(0, 25, "Life : " + c.life+"  Attack : " + c.attack.getOrElse("X"), 'white)
         case _ =>
       }
-      Fonts.font.draw(0, 37, card.description, 'white)
+      if (card.description.size < 60){
+        Fonts.font.draw(0, 37, card.description, 'white)
+      } else {
+        card.description.split('\n').zipWithIndex.foreach{ case (line, index) =>
+          Fonts.font.draw(0, 37 + index * 12, line, 'white)
+        }
+      }
     }
   }
 }

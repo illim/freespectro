@@ -6,18 +6,18 @@ trait JunkMage {
   import CardSpec._
   import GameCardEffect._
 
-  private val trashCyborg = Creature("TrashCyborg", Some(3), 30, "Fill the board with trash 2/11 and one cyborg. Every turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
+  private val trashCyborg = Creature("TrashCyborg", Some(3), 30, "Fill the board with trash 2/11 and one cyborg.\nEvery turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
 
   val Junk : House = House("Junk", List(
     Creature("Screamer", Some(2), 13, "+1 attack for each screamer in play", slotEffect = new ScreamerSlotEffect),
     Spell("PoisonFlower", "Deals 5 damage to target and creatures around. Deals 3 damage to opponent.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
-    Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
+    Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6", reaction = new JunkyardGoddessReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
-    Creature("RoamingAssassin", Some(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 near to it, it produce a mirror in the other adjacent slot", reaction = new FactoryReaction),
-    Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full, heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
+    Creature("RoamingAssassin", Some(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
+    Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 near to it,\nit produce a mirror in the other adjacent slot", reaction = new FactoryReaction),
+    Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg))
 
   Junk.initCards(Houses.basicCostFunc)
