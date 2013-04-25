@@ -35,8 +35,8 @@ trait Air {
 
 }
 
-class PhoenixReaction extends Reaction {
-  def onDeath(selected : Int, dead : Dead){
+class PhoenixReaction extends DefaultReaction {
+  final override def onDeath(selected : Int, dead : Dead){
     import dead._
     if (selected == num){
       val playerUpdate = updater.players(playerId)

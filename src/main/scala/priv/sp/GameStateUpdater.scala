@@ -43,6 +43,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
             slots.value.foreach{ case (n, slot) =>
               if (n != dead.num) slot.card.reaction.onDeath(n, dead)
             }
+          case _ =>
         }
         slots.logs = Nil
       }
@@ -78,11 +79,12 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     }
 
     def guard(amount : Int) = {
-      (amount /: getSlots) { case (acc, (_, slot)) =>
-        slot.card.mod match {
+      (amount /: getSlots) { case (acc, (num, slot)) =>
+        val a = slot.card.mod match {
           case Some(SpellProtectOwner(mod)) => mod(acc)
           case _ => acc
         }
+        slot.card.reaction.onProtect(num, DamageEvent(a, None, id, self))
       }
     }
 
@@ -145,6 +147,12 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         write(slots + (num -> SlotState.addLife(slots(num), amount)))
       }
 
+      def protect(num : Int, amount : Int) = {
+        (amount /: getSlots) { case (acc, (n, slot)) =>
+          slot.card.reaction.onProtect(n, DamageEvent(acc, Some(num), id, self))
+        }
+      }
+
       def summon(num : Int, creature : Creature) {
         add(num, creature)
         otherPlayer.slots.reactSummon(num)
@@ -152,13 +160,18 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def add(num : Int, card : Creature){
         val slotState = applySlotEffects(num,
-          SlotState(card, card.life, card.runOnce, card.attack getOrElse houses.value(card.houseIndex).mana))
+          SlotState(card, card.life, card.runOnce, card.attack getOrElse houses.value(card.houseIndex).mana, card.data))
         val newSlots = card.slotEffect.applySlots(num, slots + (num -> slotState))
         write(newSlots)
       }
 
       // beware not mising effect
       def update(f : PlayerState.SlotsType => PlayerState.SlotsType) = write(f(slots))
+
+      def setData(num : Int, data : AnyRef){
+        val slot = slots(num)
+        write(slots + (num -> slot.copy(data = data)))
+      }
 
       def applySlotEffects(num : Int, slotState : SlotState) = {
         (slotState /: slots){ case (acc, (n, s)) =>
@@ -170,13 +183,14 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         slots.get(num).foreach{ slot =>
           // HACK (have to recreate the slot to recalcul attack)
           val newSlot = applySlotEffects(num,
-            SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana))
+            SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana, slot.data))
           write((slots - num) + (dest -> newSlot))
         }
       }
 
       private def damageSlot(damage : Damage, num : Int, slot : SlotState) = {
-        slot.inflict(damage) match {
+        val d = damage.copy(amount = protect(num, damage.amount))
+        slot.inflict(d) match {
           case None          => destroy(num)
           case Some(newslot) => write(slots + (num -> newslot))
         }

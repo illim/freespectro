@@ -60,21 +60,21 @@ private class BullSlotEffect extends AttackBonusSlotEffect {
   val amount = 1
 }
 
-private abstract class AttackBonusSlotEffect extends SlotEffect {
+private abstract class AttackBonusSlotEffect extends DefaultSlotEffect {
   def cond(selected : Int, num : Int) : Boolean
   def amount : Int
 
-  final def applySlot(selected : Int, num : Int, slot : SlotState) = {
+  final override def applySlot(selected : Int, num : Int, slot : SlotState) = {
     if (cond(selected, num)){
       slot.copy(attack = slot.attack + amount)
     } else slot
   }
 
-  final def applySlots(selected : Int, slots : PlayerState.SlotsType) = {
+  final override def applySlots(selected : Int, slots : PlayerState.SlotsType) = {
     applyAttackBonus(selected, slots, 1)
   }
 
-  final def unapplySlots(selected : Int, slots : PlayerState.SlotsType) = {
+  final override def unapplySlots(selected : Int, slots : PlayerState.SlotsType) = {
     applyAttackBonus(selected, slots, -1)
   }
 

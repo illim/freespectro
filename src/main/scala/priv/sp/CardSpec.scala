@@ -43,6 +43,7 @@ case class Creature(
   boardEffect    : Option[BoardEffect] = None,
   slotEffect     : SlotEffect = CardSpec.defaultSlotEffect,
   reaction       : Reaction = CardSpec.defaultReaction,
+  data           : AnyRef = null, // initialize slot custom data
   multipleTarget : Boolean = false,
   immune      : Boolean = false,
   isFocusable : Boolean = true,
@@ -135,11 +136,14 @@ class DefaultSlotEffect extends SlotEffect {
 
 sealed trait BoardEvent
 case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+case class DamageEvent(amount : Int, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 
 trait Reaction {
+  def onProtect(selected : Int, d : DamageEvent) : Int
   def onDeath(selected : Int, dead : Dead)
 }
 
 class DefaultReaction extends Reaction {
+  def onProtect(selected : Int, d : DamageEvent) = d.amount
   def onDeath(selected : Int, dead : Dead) {}
 }

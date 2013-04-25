@@ -14,7 +14,7 @@ trait JunkMage {
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
     Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
-    Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6"),
+    Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6", reaction = new JGSlotReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
     Creature("RoamingAssassin", Some(6), 27, "If unblocked, move to the closest next unblocked opponent and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
     Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 onto it, it produce 2 creatures in its adjacent slots, and deals 3 damage to owner"),
     Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full, heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
@@ -29,6 +29,10 @@ trait JunkMage {
   }
 
   private val screamer = Junk.cards(0)
+
+  private def resetProtect = { env: Env =>
+    env.player.slots.setData(env.selected, Boolean.box(false))
+  }
 
   private def spawnTrash = { env: Env =>
     def spawnTrashAt(num : Int){
@@ -99,8 +103,21 @@ trait JunkMage {
   }
 }
 
-class ChainControllerReaction extends Reaction {
-  def onDeath(selected : Int, dead : Dead){
+class JGSlotReaction extends DefaultReaction {
+  final override def onProtect(selected : Int, d : DamageEvent) = {
+    import d._
+    val playerUpdate = updater.players(playerId)
+    val slot = playerUpdate.slots.value(selected)
+    if (!slot.data.asInstanceOf[Boolean]
+        && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 6)){
+        playerUpdate.slots.setData(selected, Boolean.box(true))
+        math.max(0, d.amount - 3)
+    } else d.amount
+  }
+}
+
+class ChainControllerReaction extends DefaultReaction {
+  final override def onDeath(selected : Int, dead : Dead){
     import dead._
     val step = num - selected
     if (card.cost < 6 && math.abs(step) == 1){
@@ -118,8 +135,8 @@ class ChainControllerReaction extends Reaction {
   }
 }
 
-class RecyclingBotReaction extends Reaction {
-  def onDeath(selected : Int, dead : Dead){
+class RecyclingBotReaction extends DefaultReaction {
+  final override def onDeath(selected : Int, dead : Dead){
     import dead._
     if (selected != num){
       val playerUpdate = updater.players(playerId)

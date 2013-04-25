@@ -12,7 +12,7 @@ case class PlayerState(
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
   life: Int = 60)
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int){
+case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int, data : AnyRef = null){
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
