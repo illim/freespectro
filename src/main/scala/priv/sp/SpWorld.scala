@@ -27,17 +27,16 @@ class Textures extends ResourceCache[String, Texture] {
   }
 }
 class BaseTextures(textures: Textures) {
-  val borderTex :: borderTexSpell :: maskTex :: cardGlow :: slotTex :: blank :: _ = textures.gets(
+  val borderTex :: borderTexSpell :: cardGlow :: slotTex :: blank :: _ = textures.gets(
     "Images/Combat/raka.tga",
     "Images/Combat/rakaSpell.tga",
-    "Images/Combat/spellmask.tga",
-    "Images/Combat/cardglow.tga",
+    "Images/Combat/glow.tga",
     "Images/Combat/slot.tga",
     "blank.png")
-  lazy val fire = textures.getOrElseUpdate("fire", _ => loadTexture("Images/Combat/particles.tga", 352, 0, 32, 32))
-  lazy val callthunder = textures.getOrElseUpdate("callthunder", _ => loadTexture("Images/Combat/particles.tga", 208, 80, 32, 32))
+  lazy val fire = textures.getOrElseUpdate("fire", _ => loadTexture("Images/Combat/parts.tga", 0, 0, 32, 32))
+  lazy val callthunder = textures.getOrElseUpdate("callthunder", _ => loadTexture("Images/Combat/parts.tga", 32, 0, 32, 32))
 
-  def getBorder(card: Card) = if (card.isSpell) (borderTexSpell, maskTex) else (borderTex, maskTex)
+  def getBorder(card: Card) = if (card.isSpell) borderTexSpell else borderTex
 }
 
 import org.lwjgl.opengl.GL20._

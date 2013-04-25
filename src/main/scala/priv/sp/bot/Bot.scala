@@ -63,9 +63,12 @@ trait Bot {
         case (st, (numSlot, slot)) =>
           gameUpdate.runSlot(playerId, numSlot, slot).exec(st)
       }
-      runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
       if (runState.checkEnded.isEmpty) {
-        runState = applySlotTurnEffects(other(playerId)) exec runState
+        runState = applySlotEffects(playerId, CardSpec.OnEndTurn, runState)
+        runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
+      }
+      if (runState.checkEnded.isEmpty) {
+        runState = applySlotEffects(other(playerId), CardSpec.OnTurn, runState)
       }
       runState
     } catch { case t : Throwable =>
@@ -74,11 +77,11 @@ trait Bot {
     }
   }
 
-  private def applySlotTurnEffects(playerId : PlayerId) = scalaz.State.modify[GameState]{ st =>
+  private def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase, st : GameState) ={
     var newState = st
     for(numSlot <- slotRange){
       newState.players(playerId).slots.get(numSlot) foreach { slotState =>
-        gameUpdate.getSlotTurnEffect(playerId, numSlot, slotState).foreach{ f =>
+        gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase).foreach{ f =>
           newState = f exec newState
         }
       }

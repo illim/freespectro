@@ -80,8 +80,8 @@ object CardSpec {
   type Phase = Int
   val Direct = 0
   val OnTurn = 1
-  val OnOtherTurn = 2
-  val phases = Array(Direct, OnTurn, OnOtherTurn)
+  val OnEndTurn = 2
+  val phases = Array(Direct, OnTurn, OnEndTurn)
 
   type Effect = GameCardEffect.Env => Unit
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)

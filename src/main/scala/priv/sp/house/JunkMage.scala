@@ -15,7 +15,7 @@ trait JunkMage {
           effects = effects(Direct -> poisonFlower)),
     Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die, fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6"),
-    Creature("RoamingAssassin", Some(6), 27, "If unblocked, move to the closest next unblocked opponent and deals 5 damage to it"),
+    Creature("RoamingAssassin", Some(6), 27, "If unblocked, move to the closest next unblocked opponent and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
     Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 onto it, it produce 2 creatures in its adjacent slots, and deals 3 damage to owner"),
     Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full, heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg))
@@ -49,6 +49,17 @@ trait JunkMage {
       // get first !
       slots.value.find(_._2.card == trashCyborg).foreach{ case (num, slot) =>
         slots.update(_ + (num -> slot.copy(attack = slot.attack + attack, life = slot.life + life)))
+      }
+    }
+  }
+
+  private def roam = { env: Env =>
+    val otherSlots = env.otherPlayer.slots.value
+    val slots = env.player.slots.value
+    if (! otherSlots.isDefinedAt(env.selected)){
+      otherSlots.keys.collect{ case n if !slots.isDefinedAt(n) => n }.toList.sortBy(x => math.abs(x - env.selected)).headOption.foreach{ dest =>
+        env.otherPlayer.slots.inflictCreature(dest, Damage(5, isAbility = true))
+        env.player.slots.move(env.selected, dest)
       }
     }
   }

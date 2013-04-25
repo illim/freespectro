@@ -103,10 +103,14 @@ object Task {
   private class TaskChain[A](world : World, tasks: Iterable[Task[A]], k : List[A] => Unit) extends Task[Unit] {
     val ite = tasks.iterator
     var current = ite.next
-    val duration = current.duration
+    val duration = 0L
 
-    def init() { world.addTask(current) }
-    def end() {
+    def init() {
+      world.addTask(current)
+      current.cont = Some(continue _)
+    }
+    def end() { }
+    def continue(){
       if (ite.hasNext) {
         current = ite.next
         world.addTask(this)
@@ -120,10 +124,14 @@ object Task {
 trait Task[A] {
   var start = 0L
   var result = Option.empty[A]
+  var cont = Option.empty[() => Unit]
   def duration: Long
   def init()
   def end() : A
-  private[priv] def finish(){result = Some(end())}
+  private[priv] def finish(){
+    result = Some(end())
+    cont.foreach(_())
+  }
 }
 
 class SimpleTask(f : => Unit) extends Task[Unit]{

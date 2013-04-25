@@ -10,7 +10,7 @@ class CardButton(val card : Card, houseState: => HouseState, game : Game) extend
   import game.sp
 
   private val cardTex = sp.textures.get("Images/Cards/" + card.image)
-  private val (borderTex, maskTex) = sp.baseTextures.getBorder(card)
+  private val borderTex = sp.baseTextures.getBorder(card)
   val size = borderTex.size
   private var hovered = false
   private val grey = sp.shaders.get("grey")

@@ -118,9 +118,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         }
         reset {
           Task.chain(world, tasks)
+          applySlotEffects(playerId, CardSpec.OnEndTurn)
           if (state.checkEnded.isEmpty){
             persist(gameUpdate.prepareNextTurn(otherPlayerId))
-            applySlotTurnEffects(otherPlayerId)
+            applySlotEffects(otherPlayerId, CardSpec.OnTurn)
             board.refresh(silent = true)
             waitPlayer(otherPlayerId)
           }
@@ -129,9 +130,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
 
 
-  protected def applySlotTurnEffects(playerId : PlayerId, numSlot : Int = 0) {
+  protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase, numSlot : Int = 0) {
     val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
-      gameUpdate.getSlotTurnEffect(playerId, numSlot, slotState).flatMap { f =>
+      gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase).flatMap { f =>
         def applyEffect() = {
           persist(f)
           board.refresh(silent = true)
@@ -149,7 +150,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     reset {
       Task.chain(world, tasks).foreach(_.foreach(endGame _))
       if (numSlot < nbSlots){
-        applySlotTurnEffects(playerId, numSlot + 1)
+        applySlotEffects(playerId, phase, numSlot + 1)
       }
     }
   }
@@ -194,8 +195,8 @@ class GameUpdate {
     playerUpdate.houses.incrMana()
   }
 
-  def getSlotTurnEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState) = {
-    slotState.card.effects(CardSpec.OnTurn) map { f =>
+  def getSlotEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState, phase : CardSpec.Phase) = {
+    slotState.card.effects(phase) map { f =>
       updater.lift{ u =>
         val env = new GameCardEffect.Env(playerId, u)
         env.selected = numSlot
