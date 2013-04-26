@@ -93,34 +93,6 @@ class SimpleEntity(f : => Unit) extends Entity {
   def render() = f
 }
 
-object Task {
-  import collection._
-  import scala.util.continuations._
-  def chain[A](world : World, tasks: Iterable[Task[A]]) = shift { k: (List[A] => Unit) =>
-    if (tasks.isEmpty) k(Nil)
-    else world.addTask(new TaskChain(world, tasks, k))
-  }
-  private class TaskChain[A](world : World, tasks: Iterable[Task[A]], k : List[A] => Unit) extends Task[Unit] {
-    val ite = tasks.iterator
-    var current = ite.next
-    val duration = 0L
-
-    def init() {
-      world.addTask(current)
-      current.cont = Some(continue _)
-    }
-    def end() { }
-    def continue(){
-      if (ite.hasNext) {
-        current = ite.next
-        world.addTask(this)
-      } else {
-        k(tasks.map(_.result.get)(breakOut))
-      }
-    }
-  }
-}
-
 trait Task[A] {
   var start = 0L
   var result = Option.empty[A]
@@ -140,9 +112,20 @@ class SimpleTask(f : => Unit) extends Task[Unit]{
   def end(){f}
 }
 
-case class Wait(duration : Long) extends Task[Unit]{
+case class Wait(duration : Long, lock : AnyRef) extends Task[Unit]{
   def init(){}
-  def end(){}
+  def end(){
+    lock.synchronized(lock.notifyAll())
+  }
+}
+
+class BlockingTask(f : => Unit, lock : AnyRef) extends Task[Unit]{
+  val duration = 0L
+  def init(){}
+  def end(){
+    f
+    lock.synchronized(lock.notifyAll())
+  }
 }
 
 case class TaskSpawn(world : World, duration : Long)(f : => Unit) extends Task[Unit]{

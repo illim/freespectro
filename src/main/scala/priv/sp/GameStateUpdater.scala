@@ -136,7 +136,7 @@ class GameStateUpdater(initState : GameState, updateListener : UpdateListener = 
 
       def inflictCreatures(damage : Damage) {
         val d = mod(damage)
-        slots.foreach { case (num, slot) =>
+        slots.toList.sortBy(_._1).foreach { case (num, slot) =>
           damageSlot(d, num, slot)
         }
       }
@@ -189,6 +189,7 @@ class GameStateUpdater(initState : GameState, updateListener : UpdateListener = 
           // HACK (have to recreate the slot to recalcul attack)
           val newSlot = applySlotEffects(num,
             SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana, slot.data))
+          updateListener.move(num, dest, id)
           write(
             slot.card.slotEffect.applySlots(dest, slot.card.slotEffect.unapplySlots(num, slots -num) + (dest -> newSlot)))
         }
@@ -226,8 +227,10 @@ class GameStateUpdater(initState : GameState, updateListener : UpdateListener = 
 
 trait UpdateListener {
   def focus(num : Int, playerId : PlayerId)
+  def move(num : Int, dest : Int, playerId : PlayerId)
 }
 
 class DefaultUpdateListener extends UpdateListener {
-  def focus(num : Int, playerId : PlayerId){}
+  def focus(num : Int, playerId : PlayerId){ }
+  def move(num : Int, dest : Int, playerId : PlayerId) {}
 }

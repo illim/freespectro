@@ -7,7 +7,7 @@ trait Fire {
   import GameCardEffect._
 
   val Fire = House("fire", List(
-    Creature("Goblin", Some(4), 16, "Every turn deals 2 damage to owner adjacent cards", effects = effects(OnTurn ->goblinBerserker)),
+    Creature("Goblin", Some(4), 16, "Every turn deals 2 damage to owner adjacent cards", effects = effects(OnTurn -> goblinBerserker)),
     Creature("WallofFire", Some(0), 5, "Deals 5 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(Damage(5, isAbility = true)))),
     Creature("FireMonk", Some(3), 13, "Every turn increase fire mana growth by 1", effects = effects(OnTurn -> addMana(1, 0))),
     Creature("FireDrake", Some(4), 18, "Attack the turn he is summoned", runOnce = true),
@@ -25,6 +25,7 @@ trait Fire {
     val damage = Damage(2, isAbility = true)
     env.player.slots.slots.foreach { case (num, slot) =>
       if (math.abs(num - env.selected) == 1) {
+        env.focus()
         env.player.slots.inflictCreature(num, damage)
       }
     }

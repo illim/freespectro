@@ -6,7 +6,6 @@ import CardSpec._
 
 object GameCardEffect {
 
-  // state is used directly when it is evaluated late enough
   class Env(val playerId: PlayerId, val updater: GameStateUpdater) {
     var selected = 0
 

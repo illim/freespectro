@@ -4,6 +4,7 @@ import java.io._
 import java.net._
 import priv.sp.bot._
 import priv.util.Utils._
+import priv.util.TVar
 import collection.JavaConversions._
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -17,7 +18,7 @@ trait GameServer {
   def playerId : PlayerId
   def name : String
 
-  def waitNextCommand(k : (Option[Command] => Unit), state : GameState)
+  def waitNextCommand(c : TVar[Option[Command]], state : GameState)
   def submitCommand(commandOption : Option[Command])
 }
 
@@ -30,9 +31,9 @@ class Local(resources : GameResources) extends GameServer {
   val playerId = opponent
   val name = "AI"
   val bot = new BoundedBot(playerId, desc, resources.sp)
-  def waitNextCommand(k : (Option[Command] => Unit), state : GameState) = {
+  def waitNextCommand(c : TVar[Option[Command]], state : GameState) = {
     resources.aiExecutor.submit(
-      runnable(k(bot.executeAI(state))))
+      runnable(c.set(bot.executeAI(state))))
   }
 
   def submitCommand(commandOption : Option[Command]) = {
@@ -51,11 +52,10 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   peer.updateImpl(this)
 
   val currentTurnId = new AtomicInteger
-  val defaultCont : (Option[Command] => Unit) =  { c : Option[Command] => ()}
-  var cont = defaultCont
+  var cont = Option.empty[TVar[Option[Command]]]
 
-  def waitNextCommand(k : (Option[Command] => Unit), state : GameState) {
-    cont = k
+  def waitNextCommand(c : TVar[Option[Command]], state : GameState) {
+    cont = Some(c)
     currentTurnId.incrementAndGet
   }
   def submitCommand(commandOption : Option[Command]){
@@ -70,8 +70,8 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   // in
   def submit(turnId : Int, commandOption : Option[Command]) {
     assert(turnId == currentTurnId.get)
-    cont(commandOption)
-    cont = defaultCont
+    cont.get.set(commandOption)
+    cont = None
   }
 }
 

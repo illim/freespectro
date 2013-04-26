@@ -2,7 +2,7 @@ package priv.sp
 
 import java.util.concurrent._
 import java.net._
-import priv.util.Utils.iterate
+import priv.util.Utils._
 
 // bullcrap :)
 
@@ -14,7 +14,7 @@ import GameResources._
 class GameResources {
   val sp = new SpWorld
   val aiExecutor = Executors.newSingleThreadExecutor
-
+  val updateExecutor = new priv.util.RichExecutor
   val multi = new Resources
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
@@ -26,6 +26,8 @@ class GameResources {
     multi.release()
     sp.clean()
     aiExecutor.shutdown()
+    updateExecutor.releaseLock()
+    updateExecutor.executor.shutdown()
   }
 }
 

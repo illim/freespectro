@@ -27,31 +27,31 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   val panel = Row(elts)
 
-  class SpellAnim(k : Int => Unit, entity : SpellEntity, isRelative : Boolean = true) extends Task[Unit] {
+  class SpellAnim(lock : AnyRef, entity : SpellEntity, isRelative : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
     def duration = entity.duration
     def init() { attach.spawn(entity)  }
     def end() = {
       attach.unspawn(entity)
-      k(duration.intValue)
+      lock.synchronized{lock.notifyAll()}
     }
   }
 
-  def summonSpell(command : Command, sourceCoord : Coord2i) = shift { k: (Int => Unit) =>
+  def summonSpell(command : Command, sourceCoord : Coord2i, lock : AnyRef) = {
     import command.card
     def absTargetSlotCoord = command.input.map{ slotInput =>
       (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + slotCenter
     }
     if (card.houseIndex == 0 && card.cost == 6) {
-      panel.addTask(new SpellAnim(k, new Flame(game.sp, slotOffset, slotSize)))
+      panel.addTask(new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize)))
     } else if (card.houseIndex == 2 && card.cost == 3) {
       panel.addTask(
-        new SpellAnim(k,
+        new SpellAnim(lock,
           isRelative = false,
           entity = new Lightning(game.sp, sourceCoord, absTargetSlotCoord.get, slots(0).coord)))
     } else if (card.houseIndex == 2 && card.cost == 6) {
       panel.addTask(
-        new SpellAnim(k, isRelative = false,
+        new SpellAnim(lock, isRelative = false,
           entity = new Lightning(game.sp, sourceCoord, slots(0).coord)))
     } else if (card.houseIndex == 2 && card.cost == 8) {
       val points = (List(slots(5).coord + slotCenter) /: slots.reverse){ (acc, slot) =>
@@ -61,9 +61,9 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         } else acc
       }
       panel.addTask(
-        new SpellAnim(k, isRelative = false,
+        new SpellAnim(lock, isRelative = false,
           entity = new Lightning(game.sp, points.reverse :+ lifeLabel.coord.yProj + slotCenter.y : _*)))
-    } else k(0)
+    } else lock.synchronized(lock.notifyAll())
   }
 
   def listenEvent(slotButton: SlotButton) {

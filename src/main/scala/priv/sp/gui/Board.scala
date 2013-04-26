@@ -35,19 +35,20 @@ class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[C
 
 }
 
+import priv.util.TVar
+
 class CommandRecorder(game: Game) {
-  val contNoop = Function.const[Unit, Option[Command]]() _
   private var value = Option.empty[Command]
-  private var cont = contNoop
+  private var cont = Option.empty[TVar[Option[Command]]]
   def setCommand(command: Command) {
     game.slotPanels.foreach(_.disable())
     value = Some(command)
     nextStep()
   }
 
-  def startWith(f: => Unit) = shift { k: (Option[Command] => Unit) =>
+  def startWith(c : TVar[Option[Command]])(f: => Unit) {
     value = None
-    cont = k
+    cont = Some(c)
     f
   }
 
@@ -62,8 +63,8 @@ class CommandRecorder(game: Game) {
   }
 
   private def continue(c : Option[Command]) = {
-    cont(c)
-    cont = contNoop
+    cont.get.set(c)
+    cont = None
   }
 
   private def nextStep() {

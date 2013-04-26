@@ -25,6 +25,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
     world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
     world.spawn(Repere)
     gm.surrenderButton.on{ case MouseClicked(c) =>
+      resources.updateExecutor.releaseLock()
       currentGame = createGame()
     }
     gm.settingsButton.on{ case MouseClicked(c) =>

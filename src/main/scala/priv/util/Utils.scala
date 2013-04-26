@@ -4,6 +4,7 @@ import java.io._
 import java.nio._
 import javax.swing._
 import java.awt.event._
+import java.util.concurrent._
 import collection.JavaConversions._
 import org.lwjgl.opengl._
 import org.lwjgl.opengl.GL11._
@@ -128,6 +129,49 @@ object Utils {
   def createAction(name: String)(f: => Unit) : AbstractAction = {
     new AbstractAction(name) {
       def actionPerformed(e: ActionEvent){ f }
+    }
+  }
+}
+
+class TVar[A <: AnyRef](lock : AnyRef){
+  private var holder = Option.empty[A]
+  def set(a : A){
+    holder = Some(a)
+    lock.synchronized {
+      lock.notifyAll()
+    }
+  }
+
+  def get() : Option[A] = {
+    lock.synchronized {
+      lock.wait()
+    }
+    holder
+  }
+}
+
+class RichExecutor {
+  val executor = Executors.newSingleThreadExecutor
+  val lock = new Object
+
+  def execute(f : => Unit){ executor.submit(Utils.runnable(f)) }
+  def releaseLock(){
+    lock.synchronized {
+      lock.notifyAll()
+    }
+  }
+
+  // return none when surrendering for example
+  def waitFor[A <: AnyRef](f : TVar[A] => Unit) : Option[A] = {
+    val t = new TVar[A](lock)
+    f(t)
+    t.get()
+  }
+
+  def waitLock(f : AnyRef => Unit){
+    f(lock)
+    lock.synchronized {
+      lock.wait()
     }
   }
 }
