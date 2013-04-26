@@ -187,7 +187,8 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
           // HACK (have to recreate the slot to recalcul attack)
           val newSlot = applySlotEffects(num,
             SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana, slot.data))
-          write((slots - num) + (dest -> newSlot))
+          write(
+            slot.card.slotEffect.applySlots(dest, slot.card.slotEffect.unapplySlots(num, slots -num) + (dest -> newSlot)))
         }
       }
 

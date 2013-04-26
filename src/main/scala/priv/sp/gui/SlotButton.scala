@@ -68,7 +68,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
 
   def lifeBar(slotState : SlotState) = {
     glDisable(GL_TEXTURE_2D)
-    val w = 66 * slotState.life / slotState.card.life
+    val w = 66 * slotState.life / math.max(slotState.life, slotState.card.life)
     val h = 7
     glColor4f(0.2f, 0.6f, 0.2f, 0.6f)
     glBegin(GL_POLYGON)

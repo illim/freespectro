@@ -7,6 +7,7 @@ class GameSettings(resources : GameResources) extends JPanel  {
 
   class PlayerChoice(id : PlayerId) extends ActionListener {
     val combo = new JComboBox(resources.sp.houses.special.toArray)
+    combo.setSelectedItem(resources.playerChoices(id))
     combo.addActionListener(this)
     def actionPerformed(e : ActionEvent){
       resources.playerChoices = resources.playerChoices.updated(id, combo.getSelectedItem().asInstanceOf[House])
