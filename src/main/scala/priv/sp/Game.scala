@@ -144,29 +144,22 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
   }
 
-
-  protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase, numSlot : Int = 0) {
-    var ended = Option.empty[PlayerId]
-    state.players(playerId).slots.get(numSlot) foreach { slotState =>
-      gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) foreach { f =>
-        val slotButton = slotPanels(playerId).slots(numSlot)
-        persist(f)
-        slotButton.focusAnim.foreach{ anim =>
-          updateExecutor.waitLock{ lock =>
-            world.addTask(Wait(anim.duration + anim.start - world.time, lock))
+  protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase) {
+    ((Option.empty[PlayerId] /: state.players(playerId).slots) {
+      case (None, (numSlot, slotState)) =>
+        gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) flatMap { f =>
+          val slotButton = slotPanels(playerId).slots(numSlot)
+          persist(f)
+          slotButton.focusAnim.foreach{ anim =>
+            updateExecutor.waitLock{ lock =>
+              world.addTask(Wait(anim.duration + anim.start - world.time, lock))
+            }
           }
+          refresh(silent = true)
+          state.checkEnded
         }
-        refresh(silent = true)
-        if (ended.isEmpty) ended = state.checkEnded
-      }
-    }
-    ended match {
-      case Some(playerId) => endGame(playerId)
-      case None =>
-        if (numSlot < nbSlots){
-          applySlotEffects(playerId, phase, numSlot + 1)
-        }
-    }
+      case (acc, _) => acc
+    }).foreach(endGame _)
   }
 
   private def notifySpellPlayed(card : Card) {

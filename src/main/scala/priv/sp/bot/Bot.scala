@@ -46,11 +46,11 @@ trait Bot {
   }
 
   def simulateCommand(state: GameState, command: Command) : GameState = {
-    initGameUpdate(state)
     simulateCommand(state, command.player, Some(command))
   }
 
   def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : GameState = {
+    initGameUpdate(state)
     try {
       val commandState = commandOption match {
         case None => state

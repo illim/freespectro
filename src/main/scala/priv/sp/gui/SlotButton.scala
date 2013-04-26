@@ -124,8 +124,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   }
 
   class MoveAnimTask(dest : Int, lock : AnyRef) extends Task[Unit] {
-    val duration = math.abs(dest - num) * 500L
-    private val dir = if (dest - num > 0) 1 else -1
+    val duration = math.abs(dest - num) * 300L
     def init() { moveAnim = Some(this) }
     def end() = {
       lock.synchronized{lock.notifyAll()}
@@ -134,7 +133,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
         card = None // HACK
       }
     }
-    def getDelta(time: Long) = dir * size.x * (time - start) / duration
+    def getDelta(time: Long) = (dest - num) * size.x * (time - start) / duration
   }
 
   on {

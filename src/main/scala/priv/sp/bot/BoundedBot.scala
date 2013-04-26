@@ -28,7 +28,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   def execute() = {
     val startTime = System.currentTimeMillis
     val end = startTime + duration
-    val node = Node(start, botPlayerId, Nil)
+    val node = Node(start, botPlayerId, Nil, None, isRoot = true)
     val rootLoc = Tree(node).loc
     var next = Option(rootLoc)
     var last = rootLoc
@@ -89,16 +89,18 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
           label.updateStatsFrom(label.state, Some(p), boost = boostFactor * (1 + maxDepth - depth)) // FIXME not great
           Stream.Empty
         case None =>
-          label.commandChoices.map { command =>
+          val commands = label.commandChoices.map { command =>
             Tree(Node(label.state, other(label.playerId), path, Some(command)))
           }
+          new Stream.Cons(
+            Tree(Node(label.state, other(label.playerId), path, None)), commands)
       }
     }
 
     def select(x : Node, y : Node, fairOnly : Boolean) : Boolean = if (fairOnly) x.getFair > y.getFair else x.getUct > y.getUct
   }
 
-  case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command] = None) extends LeafableNode {
+  case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command], isRoot : Boolean = false) extends LeafableNode {
     var numSim = 0.1f
     var rewards = 0f
 
@@ -111,10 +113,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
 
-    lazy val state = commandOpt.map{ cmd =>
+    lazy val state = if (isRoot) initState else {
       perfStat.nbsim += 1
-      bot.simulateCommand(initState, cmd) // should be random here
-    } getOrElse initState
+      bot.simulateCommand(initState, other(playerId), commandOpt) // should be random here
+    }
 
     def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
     def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1){

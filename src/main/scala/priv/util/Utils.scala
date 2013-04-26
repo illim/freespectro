@@ -152,13 +152,14 @@ class TVar[A <: AnyRef](lock : AnyRef){
 
 class RichExecutor {
   val executor = Executors.newSingleThreadExecutor
-  val lock = new Object
+  var lock = new Object
 
   def execute(f : => Unit){ executor.submit(Utils.runnable(f)) }
-  def releaseLock(){
+  def releaseLock(){ // this can be very dangerous if it is released during ai(TODO make it safer)
     lock.synchronized {
       lock.notifyAll()
     }
+    lock = new Object
   }
 
   // return none when surrendering for example
