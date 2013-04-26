@@ -52,6 +52,7 @@ trait JunkMage {
       val attack = trashs.size * trash.attack.get
       // get first !
       slots.value.find(_._2.card == trashCyborg).foreach{ case (num, slot) =>
+        env.updater.focus(num, env.playerId)
         slots.update(_ + (num -> slot.copy(attack = slot.attack + attack, life = slot.life + life)))
       }
     }
@@ -110,6 +111,7 @@ class JunkyardGoddessReaction extends DefaultReaction {
     val slot = playerUpdate.slots.value(selected)
     if (!slot.data.asInstanceOf[Boolean]
         && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 6)){
+        updater.focus(selected, playerId)
         playerUpdate.slots.setData(selected, Boolean.box(true))
         math.max(0, d.amount - 3)
     } else d.amount
@@ -122,14 +124,16 @@ class ChainControllerReaction extends DefaultReaction {
     val step = num - selected
     if (card.cost < 6 && math.abs(step) == 1){
       val playerUpdate = updater.players(playerId)
-      playerUpdate.slots.value.get(num + step) match {
-        case Some(slot) if slot.card.cost < 6 =>
-          playerUpdate.slots.move(num + step, num)
+      (playerUpdate.slots.value.get(num + step) match {
+        case Some(slot) if slot.card.cost < 6 => Some(num + step)
         case _ =>
           playerUpdate.slots.value.get(selected - step) match {
-            case Some(slot) if slot.card.cost < 6 => playerUpdate.slots.move(selected -step, num)
-            case _ =>
+            case Some(slot) if slot.card.cost < 6 => Some(selected -step)
+            case _ => None
           }
+      }).foreach{ dest =>
+        updater.focus(selected, playerId)
+        playerUpdate.slots.move(dest, num)
       }
     }
   }
@@ -142,6 +146,7 @@ class FactoryReaction extends DefaultReaction {
     if (selectedPlayerId == playerId
         && math.abs(step) == 1
         && card.cost < 6){
+      updater.focus(selected, playerId)
       val slots = updater.players(playerId).slots
       val pos = selected + step
       if (!slots.value.isDefinedAt(pos)){
@@ -157,6 +162,7 @@ class RecyclingBotReaction extends DefaultReaction {
     if (selected != num){
       val playerUpdate = updater.players(playerId)
       playerUpdate.slots.value.get(selected).foreach{ botSlot =>
+        updater.focus(selected, playerId)
         if (botSlot.life == botSlot.card.life) {
           playerUpdate.heal(2)
         } else {

@@ -29,7 +29,12 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val skipButton      = new GuiButton("Skip turn")
   val settingsButton  = new GuiButton("Settings")
 
-  private val gameUpdate = GameUpdate(new GameStateUpdater(state))
+  private val gameUpdate = GameUpdate(new GameStateUpdater(state, new UpdateListener{
+    def focus(num : Int, playerId : PlayerId){
+      val slotButton = slotPanels(playerId).slots(num)
+      world.addTask(new slotButton.FocusAnimTask)
+    }
+  }))
 
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)
@@ -131,25 +136,22 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
 
   protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase, numSlot : Int = 0) {
+    var ended = Option.empty[PlayerId]
     val tasks = state.players(playerId).slots.get(numSlot) flatMap { slotState =>
       gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase).flatMap { f =>
-        def applyEffect() = {
-          persist(f)
-          board.refresh(silent = true)
-          state.checkEnded
-        }
-        if (!slotState.card.isFocusable){
-          applyEffect()
-          None
-        } else {
-          val slotButton = slotPanels(playerId).slots(numSlot)
-          Some(new slotButton.FocusAnimTask(applyEffect()))
+        val slotButton = slotPanels(playerId).slots(numSlot)
+        persist(f)
+        board.refresh(silent = true)
+        if (ended.isEmpty) ended = state.checkEnded
+        slotButton.focusAnim.map{ anim =>
+          Wait(anim.duration + anim.start - world.time) // crap
         }
       }
     }
     reset {
-      Task.chain(world, tasks).foreach(_.foreach(endGame _))
-      if (numSlot < nbSlots){
+      Task.chain(world, tasks)
+      ended.foreach(endGame _)
+      if (numSlot < nbSlots && ended.isEmpty){
         applySlotEffects(playerId, phase, numSlot + 1)
       }
     }

@@ -6,7 +6,7 @@ import priv.util.FieldUpdate
 
 // sandbox horror, not thread safe (reusable static structure decomposition to update fields)
 // should be more flexible than using lens
-class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
+class GameStateUpdater(initState : GameState, updateListener : UpdateListener = new DefaultUpdateListener) extends FieldUpdate(None, initState) { self =>
   private var ended = false
   private val playerFieldUpdates = playerIds.map(id => new PlayerFieldUpdate(id))
   def state = value
@@ -21,6 +21,8 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     val res = f(update)
     (update.result, res)
   }
+
+  def focus(num : Int, playerId : PlayerId) = updateListener.focus(num, playerId)
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
@@ -219,4 +221,13 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     val fp = playerFieldUpdates(id)
     if (fp.isDirty) fp.result else state.players(id)
   })
+}
+
+
+trait UpdateListener {
+  def focus(num : Int, playerId : PlayerId)
+}
+
+class DefaultUpdateListener extends UpdateListener {
+  def focus(num : Int, playerId : PlayerId){}
 }

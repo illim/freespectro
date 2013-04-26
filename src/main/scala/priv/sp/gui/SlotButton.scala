@@ -15,7 +15,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
   enabled = false
   private var card = getCard
   private var runAnim = Option.empty[RunAnimTask[_]]
-  private var focusAnim = Option.empty[FocusAnimTask[_]]
+  var focusAnim = Option.empty[FocusAnimTask]
   val slotSize = Coord2i(120, 142)
   private val dashOffset = Coord2i(slotSize.x/2 - 39, slotSize.y/2-44)
 
@@ -110,15 +110,12 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     def getDelta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
   }
 
-  class FocusAnimTask[A](onEnd: => A) extends Task[A] {
+  class FocusAnimTask extends Task[Unit] {
     val duration = 500L
     private val half = duration / 2
     private val amplitude = 0.05
     def init() { focusAnim = Some(this) }
-    def end() = {
-      focusAnim = None
-      onEnd
-    }
+    def end() = { focusAnim = None  }
     def getDelta(time: Long) = amplitude * math.sin((time - start).toDouble / duration * math.Pi)
   }
 

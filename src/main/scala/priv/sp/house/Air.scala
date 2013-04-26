@@ -17,9 +17,10 @@ trait Air {
       effects = effects(Direct -> damageCreature(Damage(6, isSpell = true)), Direct -> damage(Damage(6, isSpell = true)))),
     Creature("FaerieSage", Some(4), 19, "When summoned heals owner by amount of earth mana(limited to 10)",
       effects = effects(Direct -> { env : Env =>
+        env.focus()
         env.player.heal(math.min(env.getMana(3), 10))
       })),
-    Creature("WallOfLightning", Some(0), 28, "Every turn deals 4 damage to opponent", effects = effects(OnTurn -> damage(Damage(4, isAbility = true)))),
+    Creature("WallOfLightning", Some(0), 28, "Every turn deals 4 damage to opponent", effects = effects(OnTurn -> focus(damage(Damage(4, isAbility = true))))),
     Spell("Lightnin", "Deals (5 + air power) damage to opponent",
       effects = effects(Direct -> { env : Env => env.otherPlayer.inflict(Damage(5 + env.getMana(2), isSpell = true))})),
     Creature("Phoenix", Some(6), 18, "Can reborn if fire mana >= 10", reaction = new PhoenixReaction),
@@ -30,7 +31,10 @@ trait Air {
       effects = effects(Direct -> { env: Env => env.otherPlayer.slots.destroy(env.selected) })),
     Creature("AirElemental", None, 44, "Air elemental deals 8 damage to opponent when summoned", effects = effects(Direct -> damage(Damage(8, isAbility = true)), OnTurn -> addMana(1, 2))),
     Creature("Titan", Some(9), 40, "Deals 15 damage to opposite creature when summoned",
-      effects = effects(Direct -> { env : Env => env.otherPlayer.slots.inflictCreature(env.selected, Damage(15, isAbility = true))})))
+      effects = effects(Direct -> { env : Env =>
+        env.focus()
+        env.otherPlayer.slots.inflictCreature(env.selected, Damage(15, isAbility = true))
+      })))
       , houseIndex = 2)
 
 }

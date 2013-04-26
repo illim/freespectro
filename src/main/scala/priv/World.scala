@@ -140,6 +140,11 @@ class SimpleTask(f : => Unit) extends Task[Unit]{
   def end(){f}
 }
 
+case class Wait(duration : Long) extends Task[Unit]{
+  def init(){}
+  def end(){}
+}
+
 case class TaskSpawn(world : World, duration : Long)(f : => Unit) extends Task[Unit]{
   val entity = new SimpleEntity(f)
   def init(){world.spawn(entity)}

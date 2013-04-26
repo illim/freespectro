@@ -45,9 +45,8 @@ case class Creature(
   data           : AnyRef = null, // initialize slot custom data
   multipleTarget : Boolean = false,
   immune      : Boolean = false,
-  isFocusable : Boolean = true,
-  runOnce     : Boolean = false) // card is focused on effect after spawn. a bit ugly should be specified by effects
-     extends Card {
+  runOnce     : Boolean = false) extends Card {
+
   def this() = this(null, None, 0)
 
   def inflict(damage : Damage, life : Int) = {
