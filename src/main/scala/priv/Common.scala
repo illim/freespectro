@@ -13,10 +13,13 @@ object Coord2i {
     def -[N](x : N)(implicit num : Numeric[N]) = this.+(num.negate(x))
   }
 
+  @inline def pow2(x : Int) = x * x
+
   def sqrDist(a : Coord2i, b :Coord2i) = {
-    @inline def pow2(x : Int) = x * x
     pow2(b.x - a.x) + pow2(b.y - a.y)
   }
+
+  def dist(a : Coord2i, b :Coord2i) = math.sqrt(sqrDist(a, b))
 
   /**
    * for example, if one texture have to be displayed on a center coordinate
@@ -33,4 +36,5 @@ case class Coord2i(x: Int, y: Int) {
   import Coord2i._
   def xProj = new Proj(xL, this)
   def yProj = new Proj(yL, this)
+  def size = math.sqrt(pow2(x) + pow2(y))
 }

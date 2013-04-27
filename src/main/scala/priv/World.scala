@@ -63,6 +63,7 @@ trait Attachable extends Entity {
   }
 
   def addTask(task: Task[_]) {
+    task.setWorld(world)
     task.start = System.currentTimeMillis
     task.init()
     tasks.add(task)
@@ -84,7 +85,7 @@ trait Entity {
   def render()
 
   def setWorld(w : World){  world = w }
-  protected def deltaT(time: Long) = time - creationTime
+  protected def getDelta() = world.time - creationTime
   @inline def stdspeed = Entity.stdspeed
   override def hashCode() = id
 }
@@ -93,13 +94,21 @@ class SimpleEntity(f : => Unit) extends Entity {
   def render() = f
 }
 
+trait TimedEntity extends Entity {
+  def duration : Long
+  def onEnd(){}
+}
+
 trait Task[A] {
   var start = 0L
   var result = Option.empty[A]
-  var cont = Option.empty[() => Unit]
+  var cont = List.empty[() => Unit]
+  protected var world : World = null
+
   def duration: Long
   def init()
   def end() : A
+  def setWorld(w : World){  world = w }
   private[priv] def finish(){
     result = Some(end())
     cont.foreach(_())
@@ -112,13 +121,6 @@ class SimpleTask(f : => Unit) extends Task[Unit]{
   def end(){f}
 }
 
-case class Wait(duration : Long, lock : AnyRef) extends Task[Unit]{
-  def init(){}
-  def end(){
-    lock.synchronized(lock.notifyAll())
-  }
-}
-
 class BlockingTask(f : => Unit, lock : AnyRef) extends Task[Unit]{
   val duration = 0L
   def init(){}
@@ -128,10 +130,16 @@ class BlockingTask(f : => Unit, lock : AnyRef) extends Task[Unit]{
   }
 }
 
-case class TaskSpawn(world : World, duration : Long)(f : => Unit) extends Task[Unit]{
-  val entity = new SimpleEntity(f)
+case class TaskSpawn(entity : TimedEntity, lockOption : Option[AnyRef] = None) extends Task[Unit]{
+  val duration = entity.duration
   def init(){world.spawn(entity)}
-  def end(){world.unspawn(entity)}
+  def end(){
+    world.unspawn(entity)
+    entity.onEnd()
+    lockOption.foreach{ lock =>
+      lock.synchronized(lock.notifyAll())
+    }
+  }
 }
 
 class TexAnim(

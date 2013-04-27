@@ -133,7 +133,9 @@ object Utils {
   }
 }
 
-class TVar[A <: AnyRef](lock : AnyRef){
+class TVar[A <: AnyRef](richLock : RichLock){
+  import richLock.lock
+
   private var holder = Option.empty[A]
   def set(a : A){
     holder = Some(a)
@@ -150,29 +152,37 @@ class TVar[A <: AnyRef](lock : AnyRef){
   }
 }
 
-class RichExecutor {
-  val executor = Executors.newSingleThreadExecutor
-  var lock = new Object
+// some stupid lock that cant be waited on twice
+// TODO clean this crap
+class RichLock {
+  import java.util.concurrent.atomic.AtomicBoolean
+  @volatile var released = false
+  @volatile var acquired = new AtomicBoolean
+  val lock = new Object
 
-  def execute(f : => Unit){ executor.submit(Utils.runnable(f)) }
-  def releaseLock(){ // this can be very dangerous if it is released during ai(TODO make it safer)
+  def release(){ // this can be very dangerous if it is released during ai(TODO make it safer)
     lock.synchronized {
+      released = true
       lock.notifyAll()
     }
-    lock = new Object
   }
 
   // return none when surrendering for example
   def waitFor[A <: AnyRef](f : TVar[A] => Unit) : Option[A] = {
-    val t = new TVar[A](lock)
+    val t = new TVar[A](this)
     f(t)
-    t.get()
+    lock.synchronized {
+      if (released) None else t.get()
+    }
   }
 
   def waitLock(f : AnyRef => Unit){
     f(lock)
     lock.synchronized {
-      lock.wait()
+      if (!released && acquired.compareAndSet(false, true)) {
+        lock.wait()
+        acquired.compareAndSet(true, false)
+      }
     }
   }
 }

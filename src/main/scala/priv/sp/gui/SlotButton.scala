@@ -7,30 +7,30 @@ import priv.World
 import priv.GuiElem
 
 // total crap
-class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], game : Game) extends GuiElem with Damagable {
+class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState], game : Game) extends GuiElem with Damagable {
   import game.sp.baseTextures.slotTex
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
   enabled = false
-  private var card = getCard
-  private var runAnim = Option.empty[RunAnimTask]
+  private var card = getCard(slot)
   private var moveAnim = Option.empty[MoveAnimTask]
-  var focusAnim = Option.empty[FocusAnimTask]
+  var focusScale = Option.empty[Float]
   val slotSize = Coord2i(120, 142)
   private val dashOffset = Coord2i(slotSize.x/2 - 39, slotSize.y/2-44)
+  val location = Location(Coord2i(19, 33))
 
   def zeroAnim = Function.const[Long, Long](0) _
   def refresh() {
     val old = card
-    card = getCard
+    card = getCard(slot)
     for(before <- old; after <- card ; val d = after._1.life - before._1.life if d != 0){
       game.world.addTask(DamageAnimTask(d))
     }
   }
   def isEmpty = card.isEmpty
 
-  private def getCard = slot.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }
+  private def getCard(s : Option[SlotState]) = s.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }
 
 
   def render() {
@@ -43,11 +43,16 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
       case (slotState, cardTex) =>
         glPushMatrix()
         glTranslatef(
-          21 + moveAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f),
-          33 + runAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f),
+          location.c.x + moveAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f),
+          location.c.y,
           0)
-        focusAnim.foreach{ anim =>
+        /**focusDelta.foreach{ anim =>
           val scale = 1 + anim.getDelta(world.time).toFloat
+          glScalef(scale, scale, 1)
+          val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
+          glTranslatef(pos.x, pos.y, 0)
+        }*/
+        focusScale.foreach{ scale =>
           glScalef(scale, scale, 1)
           val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
           glTranslatef(pos.x, pos.y, 0)
@@ -66,7 +71,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     }
 
     if (enabled) {
-      dash(dashOffset, 81, 92, ((deltaT(world.time) / 100) % 16).intValue)
+      dash(dashOffset, 81, 92, ((getDelta() / 100) % 16).intValue)
     }
   }
 
@@ -102,25 +107,37 @@ class SlotButton(val num: Int, playerId : PlayerId, slot: => Option[SlotState], 
     glEnable(GL_TEXTURE_2D)
   }
 
-  class RunAnimTask(lock : AnyRef) extends Task[Unit] {
-    val duration = 1500L
-    private val half = duration / 2
-    private val amplitude = 2
-    def init() { runAnim = Some(this) }
-    def end() = {
-      runAnim = None
-      lock.synchronized{lock.notifyAll()}
-    }
-    def getDelta(time: Long) = amplitude * direction * (half - math.abs(half - (time - start))) / 100
+  def summon(start : Coord2i, s : SlotState) = {
+    location.c = start - coord
+    card = getCard(Some(s))
+    new MoveTo(location, location.init)
   }
 
-  class FocusAnimTask extends Task[Unit] {
+  class MoveTo(val location : Location, dest : Coord2i) extends TimedEntity {
+    private val start = location.c
+    private val dir = dest - start
+    val duration = dir.size.toLong
+
+    def render(){
+      val fact = getDelta() / duration.toFloat
+      location.c = dest - (dir * math.max(0, (1 - fact)))
+    }
+  }
+
+  class Focus extends TimedEntity {
     val duration = 500L
     private val half = duration / 2
     private val amplitude = 0.05
-    def init() { focusAnim = Some(this) }
-    def end() = { focusAnim = None  }
-    def getDelta(time: Long) = amplitude * math.sin((time - start).toDouble / duration * math.Pi)
+
+    def render(){
+      if (getDelta() < duration){ // FIXME
+        val delta = amplitude * math.sin(getDelta().toDouble / duration * math.Pi)
+        focusScale = Some(1 + delta.toFloat)
+      }
+    }
+    override def onEnd(){
+      focusScale = None
+    }
   }
 
   class MoveAnimTask(dest : Int, lock : AnyRef) extends Task[Unit] {

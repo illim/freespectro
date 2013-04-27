@@ -8,8 +8,8 @@ import priv.sp.bot._
 import java.util.concurrent._
 import util.Utils._
 
-class Game(val world: World, resources : GameResources, val server : GameServer) {
-  import resources.updateExecutor
+class Game(val world: World, resources : GameResources, val server : GameServer) { game =>
+  import resources.gameExecutor
 
   var state      = server.initState
   val sp         = resources.sp
@@ -17,6 +17,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val myPlayerId    = other(server.playerId)
   val otherPlayerId = server.playerId
   val names         = playerIds.map{id => if (id == myPlayerId) "me" else server.name }
+  val gameLock      = new priv.util.RichLock
 
   // gui
   val commandRecorder  = new CommandRecorder(this)
@@ -36,10 +37,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
-  resources.updateExecutor.execute(waitPlayer(owner))
+  resources.gameExecutor.submit(runnable(waitPlayer(owner)))
 
   def refresh(silent : Boolean = false) = {
-    updateExecutor.waitLock{ lock =>
+    gameLock.waitLock{ lock =>
       world.addTask(new BlockingTask(board.refresh(silent), lock))
     }
   }
@@ -47,13 +48,13 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   protected def waitPlayer(player: PlayerId) {
     if (player == server.playerId) {
       cardPanels(player).setEnabled(true)
-      updateExecutor.waitFor[Option[Command]]{ c =>
+      gameLock.waitFor[Option[Command]]{ c =>
         server.waitNextCommand(c, state)
       }.foreach{ nextCommand =>
         submit(nextCommand, player)
       }
     } else {
-      updateExecutor.waitFor[Option[Command]]{ c =>
+      gameLock.waitFor[Option[Command]]{ c =>
         commandRecorder.startWith(c) {
           cardPanels(player).setEnabled(true)
         }
@@ -90,16 +91,13 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
           player
         } else other(player)
-        updateExecutor.waitLock{ lock =>
+        gameLock.waitLock{ lock =>
           world.doInRenderThread{
             slotPanels(targetPlayer).summonSpell(c, sourceCoord, lock)
           }
         }
       }
-      gameUpdate.getCommandEffect(c).foreach(persist(_))
-      refresh()
-      persist(gameUpdate.debitAndSpawn(c))
-      refresh(silent = true)
+      persist(gameUpdate.submit(c))
     }
     run(player)
   }
@@ -111,6 +109,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         println("run" + playerId)
         refresh()
         persist(gameUpdate.runSlots(playerId))
+        refresh()
         applySlotEffects(playerId, CardSpec.OnEndTurn)
         if (state.checkEnded.isEmpty){
           val otherPlayerId = other(playerId)
@@ -129,13 +128,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       case (None, (numSlot, slotState)) =>
         if (state.players(playerId).slots.isDefinedAt(numSlot)){
           gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) flatMap { f =>
-            val slotButton = slotPanels(playerId).slots(numSlot)
             persist(f)
-            slotButton.focusAnim.foreach{ anim =>
-              updateExecutor.waitLock{ lock =>
-                world.addTask(Wait(anim.duration + anim.start - world.time, lock))
-              }
-            }
             refresh(silent = true)
             state.checkEnded
           }
@@ -146,35 +139,44 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   private def notifySpellPlayed(card : Card) {
     world.doInRenderThread{
-      import org.lwjgl.opengl.GL11._
-      val cardTex = sp.textures.get("Images/Cards/" + card.image)
-      world.addTask(TaskSpawn(world, duration = 1000L){
-        glColor4f(1, 1, 1, 1)
-        tex.drawAt(Coord2i(200, 100), cardTex.id, cardTex.size)
-      })
+      world.addTask(TaskSpawn(new SpellNotif(sp, card)))
+    }
+  }
+
+  private def spawnBlocking(entity : => TimedEntity){
+    gameLock.waitLock{ lock =>
+      world.doInRenderThread{
+        world.addTask(TaskSpawn(entity, Some(lock)))
+      }
     }
   }
 
   private class GameUpdateListener extends UpdateListener {
     def focus(num : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
-      world.addTask(new slotButton.FocusAnimTask())
+      spawnBlocking(new slotButton.Focus())
     }
     def move(num : Int, dest : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
-      updateExecutor.waitLock{ lock =>
+      gameLock.waitLock{ lock =>
         world.addTask(new slotButton.MoveAnimTask(dest, lock))
       }
     }
     def runSlot(num : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
-      updateExecutor.waitLock{ lock =>
-        world.addTask(new slotButton.RunAnimTask(lock))
-      }
+      spawnBlocking(Running(slotButton.location, slotButton.direction))
       persistState(gameUpdate.updater.result) // crappy side effect
       refresh()
       state.checkEnded.foreach(endGame _)
     }
+    def summon(num : Int, slot : SlotState, playerId : PlayerId){
+      val sourceCoord = cardPanels(playerId).getPositionOf(slot.card)
+      val slotButton = slotPanels(playerId).slots(num)
+      spawnBlocking(slotButton.summon(sourceCoord, slot))
+      persistState(gameUpdate.updater.result)
+      refresh(silent = true)
+    }
+    def refresh(silent : Boolean) = game.refresh(silent)
   }
 
 }
@@ -188,6 +190,8 @@ object GameUpdate {
 }
 class GameUpdate {
   var updater : GameStateUpdater = null // horror to remove crappy dependency(todo create fake structure to init correctly the updater)
+
+  def submit(c : Command) = updater.lift(_.players(c.player).submit(c))
 
   def runSlots(playerId: PlayerId) = updater.lift{ u =>
     val playerUpdate = u.players(playerId)
@@ -209,25 +213,15 @@ class GameUpdate {
       }
     }
   }
+}
 
-  def debitAndSpawn(command: Command): State[GameState, Unit] = updater.lift{ u =>
-    val playerUpdate = u.players(command.player)
+class SpellNotif(sp : SpWorld, card: Card) extends TimedEntity {
+  import org.lwjgl.opengl.GL11._
+  val duration = 1000L
+  val cardTex = sp.textures.get("Images/Cards/" + card.image)
 
-    playerUpdate.houses.incrMana(- command.card.cost, command.card.houseIndex)
-    if (!command.card.isSpell) {
-      command.input.foreach{ slotInput =>
-        playerUpdate.slots.summon(slotInput.num, SlotState.asCreature(command.card))
-      }
-    }
-  }
-
-  def getCommandEffect(command : Command) : Option[State[GameState, Unit]] = {
-    command.card.effects(CardSpec.Direct) map { f =>
-      updater.lift{ u =>
-        val env = new GameCardEffect.Env(command.player, u)
-        command.input foreach { slotInput => env.selected = slotInput.num }
-        f(env)
-      }
-    }
+  def render(){
+    glColor4f(1, 1, 1, 1)
+    tex.drawAt(Coord2i(200, 100), cardTex.id, cardTex.size)
   }
 }

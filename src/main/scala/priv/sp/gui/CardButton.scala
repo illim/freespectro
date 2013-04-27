@@ -31,7 +31,7 @@ class CardButton(val card : Card, houseState: => HouseState, game : Game) extend
       glPushMatrix()
       glTranslatef(-5, -5, 0)
       hoverGlow.used {
-        val deltax = deltaT(world.time) / 100f
+        val deltax = getDelta() / 100f
         val animLength = 50
         val animationCursor = deltax.intValue % animLength
         glUniform1i(hoverGlow.cursor, animationCursor)
@@ -42,7 +42,7 @@ class CardButton(val card : Card, houseState: => HouseState, game : Game) extend
       val o = Coord2i(size.x/2 - 100, size.y/2 -100)
       glDisable(GL_TEXTURE_2D)
       selectedGlow.used {
-        val deltax = deltaT(world.time) / 100f
+        val deltax = getDelta() / 100f
         val animLength = 62
         val animationCursor = deltax % animLength
         glUniform1f(selectedGlow.cursor, animationCursor)
@@ -94,7 +94,7 @@ case class TestButton(sp: SpWorld) extends GuiElem {
     glDisable(GL_TEXTURE_2D)
     glColor4f(1, 1, 1, 1)
     selectedGlow.used {
-      val deltax = deltaT(world.time) / 50f
+      val deltax = getDelta() / 50f
       val animLength = 50
       val animationCursor = deltax % animLength
       val o = Coord2i(0, 0)

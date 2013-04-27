@@ -27,7 +27,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   val panel = Row(elts)
 
-  class SpellAnim(lock : AnyRef, entity : SpellEntity, isRelative : Boolean = true) extends Task[Unit] {
+  class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
     def duration = entity.duration
     def init() { attach.spawn(entity)  }
@@ -82,13 +82,9 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
   }
 }
 
-trait SpellEntity extends Entity {
-  def duration : Long
-}
-
 import Coord2i._
 
-class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends SpellEntity {
+class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends TimedEntity {
   val duration = 1500L
   val fireTex = sp.baseTextures.fire
   val offset = Coord2i(slotOffset.x + slotSize.x / 2,  slotSize.y / 2)
@@ -106,7 +102,7 @@ class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends Spel
 
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-    val delta = deltaT(world.time)
+    val delta = getDelta()
     if (currentPart < nbPart && delta > partTimeLine(currentPart)._1){
       shownParts = (partTimeLine(currentPart)._2, delta) :: shownParts
       currentPart += 1
@@ -122,7 +118,7 @@ class Flame(sp : SpWorld, slotOffset : Coord2i, slotSize : Coord2i) extends Spel
   }
 }
 
-class Lightning(sp : SpWorld, points : Coord2i*) extends SpellEntity {
+class Lightning(sp : SpWorld, points : Coord2i*) extends TimedEntity {
   val posInterval = new FollowLines(points.zip(points.tail).map{ case (p1, p2) =>
     new SegInterval(p1, p2)
   })
@@ -132,11 +128,10 @@ class Lightning(sp : SpWorld, points : Coord2i*) extends SpellEntity {
 
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE)
-    val delta = deltaT(world.time)
     trailRange.foreach{ x =>
       glColor4f(1, 1, 1, 1f/(1+x))
       val size = ctTex.size * (1f/(1+x))
-      tex.drawAt(recenter(posInterval.posAt(delta - (x * 5)), size), ctTex.id, size)
+      tex.drawAt(recenter(posInterval.posAt(getDelta() - (x * 5)), size), ctTex.id, size)
     }
   }
 

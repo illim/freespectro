@@ -54,9 +54,7 @@ trait Bot {
     try {
       val commandState = commandOption match {
         case None => state
-        case Some(command) =>
-          val stateEffect = gameUpdate.getCommandEffect(command).map(_.exec(state)).getOrElse(state)
-          gameUpdate.debitAndSpawn(command).exec(stateEffect)
+        case Some(command) => gameUpdate.submit(command).exec(state)
       }
 
       var runState = gameUpdate.runSlots(playerId).exec(commandState)

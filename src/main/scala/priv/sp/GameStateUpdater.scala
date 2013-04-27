@@ -65,7 +65,6 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
     def runSlot(numSlot: Int, slot: SlotState) = {
       val d = Damage(slot.attack)
-
       if (slot.card.multipleTarget){
         otherPlayer.slots.inflictMultiTarget(d)
       } else {
@@ -75,6 +74,21 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         }
       }
       updateListener.runSlot(numSlot, id)
+    }
+
+    def submit(command : Command){
+      houses.incrMana(- command.card.cost, command.card.houseIndex)
+      updateListener.refresh(silent = true)
+      if (!command.card.isSpell) {
+        command.input.foreach{ slotInput =>
+          slots.summon(slotInput.num, SlotState.asCreature(command.card))
+        }
+      }
+      command.card.effects(CardSpec.Direct) foreach { f =>
+        val env = new GameCardEffect.Env(command.player, self)
+        command.input foreach { slotInput => env.selected = slotInput.num }
+        f(env)
+      }
     }
 
     def inflict(d : Damage) = {
@@ -180,17 +194,19 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
 
       def summon(num : Int, creature : Creature) {
-        add(num, creature)
+        val slot = add(num, creature)
+        updateListener.summon(num, slot, id)
         val summonEvent = SummonEvent(num, creature, id, self)
         otherPlayer.slots.reactSummon(summonEvent)
         reactSummon(summonEvent)
       }
 
-      def add(num : Int, card : Creature){
+      def add(num : Int, card : Creature) = {
         val slotState = applySlotEffects(num,
           SlotState(card, card.life, card.runOnce, card.attack getOrElse houses.value(card.houseIndex).mana, card.data))
         val newSlots = card.slotEffect.applySlots(num, slots + (num -> slotState))
         write(newSlots)
+        slotState
       }
 
       // beware not mising effect
@@ -252,10 +268,14 @@ trait UpdateListener {
   def focus(num : Int, playerId : PlayerId)
   def move(num : Int, dest : Int, playerId : PlayerId)
   def runSlot(num : Int, playerId : PlayerId)
+  def summon(num : Int, slot : SlotState, playerId : PlayerId)
+  def refresh(silent : Boolean = false)
 }
 
 class DefaultUpdateListener extends UpdateListener {
   def focus(num : Int, playerId : PlayerId){ }
   def move(num : Int, dest : Int, playerId : PlayerId) {}
   def runSlot(num : Int, playerId : PlayerId){}
+  def summon(num : Int, slot : SlotState, playerId : PlayerId){}
+  def refresh(silent : Boolean){}
 }

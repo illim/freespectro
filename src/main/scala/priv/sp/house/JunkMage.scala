@@ -149,7 +149,7 @@ class FactoryReaction extends DefaultReaction {
       updater.focus(selected, playerId)
       val slots = updater.players(playerId).slots
       val pos = selected + step
-      if (!slots.value.isDefinedAt(pos)){
+      if (!slots.value.isDefinedAt(pos) && pos > -1 && pos < 6){
         slots.add(pos, card)
       }
     }

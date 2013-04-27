@@ -14,7 +14,7 @@ import GameResources._
 class GameResources {
   val sp = new SpWorld
   val aiExecutor = Executors.newSingleThreadExecutor
-  val updateExecutor = new priv.util.RichExecutor
+  val gameExecutor = Executors.newSingleThreadExecutor
   val multi = new Resources
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
@@ -26,8 +26,7 @@ class GameResources {
     multi.release()
     sp.clean()
     aiExecutor.shutdown()
-    updateExecutor.releaseLock()
-    updateExecutor.executor.shutdown()
+    gameExecutor.shutdown()
   }
 }
 
