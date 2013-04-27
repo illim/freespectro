@@ -30,23 +30,12 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val skipButton      = new GuiButton("Skip turn")
   val settingsButton  = new GuiButton("Settings")
 
-  private val gameUpdate = GameUpdate(new GameStateUpdater(state, new UpdateListener{
-    def focus(num : Int, playerId : PlayerId){
-      val slotButton = slotPanels(playerId).slots(num)
-      world.addTask(new slotButton.FocusAnimTask())
-    }
-    def move(num : Int, dest : Int, playerId : PlayerId){
-      val slotButton = slotPanels(playerId).slots(num)
-      updateExecutor.waitLock{ lock =>
-        world.addTask(new slotButton.MoveAnimTask(dest, lock))
-      }
-    }
-  }))
+  private val gameUpdate = GameUpdate(new GameStateUpdater(state))
 
+  gameUpdate.updater.updateListener = new GameUpdateListener
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
-
   resources.updateExecutor.execute(waitPlayer(owner))
 
   def refresh(silent : Boolean = false) = {
@@ -121,21 +110,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       case None =>
         println("run" + playerId)
         refresh()
-        val player = state.players(playerId)
-        val otherPlayerId = other(playerId)
-        player.slots.toList.sortBy(_._1).foreach { case (numSlot, slot) =>
-          if (slot.attack > 0 && slot.hasRunOnce){
-            val slotButton = slotPanels(playerId).slots(numSlot)
-            updateExecutor.waitLock{ lock =>
-              world.addTask(new slotButton.RunAnimTask(lock))
-            }
-            val result = persist(gameUpdate.runSlot(playerId, numSlot, slot))
-            refresh()
-            state.checkEnded.foreach(endGame _)
-          }
-        }
+        persist(gameUpdate.runSlots(playerId))
         applySlotEffects(playerId, CardSpec.OnEndTurn)
         if (state.checkEnded.isEmpty){
+          val otherPlayerId = other(playerId)
           persist(gameUpdate.prepareNextTurn(otherPlayerId))
           applySlotEffects(otherPlayerId, CardSpec.OnTurn)
           refresh(silent = true)
@@ -144,20 +122,24 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
   }
 
+  // this is probably bugged due to card moves ...
+  // todo identify slot creature?
   protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase) {
     ((Option.empty[PlayerId] /: state.players(playerId).slots) {
       case (None, (numSlot, slotState)) =>
-        gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) flatMap { f =>
-          val slotButton = slotPanels(playerId).slots(numSlot)
-          persist(f)
-          slotButton.focusAnim.foreach{ anim =>
-            updateExecutor.waitLock{ lock =>
-              world.addTask(Wait(anim.duration + anim.start - world.time, lock))
+        if (state.players(playerId).slots.isDefinedAt(numSlot)){
+          gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) flatMap { f =>
+            val slotButton = slotPanels(playerId).slots(numSlot)
+            persist(f)
+            slotButton.focusAnim.foreach{ anim =>
+              updateExecutor.waitLock{ lock =>
+                world.addTask(Wait(anim.duration + anim.start - world.time, lock))
+              }
             }
+            refresh(silent = true)
+            state.checkEnded
           }
-          refresh(silent = true)
-          state.checkEnded
-        }
+        } else None
       case (acc, _) => acc
     }).foreach(endGame _)
   }
@@ -172,6 +154,29 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       })
     }
   }
+
+  private class GameUpdateListener extends UpdateListener {
+    def focus(num : Int, playerId : PlayerId){
+      val slotButton = slotPanels(playerId).slots(num)
+      world.addTask(new slotButton.FocusAnimTask())
+    }
+    def move(num : Int, dest : Int, playerId : PlayerId){
+      val slotButton = slotPanels(playerId).slots(num)
+      updateExecutor.waitLock{ lock =>
+        world.addTask(new slotButton.MoveAnimTask(dest, lock))
+      }
+    }
+    def runSlot(num : Int, playerId : PlayerId){
+      val slotButton = slotPanels(playerId).slots(num)
+      updateExecutor.waitLock{ lock =>
+        world.addTask(new slotButton.RunAnimTask(lock))
+      }
+      persistState(gameUpdate.updater.result) // crappy side effect
+      refresh()
+      state.checkEnded.foreach(endGame _)
+    }
+  }
+
 }
 
 object GameUpdate {
@@ -184,18 +189,9 @@ object GameUpdate {
 class GameUpdate {
   var updater : GameStateUpdater = null // horror to remove crappy dependency(todo create fake structure to init correctly the updater)
 
-  def runSlot(playerId: PlayerId, numSlot: Int, slot: SlotState) = updater.lift { u =>
-    val otherPlayerUpdate = u.players(other(playerId))
-    val d = Damage(slot.attack)
-
-    if (slot.card.multipleTarget){
-      otherPlayerUpdate.slots.inflictMultiTarget(d)
-    } else {
-      otherPlayerUpdate.slots.value.get(numSlot) match {
-        case None => otherPlayerUpdate.inflict(d)
-        case Some(oppositeSlot) => otherPlayerUpdate.slots.inflictCreature(numSlot, d)
-      }
-    }
+  def runSlots(playerId: PlayerId) = updater.lift{ u =>
+    val playerUpdate = u.players(playerId)
+    playerUpdate.runSlots()
   }
 
   def prepareNextTurn(playerId: PlayerId) = updater.lift{ u =>

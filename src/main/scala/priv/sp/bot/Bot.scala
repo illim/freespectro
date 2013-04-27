@@ -59,10 +59,7 @@ trait Bot {
           gameUpdate.debitAndSpawn(command).exec(stateEffect)
       }
 
-      var runState = (commandState /: commandState.players(playerId).slots) {
-        case (st, (numSlot, slot)) =>
-          gameUpdate.runSlot(playerId, numSlot, slot).exec(st)
-      }
+      var runState = gameUpdate.runSlots(playerId).exec(commandState)
       if (runState.checkEnded.isEmpty) {
         runState = applySlotEffects(playerId, CardSpec.OnEndTurn, runState)
         runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState

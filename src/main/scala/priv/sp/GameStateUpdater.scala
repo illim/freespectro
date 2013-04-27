@@ -6,9 +6,11 @@ import priv.util.FieldUpdate
 
 // sandbox horror, not thread safe (reusable static structure decomposition to update fields)
 // should be more flexible than using lens
-class GameStateUpdater(initState : GameState, updateListener : UpdateListener = new DefaultUpdateListener) extends FieldUpdate(None, initState) { self =>
+class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
   private var ended = false
   private val playerFieldUpdates = playerIds.map(id => new PlayerFieldUpdate(id))
+  var updateListener : UpdateListener = new DefaultUpdateListener
+
   def state = value
 
   def apply(value : GameState) = {
@@ -53,6 +55,27 @@ class GameStateUpdater(initState : GameState, updateListener : UpdateListener = 
       pstate.copy(slots = getSlots, houses = getHouses)
     }
 
+    def runSlots(){
+      getSlots.toList.sortBy(_._1).foreach { case (numSlot, slot) =>
+        if (slot.attack > 0 && slot.hasRunOnce){
+          runSlot(numSlot, slot)
+        }
+      }
+    }
+
+    def runSlot(numSlot: Int, slot: SlotState) = {
+      val d = Damage(slot.attack)
+
+      if (slot.card.multipleTarget){
+        otherPlayer.slots.inflictMultiTarget(d)
+      } else {
+        otherPlayer.getSlots.get(numSlot) match {
+          case None => otherPlayer.inflict(d)
+          case Some(oppositeSlot) => otherPlayer.slots.inflictCreature(numSlot, d)
+        }
+      }
+      updateListener.runSlot(numSlot, id)
+    }
 
     def inflict(d : Damage) = {
       if (!ended) {
@@ -228,9 +251,11 @@ class GameStateUpdater(initState : GameState, updateListener : UpdateListener = 
 trait UpdateListener {
   def focus(num : Int, playerId : PlayerId)
   def move(num : Int, dest : Int, playerId : PlayerId)
+  def runSlot(num : Int, playerId : PlayerId)
 }
 
 class DefaultUpdateListener extends UpdateListener {
   def focus(num : Int, playerId : PlayerId){ }
   def move(num : Int, dest : Int, playerId : PlayerId) {}
+  def runSlot(num : Int, playerId : PlayerId){}
 }
