@@ -39,13 +39,13 @@ trait Attachable extends Entity {
   }
 
   def render() {
-    iterate(entities.iterator)(_.render())
     iterate(tasks.iterator()) { task =>
       if (world.time - task.start > task.duration) {
         tasks.remove(task)
         task.finish()
       }
     }
+    iterate(entities.iterator)(_.render())
   }
 
   def forEntity[A : reflect.ClassTag](f : A => Unit){
@@ -78,7 +78,7 @@ object Entity {
 }
 
 trait Entity {
-  val creationTime = System.currentTimeMillis
+  var creationTime = System.currentTimeMillis
   val id = Entity.lastId.incrementAndGet()
   protected var world : World = null
 
@@ -132,7 +132,10 @@ class BlockingTask(f : => Unit, lock : AnyRef) extends Task[Unit]{
 
 case class TaskSpawn(entity : TimedEntity, lockOption : Option[AnyRef] = None) extends Task[Unit]{
   val duration = entity.duration
-  def init(){world.spawn(entity)}
+  def init(){
+    entity.creationTime = start
+    world.spawn(entity)
+  }
   def end(){
     world.unspawn(entity)
     entity.onEnd()

@@ -25,7 +25,7 @@ trait Air {
       effects = effects(Direct -> { env : Env => env.otherPlayer.inflict(Damage(5 + env.getMana(2), isSpell = true))})),
     Creature("Phoenix", Some(6), 18, "Can reborn if fire mana >= 10", reaction = new PhoenixReaction),
     Spell("ChainLightning", "Deals 9 damage to opponent and his creatures", effects = effects(Direct -> damageCreatures(Damage(9, isSpell = true)), Direct -> damage(Damage(9, isSpell = true)))),
-    Creature("Cloud", Some(4), 20, "Attack all opponent creatures", multipleTarget = true),
+    Creature("Cloud", Some(4), 20, "Attack all opponent creatures", runAttack = MultiTargetAttack),
     Spell("Tornado", "destroy target",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> { env: Env => env.otherPlayer.slots.destroy(env.selected) })),

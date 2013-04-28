@@ -32,18 +32,19 @@ sealed abstract class Card extends Externalizable {
   def readExternal(in : ObjectInput  ){  id = in.readInt() }
   protected def readResolve() : Object = HouseSingleton.getCardById(id)  // this is not great(dunno if i can plug somewhere a serializer for this type)
 }
+
 case class Creature(
   name : String,
   attack : Option[Int],
   life : Int,
-  description    : String = "",
-  inputSpec      : Option[CardInputSpec] = Some(SelectOwnerSlot),
-  effects        : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
-  mod            : Option[Mod] = None,
-  slotEffect     : SlotEffect = CardSpec.defaultSlotEffect,
-  reaction       : Reaction = CardSpec.defaultReaction,
-  data           : AnyRef = null, // initialize slot custom data
-  multipleTarget : Boolean = false,
+  description : String = "",
+  inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
+  effects     : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
+  mod         : Option[Mod] = None,
+  slotEffect  : SlotEffect = CardSpec.defaultSlotEffect,
+  reaction    : Reaction = CardSpec.defaultReaction,
+  data        : AnyRef = null, // initialize slot custom data
+  runAttack   : Attack = SingleTargetAttack,
   immune      : Boolean = false,
   runOnce     : Boolean = false) extends Card {
 
@@ -143,4 +144,25 @@ class DefaultReaction extends Reaction {
   def onProtect(selected : Int, d : DamageEvent) = d.amount
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
+}
+
+
+
+trait Attack {
+  def apply(num : Int, d : Damage,updater : GameStateUpdater, playerId : PlayerId)
+}
+object SingleTargetAttack extends Attack {
+  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
+    val otherPlayer = updater.players(other(id))
+    otherPlayer.getSlots.get(num) match {
+      case None => otherPlayer.inflict(d)
+      case Some(oppositeSlot) => otherPlayer.slots.inflictCreature(num, d)
+    }
+  }
+}
+object MultiTargetAttack extends Attack {
+  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
+    val otherPlayer = updater.players(other(id))
+    otherPlayer.slots.inflictMultiTarget(d)
+  }
 }

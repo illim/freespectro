@@ -111,7 +111,7 @@ class JunkyardGoddessReaction extends DefaultReaction {
     val slot = playerUpdate.slots.value(selected)
     if (!slot.data.asInstanceOf[Boolean]
         && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 6)){
-        updater.focus(selected, playerId)
+        updater.focus(selected, playerId, blocking = false)
         playerUpdate.slots.setData(selected, Boolean.box(true))
         math.max(0, d.amount - 3)
     } else d.amount

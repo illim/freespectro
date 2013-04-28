@@ -137,24 +137,20 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }).foreach(endGame _)
   }
 
-  private def notifySpellPlayed(card : Card) {
-    world.doInRenderThread{
-      world.addTask(TaskSpawn(new SpellNotif(sp, card)))
-    }
-  }
+  private def notifySpellPlayed(card : Card) = spawn(new SpellNotif(sp, card))
 
-  private def spawnBlocking(entity : => TimedEntity){
-    gameLock.waitLock{ lock =>
-      world.doInRenderThread{
-        world.addTask(TaskSpawn(entity, Some(lock)))
-      }
+  private def spawn(entity : => TimedEntity, blocking : Boolean = false){
+    val lockOption = if (blocking) Some(gameLock.lock) else None
+    world.doInRenderThread{
+      world.addTask(TaskSpawn(entity, lockOption))
     }
+    if (blocking) gameLock.lockWait()
   }
 
   private class GameUpdateListener extends UpdateListener {
-    def focus(num : Int, playerId : PlayerId){
+    def focus(num : Int, playerId : PlayerId, blocking : Boolean){
       val slotButton = slotPanels(playerId).slots(num)
-      spawnBlocking(new slotButton.Focus())
+      spawn(new slotButton.Focus(), blocking)
     }
     def move(num : Int, dest : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
@@ -164,7 +160,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
     def runSlot(num : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
-      spawnBlocking(Running(slotButton.location, slotButton.direction))
+      spawn(Running(slotButton.location, slotButton.direction), blocking = true)
       persistState(gameUpdate.updater.result) // crappy side effect
       refresh()
       state.checkEnded.foreach(endGame _)
@@ -172,7 +168,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def summon(num : Int, slot : SlotState, playerId : PlayerId){
       val sourceCoord = cardPanels(playerId).getPositionOf(slot.card)
       val slotButton = slotPanels(playerId).slots(num)
-      spawnBlocking(slotButton.summon(sourceCoord, slot))
+      spawn(slotButton.summon(sourceCoord, slot), blocking = true)
       persistState(gameUpdate.updater.result)
       refresh(silent = true)
     }

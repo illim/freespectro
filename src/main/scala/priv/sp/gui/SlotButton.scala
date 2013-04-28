@@ -17,7 +17,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   private var moveAnim = Option.empty[MoveAnimTask]
   var focusScale = Option.empty[Float]
   val slotSize = Coord2i(120, 142)
-  private val dashOffset = Coord2i(slotSize.x/2 - 39, slotSize.y/2-44)
+  private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
 
   def zeroAnim = Function.const[Long, Long](0) _
@@ -46,12 +46,6 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           location.c.x + moveAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f),
           location.c.y,
           0)
-        /**focusDelta.foreach{ anim =>
-          val scale = 1 + anim.getDelta(world.time).toFloat
-          glScalef(scale, scale, 1)
-          val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
-          glTranslatef(pos.x, pos.y, 0)
-        }*/
         focusScale.foreach{ scale =>
           glScalef(scale, scale, 1)
           val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
@@ -116,10 +110,10 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   class MoveTo(val location : Location, dest : Coord2i) extends TimedEntity {
     private val start = location.c
     private val dir = dest - start
-    val duration = dir.size.toLong
+    val duration = dir.size.toLong + 100 // to fix imprecision at the end
 
     def render(){
-      val fact = getDelta() / duration.toFloat
+      val fact = getDelta() / dir.size.toFloat
       location.c = dest - (dir * math.max(0, (1 - fact)))
     }
   }
@@ -130,10 +124,8 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
     private val amplitude = 0.05
 
     def render(){
-      if (getDelta() < duration){ // FIXME
-        val delta = amplitude * math.sin(getDelta().toDouble / duration * math.Pi)
-        focusScale = Some(1 + delta.toFloat)
-      }
+      val delta = amplitude * math.sin(getDelta().toDouble / duration * math.Pi)
+      focusScale = Some(1 + delta.toFloat)
     }
     override def onEnd(){
       focusScale = None

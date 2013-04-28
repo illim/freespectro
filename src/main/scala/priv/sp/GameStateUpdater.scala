@@ -24,7 +24,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     (update.result, res)
   }
 
-  def focus(num : Int, playerId : PlayerId) = updateListener.focus(num, playerId)
+  def focus(num : Int, playerId : PlayerId, blocking : Boolean = true) = updateListener.focus(num, playerId, blocking)
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
@@ -56,23 +56,18 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     }
 
     def runSlots(){
-      getSlots.toList.sortBy(_._1).foreach { case (numSlot, slot) =>
-        if (slot.attack > 0 && slot.hasRunOnce){
-          runSlot(numSlot, slot)
+      getSlots.toList.sortBy(_._1).foreach { case (num, _) =>
+        getSlots.get(num).foreach{ slot =>
+          if (slot.attack > 0 && slot.hasRunOnce){
+            runSlot(num, slot)
+          }
         }
       }
     }
 
     def runSlot(numSlot: Int, slot: SlotState) = {
       val d = Damage(slot.attack)
-      if (slot.card.multipleTarget){
-        otherPlayer.slots.inflictMultiTarget(d)
-      } else {
-        otherPlayer.getSlots.get(numSlot) match {
-          case None => otherPlayer.inflict(d)
-          case Some(oppositeSlot) => otherPlayer.slots.inflictCreature(numSlot, d)
-        }
-      }
+      slot.card.runAttack(numSlot, d, self, id)
       updateListener.runSlot(numSlot, id)
     }
 
@@ -265,7 +260,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
 
 trait UpdateListener {
-  def focus(num : Int, playerId : PlayerId)
+  def focus(num : Int, playerId : PlayerId, blocking : Boolean = true)
   def move(num : Int, dest : Int, playerId : PlayerId)
   def runSlot(num : Int, playerId : PlayerId)
   def summon(num : Int, slot : SlotState, playerId : PlayerId)
@@ -273,7 +268,7 @@ trait UpdateListener {
 }
 
 class DefaultUpdateListener extends UpdateListener {
-  def focus(num : Int, playerId : PlayerId){ }
+  def focus(num : Int, playerId : PlayerId, blocking : Boolean){ }
   def move(num : Int, dest : Int, playerId : PlayerId) {}
   def runSlot(num : Int, playerId : PlayerId){}
   def summon(num : Int, slot : SlotState, playerId : PlayerId){}

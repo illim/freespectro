@@ -13,7 +13,7 @@ case class Location(init : Coord2i){
 }
 
 case class Running(location : Location, direction : Int) extends TimedEntity {
-  val duration = 1500L
+  val duration = 1200L
   private val half = duration / 2
   private val amplitude = 2
 

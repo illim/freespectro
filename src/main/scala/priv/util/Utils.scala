@@ -178,6 +178,10 @@ class RichLock {
 
   def waitLock(f : AnyRef => Unit){
     f(lock)
+    lockWait()
+  }
+
+  def lockWait(){
     lock.synchronized {
       if (!released && acquired.compareAndSet(false, true)) {
         lock.wait()

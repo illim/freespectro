@@ -38,12 +38,13 @@ object Houses {
 object HouseSingleton extends Houses
 
 class Houses
-  extends Fire with Water with Air with EarthHouse with Mecanic with JunkMage {
+  extends Fire with Water with Air with EarthHouse with Mecanic
+  with JunkMage with ZenMage {
   import CardSpec._
   import GameCardEffect._
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(Mecanic, Junk)
+  val special = List(Mecanic, Junk)//, Zen)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)

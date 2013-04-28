@@ -12,7 +12,7 @@ trait EarthHouse {
     Spell("NaturesRitual", "heals target and owner by 8",
       inputSpec = Some(SelectOwnerCreature),
       effects = effects(Direct -> heal(8), Direct -> healCreature(8))),
-    Creature("ForestSprite", Some(1), 22, "attack all opponent creatures", multipleTarget = true),
+    Creature("ForestSprite", Some(1), 22, "attack all opponent creatures", runAttack = MultiTargetAttack),
     Spell("Rejuvenation", "heals by 2 * earth mana",
       effects = effects(Direct -> { env : Env => env.player.heal(2 * env.getMana(3))})),
     Creature("elfHermit", Some(1), 13, "Increase earth mana growth by 2", effects = effects(OnTurn -> addMana(2, 3))),
@@ -24,7 +24,7 @@ trait EarthHouse {
     Creature("MasterHealer", Some(3), 35, "Every turn heals by 3 owner and his creatures",
       effects = effects(OnTurn -> focus(heal(3)), OnTurn -> healCreatures(3))),
     Creature("Hydra", Some(3), 40, "Attack all opponent creatures",
-      multipleTarget = true,
+      runAttack = MultiTargetAttack,
       effects = effects(OnTurn -> healCreature(4)))), houseIndex = 3)
 
   private val forestSpider = new Creature("ForestSpider", Some(2), 11){
