@@ -31,9 +31,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val skipButton      = new GuiButton("Skip turn")
   val settingsButton  = new GuiButton("Settings")
 
-  private val gameUpdate = GameUpdate(new GameStateUpdater(state))
+  private val updater = new GameStateUpdater(state)
 
-  gameUpdate.updater.updateListener = new GameUpdateListener
+  updater.updateListener = new GameUpdateListener
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
@@ -76,9 +76,8 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     result._2
   }
 
-  protected def persistState(newState : GameState) {
-    state = newState
-  }
+  protected def persistState(newState : GameState) { state = newState  }
+  protected def persistUpdater() = persistState(updater.result)  // crappy side effect
 
   protected def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
@@ -97,7 +96,8 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
           }
         }
       }
-      persist(gameUpdate.submit(c))
+      persist(updater.lift(_.players(c.player).submit(c)))
+      refresh()
     }
     run(player)
   }
@@ -111,24 +111,32 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         case None => f
       }
     }
-    endOr {
-      refresh()
-      println("run" + playerId)
-      persist(gameUpdate.runSlots(playerId))
-      refresh()
+
+    persist(updater.lift{ u =>
+      val p = u.players(playerId)
+
       endOr {
-        persist(gameUpdate.applyEffects(playerId, CardSpec.OnEndTurn))
+        println("run" + playerId)
+        p.runSlots()
+        persistUpdater()
+        refresh()
         endOr {
-          val otherPlayerId = other(playerId)
-          persist(gameUpdate.prepareNextTurn(otherPlayerId))
+          p.applyEffects(CardSpec.OnEndTurn)
+          persistUpdater()
           endOr {
-            persist(gameUpdate.applyEffects(playerId, CardSpec.OnTurn))
-            refresh(silent = true)
-            waitPlayer(otherPlayerId)
+            val otherPlayer = p.otherPlayer
+            otherPlayer.prepareNextTurn()
+            persistUpdater()
+            endOr {
+              otherPlayer.applyEffects(CardSpec.OnTurn)
+              persistUpdater()
+              refresh(silent = true)
+              waitPlayer(otherPlayer.id)
+            }
           }
         }
       }
-    }
+    })
   }
 
   private def notifySpellPlayed(card : Card) = spawn(new SpellNotif(sp, card))
@@ -155,7 +163,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def runSlot(num : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
       spawn(Running(slotButton.location, slotButton.direction), blocking = true)
-      persistState(gameUpdate.updater.result) // crappy side effect
+      persistUpdater()
       refresh()
       state.checkEnded.foreach(endGame _)
     }
@@ -163,44 +171,15 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       val sourceCoord = cardPanels(playerId).getPositionOf(slot.card)
       val slotButton = slotPanels(playerId).slots(num)
       spawn(slotButton.summon(sourceCoord, slot), blocking = true)
-      persistState(gameUpdate.updater.result)
+      persistUpdater()
       refresh(silent = true)
     }
     def refresh(silent : Boolean) = {
-      persistState(gameUpdate.updater.result)
+      persistUpdater()
       game.refresh(silent)
     }
   }
 
-}
-
-object GameUpdate {
-  def apply(x : GameStateUpdater) = {
-    val gu = new GameUpdate
-    gu.updater = x
-    gu
-  }
-}
-class GameUpdate {
-  var updater : GameStateUpdater = null // horror to remove crappy dependency(todo create fake structure to init correctly the updater)
-
-  def submit(c : Command) = updater.lift(_.players(c.player).submit(c))
-
-  def runSlots(playerId: PlayerId) = updater.lift{ u =>
-    val playerUpdate = u.players(playerId)
-    playerUpdate.runSlots()
-  }
-
-  def applyEffects(playerId: PlayerId, phase : CardSpec.Phase) = updater.lift{ u =>
-    val playerUpdate = u.players(playerId)
-    playerUpdate.applyEffects(phase)
-  }
-
-  def prepareNextTurn(playerId: PlayerId) = updater.lift{ u =>
-    val playerUpdate = u.players(playerId)
-    playerUpdate.slots.toggleRun()
-    playerUpdate.houses.incrMana()
-  }
 }
 
 class SpellNotif(sp : SpWorld, card: Card) extends TimedEntity {

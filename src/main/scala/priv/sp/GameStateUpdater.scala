@@ -7,8 +7,8 @@ import priv.util.FieldUpdate
 // sandbox horror, not thread safe (reusable static structure decomposition to update fields)
 // should be more flexible than using lens
 class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
-  private var ended = false
   private val playerFieldUpdates = playerIds.map(id => new PlayerFieldUpdate(id))
+  var ended = false
   var updateListener : UpdateListener = new DefaultUpdateListener
 
   def state = value
@@ -28,7 +28,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
-  class PlayerFieldUpdate(id : PlayerId) extends FieldUpdate(Some(self), state.players(id)) { playerFieldUpdate =>
+  class PlayerFieldUpdate(val id : PlayerId) extends FieldUpdate(Some(self), state.players(id)) { playerFieldUpdate =>
     def pstate = value
     private var slotFieldUpdate = new SlotFieldUpdate
     private var houseFieldUpdate = new HouseFieldUpdate
@@ -133,6 +133,11 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
     }
 
+    def prepareNextTurn(){
+      slots.toggleRun()
+      houses.incrMana()
+    }
+
     private def mod(d : Damage) = {
       if (d.isSpell) {
         (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
@@ -202,11 +207,6 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         slots.toList.sortBy(_._1).foreach { case (num, slot) =>
           damageSlot(d, num, slot)
         }
-      }
-
-      def inflictMultiTarget(damage : Damage) {
-        inflict(damage)
-        inflictCreatures(damage)
       }
 
       def healCreature(num : Int, amount : Int) = {
@@ -295,7 +295,7 @@ trait UpdateListener {
   def move(num : Int, dest : Int, playerId : PlayerId)
   def runSlot(num : Int, playerId : PlayerId)
   def summon(num : Int, slot : SlotState, playerId : PlayerId)
-  def refresh(silent : Boolean = false)
+  def refresh(silent : Boolean = false) // this is not great to have some gui code here
 }
 
 class DefaultUpdateListener extends UpdateListener {

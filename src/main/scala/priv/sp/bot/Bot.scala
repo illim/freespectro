@@ -19,7 +19,7 @@ trait Bot {
   val guess = new CardGuess(gameDesc, sp)
   var knownCards = Set.empty[(Card, Int)]
   var k = generateK().get
-  val gameUpdate = new GameUpdate
+  var updater : GameStateUpdater = null
 
   def updateKnowledge(command : Command, indexOfCardInHouse : Int) {
     import command._
@@ -40,8 +40,8 @@ trait Bot {
   }
 
   private def initGameUpdate(state : GameState){
-    if (gameUpdate.updater == null){
-      gameUpdate.updater = new GameStateUpdater(state)
+    if (updater == null){
+      updater = new GameStateUpdater(state)
     }
   }
 
@@ -52,20 +52,23 @@ trait Bot {
   def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : GameState = {
     initGameUpdate(state)
     try {
-      val commandState = commandOption match {
-        case None => state
-        case Some(command) => gameUpdate.submit(command).exec(state)
-      }
+      updater.lift{ u =>
+        val p = u.players(playerId)
 
-      var runState = gameUpdate.runSlots(playerId).exec(commandState)
-      if (runState.checkEnded.isEmpty) {
-        runState = gameUpdate.applyEffects(playerId, CardSpec.OnEndTurn) exec runState
-        runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
-      }
-      if (runState.checkEnded.isEmpty) {
-        runState = gameUpdate.applyEffects(playerId, CardSpec.OnTurn) exec runState
-      }
-      runState
+        commandOption foreach { command =>
+          p.submit(command)
+        }
+
+        p.runSlots()
+        if (!u.ended) {
+          p.applyEffects(CardSpec.OnEndTurn)
+          val otherPlayer = p.otherPlayer
+          otherPlayer.prepareNextTurn()
+          if (!u.ended) {
+            otherPlayer.applyEffects(CardSpec.OnTurn)
+          }
+        }
+      } exec state
     } catch { case t : Throwable =>
       println("Failed on " + commandOption + "/" + state)
       throw t

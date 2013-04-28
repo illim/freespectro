@@ -21,7 +21,7 @@ trait Water {
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
     })),
     Creature("MerfolkOverlord", Some(7), 34, "Adjacent cards attack the turn they're summoned", slotEffect = new OverlordSlotEffect),
-    Creature("WaterElemental", None, 38, "Heals owner by 10 when summoned", effects = effects(Direct -> heal(10), OnTurn -> addMana(1, 1))),
+    Creature("WaterElemental", None, 38, "Heals owner by 10 when summoned", effects = effects(Direct -> focus(heal(10)), OnTurn -> addMana(1, 1))),
     Creature("MindMaster", Some(6), 22, "Increase mana growth by 1", effects = effects(OnTurn -> addMana(1, 0, 1, 2, 3, 4))),
     Creature("AstralGuard", Some(1), 17, "Decrease mana growth by 1", effects = effects(OnTurn -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)

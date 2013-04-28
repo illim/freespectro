@@ -163,6 +163,6 @@ object MultiTargetAttack extends Attack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
     otherPlayer.inflict(d)
-    otherPlayer.slots.inflictMultiTarget(d)
+    otherPlayer.slots.inflictCreatures(d)
   }
 }

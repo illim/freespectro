@@ -29,7 +29,7 @@ trait Air {
     Spell("Tornado", "destroy target",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> { env: Env => env.otherPlayer.slots.destroy(env.selected) })),
-    Creature("AirElemental", None, 44, "Air elemental deals 8 damage to opponent when summoned", effects = effects(Direct -> damage(Damage(8, isAbility = true)), OnTurn -> addMana(1, 2))),
+    Creature("AirElemental", None, 44, "Air elemental deals 8 damage to opponent when summoned", effects = effects(Direct -> focus(damage(Damage(8, isAbility = true))), OnTurn -> addMana(1, 2))),
     Creature("Titan", Some(9), 40, "Deals 15 damage to opposite creature when summoned",
       effects = effects(Direct -> { env : Env =>
         env.focus()
