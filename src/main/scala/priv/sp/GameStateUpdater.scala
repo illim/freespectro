@@ -102,7 +102,38 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       }
     }
 
-    def mod(d : Damage) = {
+    def addEffect(effect : CardSpec.PhaseEffect){
+      write(pstate.copy(effects = effect :: pstate.effects))
+    }
+
+    def removeEffect(cond : CardSpec.Effect => Boolean){
+      write(pstate.copy(effects = pstate.effects.filter(e => !cond(e._2))))
+    }
+
+    // this is probably bugged due to card moves ...
+    // todo identify slot creature?
+    def applyEffects(phase : CardSpec.Phase) {
+      getSlots.foreach{ case (num, slot) =>
+        if (!ended) {
+          getSlots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
+            slot.card.effects(phase).map{ f =>
+              val env = new GameCardEffect.Env(id, self)
+              env.selected = num
+              f(env)
+            }
+            updateListener.refresh(silent = true)
+          }
+        }
+      }
+      pstate.effects.foreach{ case (p, f) =>
+        if (p == phase && ! ended) {
+          val env = new GameCardEffect.Env(id, self)
+          f(env)
+        }
+      }
+    }
+
+    private def mod(d : Damage) = {
       if (d.isSpell) {
         (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
           slot.card.mod match {
@@ -113,7 +144,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       } else d
     }
 
-    def guard(amount : Int) = {
+    private def guard(amount : Int) = {
       (amount /: getSlots) { case (acc, (num, slot)) =>
         val a = slot.card.mod match {
           case Some(SpellProtectOwner(mod)) => mod(acc)

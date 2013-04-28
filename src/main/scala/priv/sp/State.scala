@@ -10,7 +10,8 @@ case class GameState(players: List[PlayerState]) {
 case class PlayerState(
   houses: PlayerState.HousesType,
   slots: PlayerState.SlotsType = PlayerState.emptySlots,
-  life: Int = 60)
+  life: Int = 60,
+  effects : List[CardSpec.PhaseEffect] = Nil)
 class HouseState(val mana: Int) extends AnyVal with Serializable
 case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int, data : AnyRef = null){
   def inflict(damage : Damage) : Option[SlotState] = {

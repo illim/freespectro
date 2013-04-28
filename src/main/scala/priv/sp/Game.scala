@@ -103,38 +103,32 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
 
   protected def run(playerId: PlayerId) {
-    state.checkEnded match {
-      case Some(player) => endGame(player)
-      case None =>
-        println("run" + playerId)
-        refresh()
-        persist(gameUpdate.runSlots(playerId))
-        refresh()
-        applySlotEffects(playerId, CardSpec.OnEndTurn)
-        if (state.checkEnded.isEmpty){
+    def endOr(f : => Unit){
+      state.checkEnded match {
+        case Some(player) =>
+          refresh()
+          endGame(player)
+        case None => f
+      }
+    }
+    endOr {
+      refresh()
+      println("run" + playerId)
+      persist(gameUpdate.runSlots(playerId))
+      refresh()
+      endOr {
+        persist(gameUpdate.applyEffects(playerId, CardSpec.OnEndTurn))
+        endOr {
           val otherPlayerId = other(playerId)
           persist(gameUpdate.prepareNextTurn(otherPlayerId))
-          applySlotEffects(otherPlayerId, CardSpec.OnTurn)
-          refresh(silent = true)
-          waitPlayer(otherPlayerId)
-        }
-    }
-  }
-
-  // this is probably bugged due to card moves ...
-  // todo identify slot creature?
-  protected def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase) {
-    ((Option.empty[PlayerId] /: state.players(playerId).slots) {
-      case (None, (numSlot, slotState)) =>
-        if (state.players(playerId).slots.isDefinedAt(numSlot)){
-          gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase) flatMap { f =>
-            persist(f)
+          endOr {
+            persist(gameUpdate.applyEffects(playerId, CardSpec.OnTurn))
             refresh(silent = true)
-            state.checkEnded
+            waitPlayer(otherPlayerId)
           }
-        } else None
-      case (acc, _) => acc
-    }).foreach(endGame _)
+        }
+      }
+    }
   }
 
   private def notifySpellPlayed(card : Card) = spawn(new SpellNotif(sp, card))
@@ -172,7 +166,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       persistState(gameUpdate.updater.result)
       refresh(silent = true)
     }
-    def refresh(silent : Boolean) = game.refresh(silent)
+    def refresh(silent : Boolean) = {
+      persistState(gameUpdate.updater.result)
+      game.refresh(silent)
+    }
   }
 
 }
@@ -194,20 +191,15 @@ class GameUpdate {
     playerUpdate.runSlots()
   }
 
+  def applyEffects(playerId: PlayerId, phase : CardSpec.Phase) = updater.lift{ u =>
+    val playerUpdate = u.players(playerId)
+    playerUpdate.applyEffects(phase)
+  }
+
   def prepareNextTurn(playerId: PlayerId) = updater.lift{ u =>
     val playerUpdate = u.players(playerId)
     playerUpdate.slots.toggleRun()
     playerUpdate.houses.incrMana()
-  }
-
-  def getSlotEffect(playerId : PlayerId, numSlot : Int, slotState : SlotState, phase : CardSpec.Phase) = {
-    slotState.card.effects(phase) map { f =>
-      updater.lift{ u =>
-        val env = new GameCardEffect.Env(playerId, u)
-        env.selected = numSlot
-        f(env)
-      }
-    }
   }
 }
 

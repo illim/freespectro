@@ -59,11 +59,11 @@ trait Bot {
 
       var runState = gameUpdate.runSlots(playerId).exec(commandState)
       if (runState.checkEnded.isEmpty) {
-        runState = applySlotEffects(playerId, CardSpec.OnEndTurn, runState)
+        runState = gameUpdate.applyEffects(playerId, CardSpec.OnEndTurn) exec runState
         runState = gameUpdate.prepareNextTurn(other(playerId)) exec runState
       }
       if (runState.checkEnded.isEmpty) {
-        runState = applySlotEffects(other(playerId), CardSpec.OnTurn, runState)
+        runState = gameUpdate.applyEffects(playerId, CardSpec.OnTurn) exec runState
       }
       runState
     } catch { case t : Throwable =>
@@ -72,17 +72,6 @@ trait Bot {
     }
   }
 
-  private def applySlotEffects(playerId : PlayerId, phase : CardSpec.Phase, st : GameState) ={
-    var newState = st
-    for(numSlot <- slotRange){
-      newState.players(playerId).slots.get(numSlot) foreach { slotState =>
-        gameUpdate.getSlotEffect(playerId, numSlot, slotState, phase).foreach{ f =>
-          newState = f exec newState
-        }
-      }
-    }
-    newState
-  }
 }
 
 class Choices(bot : Bot) {

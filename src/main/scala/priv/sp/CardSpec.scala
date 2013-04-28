@@ -109,7 +109,6 @@ object CardSpec {
   val defaultReaction = new DefaultReaction
 }
 
-// mods are gathered at player state level, and are not dependent on the slots
 trait Mod
 case class SpellMod(modify : Int => Int) extends Mod
 case class SpellProtectOwner(modify : Int => Int) extends Mod
@@ -163,6 +162,7 @@ object SingleTargetAttack extends Attack {
 object MultiTargetAttack extends Attack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
+    otherPlayer.inflict(d)
     otherPlayer.slots.inflictMultiTarget(d)
   }
 }

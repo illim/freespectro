@@ -15,7 +15,7 @@ trait ZenMage {
     Creature("ElectricGuard", Some(3), 20, "deals 3 damage to creatures damaging opponent."),
     Creature("Dreamer", Some(4), 19),
     Creature("Mimic", Some(4), 26),
-    Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(Direct -> spiral)),
+    Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
   Zen.initCards(Houses.basicCostFunc)
@@ -38,19 +38,36 @@ trait ZenMage {
 
   private class RedlightAttack extends Attack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-      val player = updater.players(id)
+      val player      = updater.players(id)
       val otherPlayer = player.otherPlayer
+      val bonus       = List(num-1, num+1).filter(player.slots.value.isDefinedAt _)
+      val targets     = if (bonus.isEmpty) List(num) else (num -1 to num +1)
 
-      val bonus = List(num -1, num+1).filter(player.slots.value.isDefinedAt _)
-      val (targets, damage) = if (bonus.isEmpty) {
-        (List(num), d)
-      } else {
-        ((num -1 to num +1), d.copy(amount = d.amount + bonus.size))
-      }
-      targets.foreach{ n =>
+      targets.foreach { n =>
         otherPlayer.getSlots.get(n) match {
-          case None => otherPlayer.inflict(d)
-          case Some(oppositeSlot) => otherPlayer.slots.inflictCreature(n, d)
+          case None => player.otherPlayer.inflict(d)
+          case Some(oppositeSlot) =>
+            if (bonus.size == 0){
+              otherPlayer.slots.inflictCreature(n, d)
+            } else if (n == num) {
+              otherPlayer.slots.inflictCreature(n, d.copy(amount = d.amount + bonus.size))
+            } else {
+              otherPlayer.slots.inflictCreature(n, d.copy(amount = bonus.size))
+            }
+        }
+      }
+    }
+  }
+
+  private class SpiralAttack extends Attack {
+    def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
+      val otherPlayer = updater.players(id).otherPlayer
+
+      (num - 2 to num +2).foreach{ n =>
+        val damage = d.copy(amount = d.amount - math.abs(num - n))
+        if (otherPlayer.getSlots.isDefinedAt(n)) otherPlayer.slots.inflictCreature(n, damage)
+        else if (n == num) {
+          otherPlayer.inflict(d)
         }
       }
     }
@@ -61,10 +78,23 @@ trait ZenMage {
 
     val damage = Damage(player.slots.value.toList.map(_._2.attack).sum / 2, isSpell = true)
     otherPlayer.slots.inflictCreature(env.selected, damage)
-/**    ((PlayerState.emptySlots, List.empty[(Int, Int)]) /: player.slots.value){ case ((newslots, backup), (num, slot)) =>
-      
+    val (newSlots, backup) = ((PlayerState.emptySlots, Map.empty[Int, Int]) /: player.slots.value){ case ((newslots, backup), (num, slot)) =>
+      val old = (num, slot.attack)
+      (newslots + (num -> slot.copy(attack = math.ceil(slot.attack/2f).toInt)), backup + old)
+    }
+    player.slots.write(newSlots)
+    player.addEffect(OnEndTurn -> new FocusRecover(backup))
+  }
 
-    }*/
+  class FocusRecover(backup : Map[Int, Int]) extends Function[Env, Unit]{
+    def apply(env : Env){
+      env.player.slots.update{ s =>
+        s.map{ case (num, slot) =>
+          (num -> slot.copy(attack = backup(num)))
+        }
+      }
+      env.player.removeEffect(_.isInstanceOf[FocusRecover])
+    }
   }
 
   private def spiral = {env: Env =>
@@ -72,7 +102,6 @@ trait ZenMage {
 
     (selected-2 to selected +2).foreach{ num =>
       val amount = 3 - (selected - num)
-      if (otherPlayer.slots.value.isDefinedAt(num)) otherPlayer.slots.inflictCreature(num, Damage(amount))
       if (player.slots.value.isDefinedAt(num)) player.slots.healCreature(num, amount)
     }
   }

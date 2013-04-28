@@ -44,7 +44,7 @@ class Houses
   import GameCardEffect._
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(Mecanic, Junk)//, Zen)
+  val special = List(Mecanic, Junk, Zen)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)

@@ -110,10 +110,11 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   class MoveTo(val location : Location, dest : Coord2i) extends TimedEntity {
     private val start = location.c
     private val dir = dest - start
-    val duration = dir.size.toLong + 100 // to fix imprecision at the end
+    private val moveDuration = (dir.size * 0.7).toLong
+    val duration = moveDuration + 100 // to fix imprecision at the end
 
     def render(){
-      val fact = getDelta() / dir.size.toFloat
+      val fact = getDelta() / moveDuration.toFloat
       location.c = dest - (dir * math.max(0, (1 - fact)))
     }
   }
