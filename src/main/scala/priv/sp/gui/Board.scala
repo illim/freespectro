@@ -39,7 +39,9 @@ import priv.util.TVar
 
 class CommandRecorder(game: Game) {
   private var value = Option.empty[Command]
-  private var cont = Option.empty[TVar[Option[Command]]]
+  private var cont  = Option.empty[TVar[Option[Command]]]
+  var flag  = Option.empty[CommandFlag]
+
   def setCommand(command: Command) {
     game.slotPanels.foreach(_.disable())
     value = Some(command)
@@ -48,6 +50,7 @@ class CommandRecorder(game: Game) {
 
   def startWith(c : TVar[Option[Command]])(f: => Unit) {
     value = None
+    flag = None
     cont = Some(c)
     f
   }
@@ -63,7 +66,7 @@ class CommandRecorder(game: Game) {
   }
 
   private def continue(c : Option[Command]) = {
-    cont.get.set(c)
+    cont.get.set(c.map(c => c.copy(flag = flag, cost = c.card.cost)))
     cont = None
   }
 

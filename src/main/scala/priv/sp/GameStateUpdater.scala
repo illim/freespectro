@@ -72,17 +72,22 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     }
 
     def submit(command : Command){
-      houses.incrMana(- command.card.cost, command.card.houseIndex)
-      updateListener.refresh(silent = true)
-      if (!command.card.isSpell) {
-        command.input.foreach{ slotInput =>
-          slots.summon(slotInput.num, SlotState.asCreature(command.card))
+      if (!getSlots.exists(_._2.card.reaction.interceptSubmit(command, self))) {
+        if (command.card.isSpell){
+          updateListener.spellPlayed(command)
         }
-      }
-      command.card.effects(CardSpec.Direct) foreach { f =>
-        val env = new GameCardEffect.Env(command.player, self)
-        command.input foreach { slotInput => env.selected = slotInput.num }
-        f(env)
+        houses.incrMana(- command.cost, command.card.houseIndex)
+        updateListener.refresh(silent = true)
+        if (!command.card.isSpell) {
+          command.input.foreach{ slotInput =>
+            slots.summon(slotInput.num, command.card.asCreature)
+          }
+        }
+        command.card.effects(CardSpec.Direct) foreach { f =>
+          val env = new GameCardEffect.Env(command.player, self)
+          command.input foreach { slotInput => env.selected = slotInput.num }
+          f(env)
+        }
       }
     }
 
@@ -197,15 +202,13 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       def toggleRun()= write(slots.map{ case (i, slot) => i -> slot.copy( hasRunOnce = true) })
 
       def inflictCreature(num : Int, damage : Damage){
-        slots.get(num) foreach { slot =>
-          damageSlot(mod(damage), num, slot)
-        }
+        damageSlot(mod(damage), num)
       }
 
       def inflictCreatures(damage : Damage) {
         val d = mod(damage)
-        slots.toList.sortBy(_._1).foreach { case (num, slot) =>
-          damageSlot(d, num, slot)
+        slots.toList.sortBy(_._1).foreach { case (num, _) =>
+          damageSlot(d, num)
         }
       }
 
@@ -252,7 +255,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       def move(num : Int, dest : Int){
         slots.get(num).foreach{ slot =>
           // HACK (have to recreate the slot to recalcul attack)
-          val newSlot = applySlotEffects(num,
+          val newSlot = applySlotEffects(dest,
             SlotState(slot.card, slot.life, slot.hasRunOnce, slot.card.attack getOrElse houses.value(slot.card.houseIndex).mana, slot.data))
           updateListener.move(num, dest, id)
           write(
@@ -260,11 +263,13 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         }
       }
 
-      private def damageSlot(damage : Damage, num : Int, slot : SlotState) = {
-        val d = damage.copy(amount = protect(num, damage.amount))
-        slot.inflict(d) match {
-          case None          => destroy(num)
-          case Some(newslot) => write(slots + (num -> newslot))
+      private def damageSlot(damage : Damage, num : Int) = {
+        if (slots.isDefinedAt(num)){
+          val d = damage.copy(amount = protect(num, damage.amount)) // /!\ possible side effect
+          slots(num).inflict(d) match {
+            case None          => destroy(num)
+            case Some(newslot) => write(slots + (num -> newslot))
+          }
         }
       }
 
@@ -296,6 +301,7 @@ trait UpdateListener {
   def runSlot(num : Int, playerId : PlayerId)
   def summon(num : Int, slot : SlotState, playerId : PlayerId)
   def refresh(silent : Boolean = false) // this is not great to have some gui code here
+  def spellPlayed(c : Command)
 }
 
 class DefaultUpdateListener extends UpdateListener {
@@ -304,4 +310,5 @@ class DefaultUpdateListener extends UpdateListener {
   def runSlot(num : Int, playerId : PlayerId){}
   def summon(num : Int, slot : SlotState, playerId : PlayerId){}
   def refresh(silent : Boolean){}
+  def spellPlayed(c : Command){}
 }

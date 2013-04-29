@@ -19,7 +19,14 @@ sealed abstract class Card extends Externalizable {
   var id = Card.currentId.incrementAndGet
   var houseId = 0
   var houseIndex = 0
+  var commandMod  : Option[CommandMod] = None
   final val isSpell = isInstanceOf[Spell]
+  def asCreature = {
+    this match {
+      case creature: Creature => creature
+      case _ => sys.error(this + " is not a creature")
+    }
+  }
   override def toString() = s"Card($name)"
   override def hashCode() : Int = id
   override def equals(o : Any) = {
@@ -50,6 +57,8 @@ case class Creature(
 
   def this() = this(null, None, 0)
 
+  var ability : Option[Card] = None
+
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
   }
@@ -64,7 +73,8 @@ case class Spell(
   def this() = this(null)
   def image = name + ".tga"
 }
-case class Command(player: PlayerId, card: Card, input: Option[SlotInput])
+trait CommandFlag
+case class Command(player: PlayerId, card: Card, input: Option[SlotInput], cost : Int, flag : Option[CommandFlag] = None)
 case class Damage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false){
   def isEffect = isAbility || isSpell
 }
@@ -137,12 +147,14 @@ trait Reaction {
   def onProtect(selected : Int, d : DamageEvent) : Int
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
+  def interceptSubmit(command : Command, updater : GameStateUpdater) : Boolean
 }
 
 class DefaultReaction extends Reaction {
   def onProtect(selected : Int, d : DamageEvent) = d.amount
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
+  def interceptSubmit(command : Command, updater : GameStateUpdater) = false
 }
 
 
@@ -155,7 +167,7 @@ object SingleTargetAttack extends Attack {
     val otherPlayer = updater.players(other(id))
     otherPlayer.getSlots.get(num) match {
       case None => otherPlayer.inflict(d)
-      case Some(oppositeSlot) => otherPlayer.slots.inflictCreature(num, d)
+      case Some(_) => otherPlayer.slots.inflictCreature(num, d)
     }
   }
 }
@@ -165,4 +177,8 @@ object MultiTargetAttack extends Attack {
     otherPlayer.inflict(d)
     otherPlayer.slots.inflictCreatures(d)
   }
+}
+
+trait CommandMod{
+  def updateRecorder(cr : gui.CommandRecorder)
 }

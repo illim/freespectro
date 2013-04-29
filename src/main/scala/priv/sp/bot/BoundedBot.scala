@@ -38,7 +38,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
         defaultPolicy(selected.getLabel)
         selected.root
       }
-      last = next.get
+      if (next.isDefined){
+        last = next.get
+      }
       i+=1
     }
     val result = last.tree.subForest.foldLeft(Option.empty[Node]) {

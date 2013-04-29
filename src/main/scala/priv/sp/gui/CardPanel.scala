@@ -19,13 +19,18 @@ class CardPanel(playerId: PlayerId, game: Game) {
   if (playerId == game.myPlayerId){
     cardButtons.foreach { cardButton =>
       cardButton.on {
-        case MouseClicked(_) if cardButton.getIsActive =>
+        case MouseClicked(_) if cardButton.holder.isActive =>
           import cardButton.card
-          game.commandRecorder.setCommand(Command(game.myPlayerId, card, None))
-          if (card.inputSpec.isDefined) {
-            lastSelected.foreach(_.selected = false)
-            cardButton.selected = true
-            lastSelected = Some(cardButton)
+          card.commandMod match {
+            case None =>
+              game.commandRecorder.setCommand(Command(game.myPlayerId, card, None, card.cost))
+              if (card.inputSpec.isDefined) {
+                lastSelected.foreach(_.selected = false)
+                cardButton.selected = true
+                lastSelected = Some(cardButton)
+              }
+            case Some(mod) =>
+              mod.updateRecorder(game.commandRecorder)
           }
       }
     }
@@ -41,7 +46,14 @@ class CardPanel(playerId: PlayerId, game: Game) {
     val cardButton = cardButtons.find(_.card == card).get
     cardButton.coord + (cardButton.size * 0.5)
   }
-  def refresh(silent : Boolean) { houseLabels.foreach(_.mana.refresh(silent)) }
+  val specialCardButtons = houseCardButtons(4)._2
+  def refresh(silent : Boolean) {
+    houseLabels.foreach(_.mana.refresh(silent))
+    val abilityCards = PlayerState.abilityCards(game.state.players(playerId), game.desc.players(playerId))
+    specialCardButtons.foreach{ cb =>
+      cb.setAbility(abilityCards.contains(cb.baseCard))
+    }
+  }
   def setEnabled(flag: Boolean) {
     cardButtons.foreach{ btn =>
       btn.enabled = flag

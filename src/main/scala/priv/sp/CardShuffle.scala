@@ -70,9 +70,10 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
 class HModel(cp : CPSolver, val house : House, spHouses : Houses, getCardRange : GetCardRange){
   val isSpecial = spHouses.isSpecial(house)
   val cards = if (isSpecial) {
-    val (c1, ctemp) = range.partition(_ < 5)
-    val (c2, c3) = ctemp.partition(_ < 7)
-    (CPVarInt(cp, c1)
+    val (c0, ctemp) = range.partition(_ < 3)
+    val (c1, ctemp2) = ctemp.partition(_ < 5)
+    val (c2, c3) = ctemp2.partition(_ < 7)
+    (CPVarInt(cp, c0)
      :: CPVarInt(cp, c1)
      :: CPVarInt(cp, c2)
      :: CPVarInt(cp, c3) :: Nil)

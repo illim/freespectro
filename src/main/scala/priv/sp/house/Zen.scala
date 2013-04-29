@@ -1,6 +1,7 @@
 package priv.sp.house
 
 import priv.sp._
+import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
@@ -13,12 +14,36 @@ trait ZenMage {
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focus)),
     Creature("ElectricGuard", Some(3), 20, "deals 3 damage to creatures damaging opponent."),
-    Creature("Dreamer", Some(4), 19),
-    Creature("Mimic", Some(4), 26),
+    Creature("Dreamer", Some(5), 22, reaction = new DreamerReaction),
+    Creature("Mimic", Some(6), 26, reaction = new MimicReaction),
     Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
   Zen.initCards(Houses.basicCostFunc)
+
+  private def dream = new Spell("Dream", "summon spell in next turn with cost -2"){
+    cost = 0
+    houseIndex = Zen.houseIndex
+    houseId = Zen.houseId
+    commandMod = Some(new DreamCommandMod)
+  }
+
+  private def cocoon = new Creature("Cocoon", Some(0), 11, "summon creature in next turn with cost -2"){
+    cost = 0
+    houseIndex = Zen.houseIndex
+    houseId = Zen.houseId
+    commandMod = Some(new DreamCommandMod)
+  }
+
+  Zen.cards(4).asCreature.ability = Some(dream)
+  Zen.cards(5).asCreature.ability = Some(cocoon)
+
+  private class DreamCommandMod extends CommandMod {
+    def updateRecorder(cr : CommandRecorder){
+      if (cr.flag.isDefined) cr.flag = None
+      else cr.flag = Some(DreamCommandFlag)
+    }
+  }
 
   private class ElemAttack extends Attack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
@@ -105,12 +130,49 @@ trait ZenMage {
       if (player.slots.value.isDefinedAt(num)) player.slots.healCreature(num, amount)
     }
   }
+
+  private class DreamerReaction extends DefaultReaction {
+    final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
+      if (command.card.isSpell && command.flag == Some(DreamCommandFlag)){
+        updater.players(command.player).addEffect(OnTurn -> new Dream(command))
+        true
+      } else false
+    }
+  }
+
+ private class MimicReaction extends DefaultReaction {
+    final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
+      if (!command.card.isSpell && command.flag == Some(DreamCommandFlag)){
+        updater.players(command.player).addEffect(OnTurn -> new Dream(command))
+        true
+      } else false
+    }
+  }
+
+  class Dream(c : Command) extends Function[Env, Unit]{
+    def apply(env : Env){
+      println("submit dream " + c)
+      if (! c.card.inputSpec.exists{
+        case SelectOwnerSlot =>
+          env.player.slots.value.isDefinedAt(c.input.get.num)
+        case SelectOwnerCreature =>
+          !env.player.slots.value.isDefinedAt(c.input.get.num)
+        case SelectTargetCreature =>
+          !env.otherPlayer.slots.value.isDefinedAt(c.input.get.num)
+      }){
+        env.player.submit(c.copy(flag = None, cost = math.max(0, c.cost - 2)))
+      }
+      env.player.removeEffect(_.isInstanceOf[Dream])
+    }
+  }
 }
 
-class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned gives 4 water mana. Zen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(4, 1)))) {
+class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned gives 3 water mana. Zen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
 
   override def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect) (life - math.ceil(0.3 * (damage.amount))).toInt
     else life - damage.amount
   }
 }
+
+object DreamCommandFlag extends CommandFlag

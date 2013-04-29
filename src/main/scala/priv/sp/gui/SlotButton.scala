@@ -20,7 +20,6 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
 
-  def zeroAnim = Function.const[Long, Long](0) _
   def refresh() {
     val old = card
     card = getCard(slot)

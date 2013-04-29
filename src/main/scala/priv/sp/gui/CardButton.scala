@@ -6,23 +6,42 @@ import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.util._
 
-class CardButton(val card : Card, houseState: => HouseState, game : Game) extends GuiElem {
+class CardButton(val baseCard : Card, houseState: => HouseState, game : Game) extends GuiElem {
   import game.sp
 
-  private val cardTex = sp.textures.get("Images/Cards/" + card.image)
-  private val borderTex = sp.baseTextures.getBorder(card)
-  val size = borderTex.size
+  var holder = new CardHolder(baseCard)
+  val size = holder.borderTex.size
   private var hovered = false
   private val grey = sp.shaders.get("grey")
   private val hoverGlow = sp.baseShaders.hoverGlow
   private val selectedGlow = sp.baseShaders.selectedGlow("selcard", 200)
   var selected = false
-  def getIsActive = card.isAvailable(houseState) && enabled
+  def card = holder.card
+
+  class CardHolder(val card : Card){
+    val cardTex = sp.textures.get("Images/Cards/" + card.image)
+    val borderTex = sp.baseTextures.getBorder(card)
+    val isAbility = card != baseCard
+    def isActive = card.isAvailable(houseState) && enabled
+  }
+
+  def setAbility(ability : Boolean){
+    baseCard match {
+      case creature : Creature =>
+        creature.ability.foreach{ c =>
+          if (holder.isAbility != ability){
+            val other = if (ability) c else baseCard
+            holder = new CardHolder(other)
+          }
+        }
+      case _ =>
+    }
+  }
 
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    val isActive = getIsActive
+    val isActive = holder.isActive
     glColor4f(1, 1, 1, 1)
 
     if (!isActive) {
@@ -58,13 +77,13 @@ class CardButton(val card : Card, houseState: => HouseState, game : Game) extend
     }
 
     glPushMatrix()
-    if (card.isSpell) glTranslatef(-1, -1, 0) else glTranslatef(3, 8, 0)
-    tex.draw(cardTex)
+    if (holder.card.isSpell) glTranslatef(-1, -1, 0) else glTranslatef(3, 8, 0)
+    tex.draw(holder.cardTex)
     glPopMatrix()
 
-    tex.draw(borderTex)
+    tex.draw(holder.borderTex)
 
-    card match {
+    holder.card match {
       case spell: Spell =>
         Fonts.font.draw(72, 9, spell.cost, 'blue)
       case creature: Creature =>
@@ -77,7 +96,7 @@ class CardButton(val card : Card, houseState: => HouseState, game : Game) extend
 
   on {
     case MouseMoved(_) =>
-      game.descriptionPanel.cardOption = Some(card)
+      game.descriptionPanel.cardOption = Some(holder.card)
       hovered = true
     case MouseLeaved(_) =>
       game.descriptionPanel.cardOption = None

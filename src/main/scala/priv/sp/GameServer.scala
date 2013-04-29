@@ -39,9 +39,11 @@ class Local(resources : GameResources) extends GameServer {
   def submitCommand(commandOption : Option[Command]) = {
     commandOption.foreach{ c =>
       val cardIdx = desc.players(owner).getIndexOfCardInHouse(c.card)
-      resources.aiExecutor.submit(runnable {
-        bot.updateKnowledge(c, cardIdx)
-      })
+      if (cardIdx != -1){
+        resources.aiExecutor.submit(runnable {
+          bot.updateKnowledge(c, cardIdx)
+        })
+      }
     }
   }
 }

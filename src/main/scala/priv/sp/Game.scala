@@ -84,18 +84,6 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     slotPanels.foreach(_.disable())
     cardPanels.foreach(_.setEnabled(false))
     commandOption foreach { c =>
-      if (c.card.isSpell){
-        notifySpellPlayed(c.card)
-        val sourceCoord = cardPanels(player).getPositionOf(c.card)
-        val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
-          player
-        } else other(player)
-        gameLock.waitLock{ lock =>
-          world.doInRenderThread{
-            slotPanels(targetPlayer).summonSpell(c, sourceCoord, lock)
-          }
-        }
-      }
       persist(updater.lift(_.players(c.player).submit(c)))
       refresh()
     }
@@ -177,6 +165,18 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def refresh(silent : Boolean) = {
       persistUpdater()
       game.refresh(silent)
+    }
+    def spellPlayed(c : Command){
+      notifySpellPlayed(c.card)
+      val sourceCoord = cardPanels(c.player).getPositionOf(c.card)
+      val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
+        c.player
+      } else other(c.player)
+      gameLock.waitLock{ lock =>
+        world.doInRenderThread{
+          slotPanels(targetPlayer).summonSpell(c, sourceCoord, lock)
+        }
+      }
     }
   }
 

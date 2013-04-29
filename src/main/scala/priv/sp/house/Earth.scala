@@ -20,7 +20,7 @@ trait EarthHouse {
     Creature("HugeSpider", Some(4), 21, "Spawn 2 forest spiders around him", effects = effects(Direct -> spider)),
     Creature("Troll", Some(6), 25, "Every turn heals himself by 4", effects = effects(OnTurn -> focus(healCreature(4)))),
     Spell("StoneRain", "Deals 25 damage to any creature", effects = effects(Direct -> massDamage(Damage(25, isSpell = true)))),
-    Creature("EarthElemental", None, 49, effects = effects(OnTurn -> addMana(1, 2))),
+    Creature("EarthElemental", None, 49, effects = effects(OnTurn -> addMana(1, 3))),
     Creature("MasterHealer", Some(3), 35, "Every turn heals by 3 owner and his creatures",
       effects = effects(OnTurn -> focus(heal(3)), OnTurn -> healCreatures(3))),
     Creature("Hydra", Some(3), 40, "Attack all opponent creatures",

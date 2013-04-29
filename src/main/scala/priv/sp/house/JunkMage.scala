@@ -13,10 +13,10 @@ trait JunkMage {
     Spell("PoisonFlower", "Deals 5 damage to target and creatures around. Deals 3 damage to opponent.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
-    Creature("ChainController", Some(4), 21, "When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
-    Creature("JunkyardGoddess", Some(4), 26, "Absorb 3 of first damage done to either owner or creature of cost < 6", reaction = new JunkyardGoddessReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
+    Creature("JunkyardFortune", Some(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
+    Creature("ChainController", Some(4), 18, "Mirror spawn of adjacent creature of cost <4. When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("RoamingAssassin", Some(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Some(4), 29, "When spawning a card of cost < 6 near to it,\nit produce a mirror in the other adjacent slot", reaction = new FactoryReaction),
+    Creature("Factory", Some(4), 29, "Mirror spawn of adjacent creature of cost < 6", reaction = new FactoryReaction),
     Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg))
 
@@ -104,21 +104,39 @@ trait JunkMage {
   }
 }
 
-class JunkyardGoddessReaction extends DefaultReaction {
+class JFReaction extends DefaultReaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
     val playerUpdate = updater.players(playerId)
     val slot = playerUpdate.slots.value(selected)
     if (!slot.data.asInstanceOf[Boolean]
-        && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 6)){
+        && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 4)){
         updater.focus(selected, playerId, blocking = false)
         playerUpdate.slots.setData(selected, Boolean.box(true))
-        math.max(0, d.amount - 3)
+        math.max(0, d.amount - 2)
     } else d.amount
   }
 }
 
-class ChainControllerReaction extends DefaultReaction {
+trait MirrorSummon extends DefaultReaction {
+  def maxCost : Int
+  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+    import summoned._
+    val step = selected - num
+    if (selectedPlayerId == playerId
+        && math.abs(step) == 1
+        && card.cost < maxCost + 1){
+      updater.focus(selected, playerId)
+      val slots = updater.players(playerId).slots
+      val pos = selected + step
+      if (!slots.value.isDefinedAt(pos) && pos > -1 && pos < 6){
+        slots.add(pos, card)
+      }
+    }
+  }
+}
+class ChainControllerReaction extends MirrorSummon {
+  val maxCost = 3
   final override def onDeath(selected : Int, dead : Dead){
     import dead._
     val step = num - selected
@@ -139,21 +157,8 @@ class ChainControllerReaction extends DefaultReaction {
   }
 }
 
-class FactoryReaction extends DefaultReaction {
-  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
-    import summoned._
-    val step = selected - num
-    if (selectedPlayerId == playerId
-        && math.abs(step) == 1
-        && card.cost < 6){
-      updater.focus(selected, playerId)
-      val slots = updater.players(playerId).slots
-      val pos = selected + step
-      if (!slots.value.isDefinedAt(pos) && pos > -1 && pos < 6){
-        slots.add(pos, card)
-      }
-    }
-  }
+class FactoryReaction extends MirrorSummon {
+  val maxCost = 5
 }
 
 class RecyclingBotReaction extends DefaultReaction {

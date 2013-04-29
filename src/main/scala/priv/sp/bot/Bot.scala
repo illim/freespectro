@@ -89,18 +89,18 @@ class Choices(bot : Bot) {
 
       houseDesc.cardList.withFilter(_.isAvailable(houseState)).flatMap { card =>
         card.inputSpec match {
-          case None => List(Command(playerId, card, None))
+          case None => List(Command(playerId, card, None, card.cost))
           case Some(SelectOwnerSlot) =>
             emptySlots.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)))
+              Command(playerId, card, Some(new SlotInput(num)), card.cost)
             }
           case Some(SelectOwnerCreature) =>
             slots.keys.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)))
+              Command(playerId, card, Some(new SlotInput(num)), card.cost)
             }
           case Some(SelectTargetCreature) =>
             otherSlots.keys.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)))
+              Command(playerId, card, Some(new SlotInput(num)), card.cost)
             }
         }
       }
@@ -121,18 +121,18 @@ class Choices(bot : Bot) {
 
     cardOption.flatMap { card =>
       card.inputSpec match {
-        case None => Some(Command(playerId, card, None))
+        case None => Some(Command(playerId, card, None, card.cost))
         case Some(SelectOwnerSlot) =>
           emptySlot.map { num =>
-            Command(playerId, card, Some(new SlotInput(num)))
+            Command(playerId, card, Some(new SlotInput(num)), card.cost)
           }
         case Some(SelectOwnerCreature) =>
           slot.map { case (num, _) =>
-            Command(playerId, card, Some(new SlotInput(num)))
+            Command(playerId, card, Some(new SlotInput(num)), card.cost)
           }
         case Some(SelectTargetCreature) =>
           otherSlot.map { case (num, _) =>
-            Command(playerId, card, Some(new SlotInput(num)))
+            Command(playerId, card, Some(new SlotInput(num)), card.cost)
           }
       }
     }
