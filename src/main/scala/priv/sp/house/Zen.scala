@@ -5,8 +5,6 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
-// TODO manage dreamer in bot and show in gui when effect toggled
-
 trait ZenMage {
 
   val Zen : House = House("Zen", List(
@@ -145,7 +143,7 @@ trait ZenMage {
       if (!command.card.isSpell && command.flag == None){
         val c = command.copy(flag = Some(DreamCommandFlag))
         updater.players(command.player).addEffect(OnTurn -> new Hatch(c))
-        (true, Some(Command(command.player, cocoon, command.input, command.cost - 2)))
+        (true, Some(Command(command.player, cocoon, command.input, math.max(0, command.cost - 2))))
       } else (false, None)
     }
   }
@@ -174,7 +172,7 @@ trait ZenMage {
         case SelectTargetCreature =>
           !env.otherPlayer.slots.value.isDefinedAt(c.input.get.num)
       }){
-        env.player.submit(c.copy(flag = None, cost = math.max(0, c.cost - 2)))
+        env.player.submit(c.copy(cost = math.max(0, c.cost - 2)))
       }
       env.player.removeEffect(_.isInstanceOf[Dream])
     }
