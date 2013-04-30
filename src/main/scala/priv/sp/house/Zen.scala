@@ -16,12 +16,12 @@ trait ZenMage {
     Creature("ElectricGuard", Some(3), 21, "deals 3 damage to creatures damaging opponent.", reaction = new EGuardReaction),
     Creature("Dreamer", Some(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
     Creature("Mimic", Some(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
-    Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
+    Creature("SpiralOfLight", Some(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
   Zen.initCards(Houses.basicCostFunc)
 
-  private val cocoon = new Creature("Cocoon", Some(0), 12){
+  private val cocoon = new Creature("Cocoon", Some(0), 13){
     cost = 0
     houseIndex = Zen.houseIndex
     houseId = Zen.houseId
@@ -131,7 +131,7 @@ trait ZenMage {
   private class DreamerReaction extends DefaultReaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (command.card.isSpell && command.flag == None){
-        val c = command.copy(flag = Some(DreamCommandFlag))
+        val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))
         updater.players(command.player).addEffect(OnTurn -> new Dream(c))
         (true, None)
       } else (false, None)
@@ -141,9 +141,9 @@ trait ZenMage {
  private class MimicReaction extends DefaultReaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (!command.card.isSpell && command.flag == None){
-        val c = command.copy(flag = Some(DreamCommandFlag))
+        val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))
         updater.players(command.player).addEffect(OnTurn -> new Hatch(c))
-        (true, Some(Command(command.player, cocoon, command.input, math.max(0, command.cost - 2))))
+        (true, Some(Command(command.player, cocoon, command.input, 0)))
       } else (false, None)
     }
   }
@@ -172,7 +172,7 @@ trait ZenMage {
         case SelectTargetCreature =>
           !env.otherPlayer.slots.value.isDefinedAt(c.input.get.num)
       }){
-        env.player.submit(c.copy(cost = math.max(0, c.cost - 2)))
+        env.player.submit(c)
       }
       env.player.removeEffect(_.isInstanceOf[Dream])
     }

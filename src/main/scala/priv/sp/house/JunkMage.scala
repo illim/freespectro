@@ -10,7 +10,7 @@ trait JunkMage {
 
   val Junk : House = House("Junk", List(
     Creature("Screamer", Some(2), 13, "+1 attack for each screamer in play", slotEffect = new ScreamerSlotEffect),
-    Spell("PoisonFlower", "Deals 5 damage to target and creatures around. Deals 3 damage to opponent.",
+    Spell("PoisonFlower", "Deals 5 damage to target and creatures around.\nDeals -1 mana for opponent ones.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
     Creature("JunkyardFortune", Some(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
@@ -73,11 +73,14 @@ trait JunkMage {
     import env._
 
     val damage = Damage(5, isSpell = true)
-    (selected-1 to selected +1).foreach{ num =>
-      if (otherPlayer.slots.value.isDefinedAt(num)) otherPlayer.slots.inflictCreature(num, damage)
+    val houses = (selected-1 to selected +1).flatMap{ num =>
       if (player.slots.value.isDefinedAt(num)) player.slots.inflictCreature(num, damage)
-    }
-    otherPlayer.inflict(Damage(3, isSpell = true))
+      (otherPlayer.slots.value.get(num)).map { slot =>
+        otherPlayer.slots.inflictCreature(num, damage)
+        slot.card.houseIndex
+      }
+    }.distinct
+    otherPlayer.houses.incrMana(-1 , houses : _*)
   }
 
   private class ScreamerSlotEffect extends DefaultSlotEffect {
