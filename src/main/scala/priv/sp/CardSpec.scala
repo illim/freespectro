@@ -140,7 +140,8 @@ class DefaultSlotEffect extends SlotEffect {
 
 sealed trait BoardEvent
 case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
-case class DamageEvent(amount : Int, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+// need source if no target
+case class DamageEvent(amount : Int, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater, source : Option[SlotSource]) extends BoardEvent
 case class SummonEvent(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 
 trait Reaction {
@@ -157,7 +158,7 @@ class DefaultReaction extends Reaction {
   def interceptSubmit(command : Command, updater : GameStateUpdater) = false
 }
 
-
+case class SlotSource(playerId : PlayerId, num : Int)
 
 trait Attack {
   def apply(num : Int, d : Damage,updater : GameStateUpdater, playerId : PlayerId)
@@ -166,7 +167,7 @@ object SingleTargetAttack extends Attack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
     otherPlayer.getSlots.get(num) match {
-      case None => otherPlayer.inflict(d)
+      case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
       case Some(_) => otherPlayer.slots.inflictCreature(num, d)
     }
   }
@@ -174,7 +175,7 @@ object SingleTargetAttack extends Attack {
 object MultiTargetAttack extends Attack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
-    otherPlayer.inflict(d)
+    otherPlayer.inflict(d, Some(SlotSource(id, num)))
     otherPlayer.slots.inflictCreatures(d)
   }
 }

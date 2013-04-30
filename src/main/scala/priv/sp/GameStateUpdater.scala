@@ -85,15 +85,20 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
         }
         command.card.effects(CardSpec.Direct) foreach { f =>
           val env = new GameCardEffect.Env(command.player, self)
-          command.input foreach { slotInput => env.selected = slotInput.num }
+          command.input foreach { slotInput =>
+            env.selected = slotInput.num
+            if (command.card.inputSpec == Some(SelectOwnerSlot)){
+              env.source = Some(SlotSource(command.player, slotInput.num))
+            }
+          }
           f(env)
         }
       }
     }
 
-    def inflict(d : Damage) = {
+    def inflict(d : Damage, source : Option[SlotSource] = None) = {
       if (!ended) {
-        val life = pstate.life - guard(mod(d).amount)
+        val life = pstate.life - guard(mod(d).amount, source)
         if (life <= 0){
           ended = true
         }
@@ -123,6 +128,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
           getSlots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
             slot.card.effects(phase).map{ f =>
               val env = new GameCardEffect.Env(id, self)
+              env.source = Some(SlotSource(id, num))
               env.selected = num
               f(env)
             }
@@ -154,13 +160,13 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       } else d
     }
 
-    private def guard(amount : Int) = {
+    private def guard(amount : Int, source : Option[SlotSource] = None) = {
       (amount /: getSlots) { case (acc, (num, slot)) =>
         val a = slot.card.mod match {
           case Some(SpellProtectOwner(mod)) => mod(acc)
           case _ => acc
         }
-        slot.card.reaction.onProtect(num, DamageEvent(a, None, id, self))
+        slot.card.reaction.onProtect(num, DamageEvent(a, None, id, self, source))
       }
     }
 
@@ -218,7 +224,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def protect(num : Int, amount : Int) = {
         (amount /: getSlots) { case (acc, (n, slot)) =>
-          slot.card.reaction.onProtect(n, DamageEvent(acc, Some(num), id, self))
+          slot.card.reaction.onProtect(n, DamageEvent(acc, Some(num), id, self, None))
         }
       }
 

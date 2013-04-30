@@ -5,16 +5,18 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
+// TODO manage dreamer in bot and show in gui when effect toggled
+
 trait ZenMage {
 
   val Zen : House = House("Zen", List(
-    Creature("Elementesist", Some(3), 11, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
+    Creature("Elementesist", Some(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
     Creature("RedlightBringer", Some(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
     Spell("Focus", "Every owner card dedicate 50% of their attack to the focused creature.",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focus)),
-    Creature("ElectricGuard", Some(3), 20, "deals 3 damage to creatures damaging opponent."),
-    Creature("Dreamer", Some(5), 22, reaction = new DreamerReaction),
+    Creature("ElectricGuard", Some(3), 21, "deals 3 damage to creatures damaging opponent.", reaction = new EGuardReaction),
+    Creature("Dreamer", Some(5), 24, reaction = new DreamerReaction),
     Creature("Mimic", Some(6), 26, reaction = new MimicReaction),
     Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
@@ -128,6 +130,18 @@ trait ZenMage {
     (selected-2 to selected +2).foreach{ num =>
       val amount = 3 - (selected - num)
       if (player.slots.value.isDefinedAt(num)) player.slots.healCreature(num, amount)
+    }
+  }
+
+  private class EGuardReaction extends DefaultReaction {
+    final override def onProtect(selected : Int, d : DamageEvent) : Int = {
+      if (d.target.isEmpty){
+        d.source.foreach{ src =>
+          d.updater.focus(selected, d.playerId, blocking = false)
+          d.updater.players(src.playerId).slots.inflictCreature(src.num, Damage(3, isAbility = true))
+        }
+      }
+      d.amount
     }
   }
 

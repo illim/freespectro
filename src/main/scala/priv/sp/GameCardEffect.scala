@@ -8,6 +8,7 @@ object GameCardEffect {
 
   class Env(val playerId: PlayerId, val updater: GameStateUpdater) {
     var selected = 0
+    var source = Option.empty[SlotSource]
 
     def focus() = updater.focus(selected, playerId)
     @inline def player = updater.players(playerId)
@@ -19,7 +20,7 @@ object GameCardEffect {
     env.updater.focus(env.selected, env.playerId)
     f(env)
   }
-  def damage(d : Damage) = { env : Env => env.otherPlayer.inflict(d) }
+  def damage(d : Damage) = { env : Env => env.otherPlayer.inflict(d, env.source) }
   def damageCreatures(d : Damage) : Effect  = { env : Env => env.otherPlayer.slots.inflictCreatures(d) }
   def damageCreature(d: Damage) : Effect = { env : Env =>
     env.otherPlayer.slots.inflictCreature(env.selected, d)
