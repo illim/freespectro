@@ -16,35 +16,17 @@ trait ZenMage {
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focus)),
     Creature("ElectricGuard", Some(3), 21, "deals 3 damage to creatures damaging opponent.", reaction = new EGuardReaction),
-    Creature("Dreamer", Some(5), 24, reaction = new DreamerReaction),
-    Creature("Mimic", Some(6), 26, reaction = new MimicReaction),
+    Creature("Dreamer", Some(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
+    Creature("Mimic", Some(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
     Creature("SpiralOfLight", Some(3), 27, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
   Zen.initCards(Houses.basicCostFunc)
 
-  private def dream = new Spell("Dream", "summon spell in next turn with cost -2"){
+  private val cocoon = new Creature("Cocoon", Some(0), 12){
     cost = 0
     houseIndex = Zen.houseIndex
     houseId = Zen.houseId
-    commandMod = Some(new DreamCommandMod)
-  }
-
-  private def cocoon = new Creature("Cocoon", Some(0), 11, "summon creature in next turn with cost -2"){
-    cost = 0
-    houseIndex = Zen.houseIndex
-    houseId = Zen.houseId
-    commandMod = Some(new DreamCommandMod)
-  }
-
-  Zen.cards(4).asCreature.ability = Some(dream)
-  Zen.cards(5).asCreature.ability = Some(cocoon)
-
-  private class DreamCommandMod extends CommandMod {
-    def updateRecorder(cr : CommandRecorder){
-      if (cr.flag.isDefined) cr.flag = None
-      else cr.flag = Some(DreamCommandFlag)
-    }
   }
 
   private class ElemAttack extends Attack {
@@ -72,7 +54,7 @@ trait ZenMage {
 
       targets.foreach { n =>
         otherPlayer.getSlots.get(n) match {
-          case None => player.otherPlayer.inflict(d)
+          case None => if (n == num) player.otherPlayer.inflict(d.copy(amount = d.amount + bonus.size))
           case Some(oppositeSlot) =>
             if (bonus.size == 0){
               otherPlayer.slots.inflictCreature(n, d)
@@ -117,7 +99,10 @@ trait ZenMage {
     def apply(env : Env){
       env.player.slots.update{ s =>
         s.map{ case (num, slot) =>
-          (num -> slot.copy(attack = backup(num)))
+          backup.get(num) match {
+            case Some(old) => (num -> slot.copy(attack = old))
+            case _ => (num -> slot)
+          }
         }
       }
       env.player.removeEffect(_.isInstanceOf[FocusRecover])
@@ -147,25 +132,40 @@ trait ZenMage {
 
   private class DreamerReaction extends DefaultReaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
-      if (command.card.isSpell && command.flag == Some(DreamCommandFlag)){
-        updater.players(command.player).addEffect(OnTurn -> new Dream(command))
-        true
-      } else false
+      if (command.card.isSpell && command.flag == None){
+        val c = command.copy(flag = Some(DreamCommandFlag))
+        updater.players(command.player).addEffect(OnTurn -> new Dream(c))
+        (true, None)
+      } else (false, None)
     }
   }
 
  private class MimicReaction extends DefaultReaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
-      if (!command.card.isSpell && command.flag == Some(DreamCommandFlag)){
-        updater.players(command.player).addEffect(OnTurn -> new Dream(command))
-        true
-      } else false
+      if (!command.card.isSpell && command.flag == None){
+        val c = command.copy(flag = Some(DreamCommandFlag))
+        updater.players(command.player).addEffect(OnTurn -> new Hatch(c))
+        (true, Some(Command(command.player, cocoon, command.input, command.cost - 2)))
+      } else (false, None)
     }
   }
 
-  class Dream(c : Command) extends Function[Env, Unit]{
+  private class Hatch(c : Command) extends Function[Env, Unit]{
     def apply(env : Env){
-      println("submit dream " + c)
+      if (c.card.inputSpec.exists{
+        case SelectOwnerSlot =>
+          env.player.slots.value.get(c.input.get.num).exists(_.card == cocoon)
+        case _ => false
+      }){
+        env.player.heal(3)
+        env.player.submit(c)
+      }
+      env.player.removeEffect(_.isInstanceOf[Hatch])
+    }
+  }
+
+  private class Dream(c : Command) extends Function[Env, Unit]{
+    def apply(env : Env){
       if (! c.card.inputSpec.exists{
         case SelectOwnerSlot =>
           env.player.slots.value.isDefinedAt(c.input.get.num)

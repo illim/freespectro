@@ -25,19 +25,6 @@ class CardButton(val baseCard : Card, houseState: => HouseState, game : Game) ex
     def isActive = card.isAvailable(houseState) && enabled
   }
 
-  def setAbility(ability : Boolean){
-    baseCard match {
-      case creature : Creature =>
-        creature.ability.foreach{ c =>
-          if (holder.isAbility != ability){
-            val other = if (ability) c else baseCard
-            holder = new CardHolder(other)
-          }
-        }
-      case _ =>
-    }
-  }
-
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 

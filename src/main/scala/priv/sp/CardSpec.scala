@@ -19,7 +19,6 @@ sealed abstract class Card extends Externalizable {
   var id = Card.currentId.incrementAndGet
   var houseId = 0
   var houseIndex = 0
-  var commandMod  : Option[CommandMod] = None
   final val isSpell = isInstanceOf[Spell]
   def asCreature = {
     this match {
@@ -56,8 +55,6 @@ case class Creature(
   runOnce     : Boolean = false) extends Card {
 
   def this() = this(null, None, 0)
-
-  var ability : Option[Card] = None
 
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
@@ -148,14 +145,14 @@ trait Reaction {
   def onProtect(selected : Int, d : DamageEvent) : Int
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
-  def interceptSubmit(command : Command, updater : GameStateUpdater) : Boolean
+  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
 }
 
 class DefaultReaction extends Reaction {
   def onProtect(selected : Int, d : DamageEvent) = d.amount
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
-  def interceptSubmit(command : Command, updater : GameStateUpdater) = false
+  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }
 
 case class SlotSource(playerId : PlayerId, num : Int)
@@ -178,8 +175,4 @@ object MultiTargetAttack extends Attack {
     otherPlayer.inflict(d, Some(SlotSource(id, num)))
     otherPlayer.slots.inflictCreatures(d)
   }
-}
-
-trait CommandMod{
-  def updateRecorder(cr : gui.CommandRecorder)
 }

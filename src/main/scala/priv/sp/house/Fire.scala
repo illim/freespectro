@@ -16,7 +16,7 @@ trait Fire {
     Creature("BullCommander", Some(6), 20, "Increase attack of owner card by 1", slotEffect = new BullSlotEffect),
     Creature("Bargul", Some(8), 25, "Deals 4 damage to every creature when summoned", effects = effects(Direct -> massDamage(Damage(4, isAbility = true), immuneSelf = true))),
     Spell("Inferno", "Deals 18 damage to target and 10 to other opponent creatures", inputSpec = Some(SelectTargetCreature), effects = effects(Direct -> inferno)),
-    Creature("FireElemental", None, 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> focus(damageCreatures(Damage(3, isAbility = true))), OnTurn -> addMana(1, 0))),
+    Creature("FireElemental", None, 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(Damage(3, isAbility = true)), Direct -> focus(damage(Damage(3, isAbility = true))), OnTurn -> addMana(1, 0))),
     Spell("Armageddon", "Damage any creature and opponent by 8 + fire mana", effects = effects(Direct -> armageddon)),
     Creature("Dragon", Some(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue))))
     , houseIndex = 0)

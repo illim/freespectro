@@ -42,12 +42,6 @@ object PlayerState {
   type SlotsType = immutable.Map[Int, SlotState]
   type HousesType = Vector[HouseState]
   val emptySlots = immutable.Map.empty[Int, SlotState]
-  def abilityCards(playerState : PlayerState, playerDesc : PlayerDesc) : Set[Card] = {
-    val specialCards = playerDesc.houses(4).cardList
-    specialCards.collect { case c : Creature if
-      c.ability.isDefined && playerState.slots.exists(_._2.card == c) => c : Card
-    }.toSet
-  }
 }
 object SlotState {
   @inline def addLife(slot : SlotState, amount : Int) = {

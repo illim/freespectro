@@ -9,7 +9,6 @@ import java.util.concurrent._
 import util.Utils._
 
 class Game(val world: World, resources : GameResources, val server : GameServer) { game =>
-  import resources.gameExecutor
 
   var state      = server.initState
   val sp         = resources.sp
@@ -114,11 +113,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
           endOr {
             val otherPlayer = p.otherPlayer
             otherPlayer.prepareNextTurn()
+            otherPlayer.applyEffects(CardSpec.OnTurn)
             persistUpdater()
+            refresh(silent = true)
             endOr {
-              otherPlayer.applyEffects(CardSpec.OnTurn)
-              persistUpdater()
-              refresh(silent = true)
               waitPlayer(otherPlayer.id)
             }
           }
@@ -156,7 +154,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       state.checkEnded.foreach(endGame _)
     }
     def summon(num : Int, slot : SlotState, playerId : PlayerId){
-      val sourceCoord = cardPanels(playerId).getPositionOf(slot.card)
+      val sourceCoord = cardPanels(playerId).getPositionOf(slot.card).getOrElse(Coord2i(0, 0))
       val slotButton = slotPanels(playerId).slots(num)
       spawn(slotButton.summon(sourceCoord, slot), blocking = true)
       persistUpdater()
@@ -168,7 +166,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
     def spellPlayed(c : Command){
       notifySpellPlayed(c.card)
-      val sourceCoord = cardPanels(c.player).getPositionOf(c.card)
+      val sourceCoord = cardPanels(c.player).getPositionOf(c.card).getOrElse(Coord2i(0, 0))
       val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
         c.player
       } else other(c.player)

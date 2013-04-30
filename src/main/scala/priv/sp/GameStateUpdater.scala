@@ -71,8 +71,11 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       updateListener.runSlot(numSlot, id)
     }
 
-    def submit(command : Command){
-      if (!getSlots.exists(_._2.card.reaction.interceptSubmit(command, self))) {
+    def submit(c : Command){
+      val (test, newComand) = ((false, Option.empty[Command]) /: getSlots){ case (acc, (_, s)) =>
+        if (acc._1) acc else s.card.reaction.interceptSubmit(c, self)
+      }
+      (if (!test) Some(c) else newComand).foreach{ command =>
         if (command.card.isSpell){
           updateListener.spellPlayed(command)
         }
