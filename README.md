@@ -1,8 +1,6 @@
-Started toy programming trying to make a fake dumbed down Spectromancer, a turn based card game based in a fantasy world.
-Currently I'm working with the original resources, but the final goal is to have a decent ai so we can have fun making our own cards,
-and play with them.
+Toy program around world of Spectromancer, a turn based card game based in a fantasy world.
 
-(technical details in wiki)
+More info about game status <a href="https://github.com/illim/freespectro/wiki">here</a>.
 
 ## Acknowledgements
 

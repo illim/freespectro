@@ -179,7 +179,7 @@ trait ZenMage {
   }
 }
 
-class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned gives 3 water mana. Zen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
+class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned gives 3 water mana.\nZen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
 
   override def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect) (life - math.ceil(0.3 * (damage.amount))).toInt
