@@ -4,8 +4,7 @@ import collection._
 import scalaz._
 import priv.util.FieldUpdate
 
-// sandbox horror, not thread safe (reusable static structure decomposition to update fields)
-// should be more flexible than using lens
+// not thread safe (reusable static structure decomposition to update fields)
 class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
   private val playerFieldUpdates = playerIds.map(id => new PlayerFieldUpdate(id))
   var ended = false
@@ -40,7 +39,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     def houses      = houseFieldUpdate.reinit()
     def result = {
       if (slotFieldUpdate.isDirty){
-        // dumb hack (should be a mutable queue) to avoid case of card moving during mass damage
+        // hack? for example avoid case of card moving during mass damage
         slotFieldUpdate.logs.foreach{
           case dead : Dead =>
             slots.update(s => dead.card.slotEffect.unapplySlots(dead.num, s))

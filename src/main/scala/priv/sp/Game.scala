@@ -38,13 +38,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
   resources.gameExecutor.submit(runnable(waitPlayer(owner)))
 
-  def refresh(silent : Boolean = false) = {
-    gameLock.waitLock{ lock =>
-      world.addTask(new BlockingTask(board.refresh(silent), lock))
-    }
-  }
-
-  protected def waitPlayer(player: PlayerId) {
+  private def waitPlayer(player: PlayerId) {
     if (player == server.playerId) {
       cardPanels(player).setEnabled(true)
       gameLock.waitFor[Option[Command]]{ c =>
@@ -64,21 +58,20 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
   }
 
-  protected def endGame(player: PlayerId) {
+  private def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
     world.spawn(Translate(Coord2i(300, 350), new GuiButton(msg, Fonts.big)))
   }
 
-  protected def persist[A](stateFunc: State[GameState, A]) : A = {
+  private def persist[A](stateFunc: State[GameState, A]) : A = {
     val result = stateFunc run state
     state = result._1
     result._2
   }
+  private def persistState(newState : GameState) { state = newState  }
+  private def persistUpdater() = persistState(updater.result)  // crappy side effect
 
-  protected def persistState(newState : GameState) { state = newState  }
-  protected def persistUpdater() = persistState(updater.result)  // crappy side effect
-
-  protected def submit(commandOption: Option[Command], player: PlayerId) = {
+  private def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
     slotPanels.foreach(_.disable())
     cardPanels.foreach(_.setEnabled(false))
@@ -89,7 +82,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     run(player)
   }
 
-  protected def run(playerId: PlayerId) {
+  private def run(playerId: PlayerId) {
     def endOr(f : => Unit){
       state.checkEnded match {
         case Some(player) =>
@@ -125,14 +118,18 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     })
   }
 
-  private def notifySpellPlayed(card : Card) = spawn(new SpellNotif(sp, card))
-
   private def spawn(entity : => TimedEntity, blocking : Boolean = false){
     val lockOption = if (blocking) Some(gameLock.lock) else None
     world.doInRenderThread{
       world.addTask(TaskSpawn(entity, lockOption))
     }
     if (blocking) gameLock.lockWait()
+  }
+
+  private def refresh(silent : Boolean = false) = {
+    gameLock.waitLock{ lock =>
+      world.addTask(new BlockingTask(board.refresh(silent), lock))
+    }
   }
 
   private class GameUpdateListener extends UpdateListener {
@@ -165,7 +162,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       game.refresh(silent)
     }
     def spellPlayed(c : Command){
-      notifySpellPlayed(c.card)
+      spawn(new SpellNotif(sp, c.card))
       val sourceCoord = cardPanels(c.player).getPositionOf(c.card).getOrElse(Coord2i(0, 0))
       val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
         c.player
