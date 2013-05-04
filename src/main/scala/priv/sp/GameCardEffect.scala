@@ -41,11 +41,7 @@ object GameCardEffect {
     env.player.slots.healCreature(env.selected, amount)
   }
   def healCreatures(amount : Int) : Effect  = { env : Env =>
-    env.player.slots.update{ slots =>
-      slots.map { case (num, slot)  =>
-        num -> SlotState.addLife(slot, amount)
-      }
-    }
+    env.player.slots.healCreatures(amount)
   }
 
   def addMana(amount : Int, houseIndex : Int*) = {env : Env =>

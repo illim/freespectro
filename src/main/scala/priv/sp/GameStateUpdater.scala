@@ -5,6 +5,7 @@ import scalaz._
 import priv.util.FieldUpdate
 
 // not thread safe (reusable static structure decomposition to update fields)
+// todo use macro to remove listener in ai?
 class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
   private val playerFieldUpdates = playerIds.map(id => new PlayerFieldUpdate(id))
   var ended = false
@@ -223,6 +224,11 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       def healCreature(num : Int, amount : Int) = {
         write(slots + (num -> SlotState.addLife(slots(num), amount)))
       }
+
+      def healCreatures(amount : Int) = write(
+        slots.map { case (num, slot)  =>
+          num -> SlotState.addLife(slot, amount)
+        })
 
       def protect(num : Int, amount : Int) = {
         (amount /: getSlots) { case (acc, (n, slot)) =>

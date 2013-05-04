@@ -90,21 +90,7 @@ trait ZenMage {
       (newslots + (num -> slot.copy(attack = math.ceil(slot.attack/2f).toInt)), backup + old)
     }
     player.slots.write(newSlots)
-    player.addEffect(OnEndTurn -> new FocusRecover(backup))
-  }
-
-  class FocusRecover(backup : Map[Int, Int]) extends Function[Env, Unit]{
-    def apply(env : Env){
-      env.player.slots.update{ s =>
-        s.map{ case (num, slot) =>
-          backup.get(num) match {
-            case Some(old) => (num -> slot.copy(attack = old))
-            case _ => (num -> slot)
-          }
-        }
-      }
-      env.player.removeEffect(_.isInstanceOf[FocusRecover])
-    }
+    player.addEffect(OnEndTurn -> new RecoverAttack(backup))
   }
 
   private def spiral = {env: Env =>
@@ -188,3 +174,18 @@ class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned giv
 }
 
 object DreamCommandFlag extends CommandFlag
+
+
+class RecoverAttack(backup : Map[Int, Int]) extends Function[Env, Unit]{
+  def apply(env : Env){
+    env.player.slots.update{ s =>
+      s.map{ case (num, slot) =>
+        backup.get(num) match {
+          case Some(old) => (num -> slot.copy(attack = old))
+            case _ => (num -> slot)
+        }
+      }
+    }
+    env.player.removeEffect(_.isInstanceOf[RecoverAttack])
+  }
+}

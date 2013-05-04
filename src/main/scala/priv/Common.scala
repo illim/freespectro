@@ -13,7 +13,7 @@ object Coord2i {
     def -[N](x : N)(implicit num : Numeric[N]) = this.+(num.negate(x))
   }
 
-  @inline def pow2(x : Int) = x * x
+  @inline def pow2[N](x : N)(implicit num : Numeric[N]) = num.times(x, x)
 
   def sqrDist(a : Coord2i, b :Coord2i) = {
     pow2(b.x - a.x) + pow2(b.y - a.y)

@@ -50,6 +50,7 @@ class Local(resources : GameResources) extends GameServer {
 
 // remote game server common for master or slave
 // retarded code, assuming that the continuation is set before receiving the message
+// todo use something like a syncvar
 class CommonGameServer(val playerId : PlayerId, val name : String, val initState : GameState, val desc : GameDesc, peer : PeerInterface[CommonInterface]) extends GameServer {
   peer.updateImpl(this)
 
