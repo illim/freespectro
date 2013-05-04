@@ -111,18 +111,24 @@ trait Sower {
 
 }
 
+// code horror
 private class BloodSundewAttack extends Attack {
 
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val player = updater.players(id)
     val otherPlayer = player.otherPlayer
-    otherPlayer.getSlots.get(num) match {
+    val healAmount = otherPlayer.getSlots.get(num) match {
       case None =>
         otherPlayer.inflict(d, Some(SlotSource(id, num)))
-        if (player.slots.value.isDefinedAt(num)){ // horror due to zen eguard
-          player.slots.healCreature(num, d.amount)
-        }
-      case Some(_) => otherPlayer.slots.inflictCreature(num, d)
+        d.amount
+      case Some(slot) =>
+        val oldl = slot.life
+        otherPlayer.slots.inflictCreature(num, d)
+        val newl = otherPlayer.slots.value.get(num).map(_.life) getOrElse 0
+        oldl - newl
+    }
+    if (player.slots.value.isDefinedAt(num)){ // horror due to zen eguard
+      player.slots.healCreature(num, healAmount)
     }
   }
 }
@@ -132,11 +138,11 @@ private class PredatorPlantAttack extends Attack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val player = updater.players(id)
     val otherPlayer = player.otherPlayer
-    val slot = player.slots.value(num)
-    val x = slot.card.life - slot.life
     otherPlayer.getSlots.get(num) match {
       case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
-      case Some(_) => otherPlayer.slots.inflictCreature(num, d.copy(amount = d.amount + x))
+      case Some(slot) =>
+        val x = slot.card.life - slot.life
+        otherPlayer.slots.inflictCreature(num, d.copy(amount = d.amount + x))
     }
   }
 }
