@@ -16,12 +16,12 @@ trait Sower {
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> devour)),
     monsterPlant,
-    Spell("Pollination", "turns target creature of X level into special creature of (X minus 3) level with full hp and\n heals X life to owner.",
+    Spell("Pollination", "turns target creature of X level into special creature of (X minus 3) level\nwith full hp and heals X life to owner.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> pollinate)),
-    Creature("BloodSundew", Some(6), 34, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
+    Creature("BloodSundew", Some(6), 24, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
     Creature("PredatorPlant", Some(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
-    Creature("ForestDrake", Some(5), 55, "when owner summons special creature, creates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
+    Creature("ForestDrake", Some(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
     Creature("FieryFlower", Some(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
       env.otherPlayer.inflict(Damage(env.otherPlayer.getHouses(0).mana , isAbility = true))
     }))))
@@ -66,7 +66,7 @@ trait Sower {
 
   private def fieryFlower = {env : Env =>
     import env._
-    otherPlayer.slots.slots.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption foreach { case (num, slot) =>
+    otherPlayer.slots.value.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption foreach { case (num, slot) =>
       updater.focus(selected, playerId)
       otherPlayer.slots.inflictCreature(num, (Damage(math.ceil(slot.life / 2f).toInt, isAbility = true)))
     }
@@ -119,8 +119,9 @@ private class BloodSundewAttack extends Attack {
     val otherPlayer = player.otherPlayer
     val healAmount = otherPlayer.getSlots.get(num) match {
       case None =>
+        val oldl = otherPlayer.value.life
         otherPlayer.inflict(d, Some(SlotSource(id, num)))
-        d.amount
+        oldl - otherPlayer.value.life
       case Some(slot) =>
         val oldl = slot.life
         otherPlayer.slots.inflictCreature(num, d)

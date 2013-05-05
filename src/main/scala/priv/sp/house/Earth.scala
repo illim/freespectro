@@ -8,7 +8,7 @@ trait EarthHouse {
   import GameCardEffect._
 
   val Earth : House = House("earth", List(
-    Creature("ElvenHealer", Some(2), 12, "Heals owner by 2 every turn", effects = effects(OnTurn -> focus(heal(3)))),
+    Creature("ElvenHealer", Some(2), 12, "Heals owner by 3 every turn", effects = effects(OnTurn -> focus(heal(3)))),
     Spell("NaturesRitual", "heals target and owner by 8",
       inputSpec = Some(SelectOwnerCreature),
       effects = effects(Direct -> heal(8), Direct -> healCreature(8))),
