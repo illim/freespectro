@@ -6,7 +6,7 @@ import sp._
 import priv.util.Utils._
 
 object Main extends JFrame with App {
-  val mode = InitDisplay.findDisplayMode(1024, 768, 24).get
+  val mode = InitDisplay.findDisplayMode(1024, 768, 32).get
   val fgc = getGraphicsConfiguration
   val gbounds = fgc.getBounds()
   setSize(mode.getWidth, mode.getHeight)
