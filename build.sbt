@@ -16,7 +16,7 @@ libraryDependencies ++= Seq(
 
 fork in run := true
 
-javaOptions in run ++= Seq("-Djava.library.path=C:/Users/mdoboi/.ivy2/cache/org.lwjgl.lwjgl/lwjgl-platform/jars/", "-Dorg.lwjgl.util.Debug=true")
+javaOptions in run ++= Seq("-Djava.library.path="+Path.userHome.absolutePath+"/.ivy2/cache/org.lwjgl.lwjgl/lwjgl-platform/jars/", "-Dorg.lwjgl.util.Debug=true")
 
 autoCompilerPlugins := true
 

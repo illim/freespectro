@@ -1,3 +1,5 @@
+#version 130
+
 uniform sampler2D tex;
 const int gradwidth = 10;
 uniform vec2 grads[gradwidth * gradwidth];

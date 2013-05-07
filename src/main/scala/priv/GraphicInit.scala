@@ -17,9 +17,9 @@ object InitDisplay {
 
   def findDisplayMode(width: Int, height: Int, bpp: Int) = {
     val modes = Display.getAvailableDisplayModes()
-    modes.find { mode =>
-      (mode.getWidth() == width && mode.getHeight() == height && mode.getBitsPerPixel() >= bpp)
-    }
+    modes.toList.map { mode =>
+      (mode, (mode.getWidth() == width,  mode.getHeight() == height, bpp - mode.getBitsPerPixel()))
+    }.sortBy(_._2).lastOption.map(_._1)
   }
 
   def apply(canvas : java.awt.Canvas, mode : DisplayMode) = {

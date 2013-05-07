@@ -1,3 +1,5 @@
+#version 130
+
 uniform float size;
 uniform float cursor;
 uniform vec2 offset;
