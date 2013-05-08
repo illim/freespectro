@@ -23,7 +23,8 @@ object GShader {
         glAttachShader(shader, f)
         glLinkProgram(shader)
         glValidateProgram(shader)
-        if (printLogInfo(shader)) {
+        printLogInfo(shader)
+        if (glGetProgram(shader, GL_VALIDATE_STATUS) == GL11.GL_TRUE) {
           Right((shader, v, f))
         } else Left("Error in shader log")
       } else Left("vert/frag shader " + v + ", " + f)
@@ -48,14 +49,13 @@ object GShader {
       getCode().map { code =>
         glShaderSource(shader, code)
         glCompileShader(shader)
+        printShaderLogInfo(shader)
         if (glGetShader(shader, GL_COMPILE_STATUS) == GL11.GL_FALSE) {
           println("err in shader")
-        }
-        if (printShaderLogInfo(shader)) {
-          shader
-        } else {
           glDeleteShader(shader)
           0
+        } else {
+          shader
         }
       }.getOrElse(0)
     }
@@ -66,7 +66,6 @@ object GShader {
     if (log.length() != 0) {
       System.err.println("Program link log for :\n" + log)
     }
-    log != "No errors." || log.length() > 0
   }
 
   def printLogInfo(obj: Int) = {
@@ -74,7 +73,6 @@ object GShader {
     if (log.length() != 0) {
       System.err.println("Program link log:\n" + log)
     }
-    log.length() == 0
   }
 
   def debugAttributes(program: Int) {
