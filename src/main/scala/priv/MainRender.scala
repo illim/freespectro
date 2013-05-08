@@ -34,8 +34,11 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
     gm
   }
 
-  def createGame(gameServer : GameServer = new Local(resources) ) = {
+  def createGame(gameServer : GameServer = new Local(resources) ) : Game = {
     world.clear()
+    if (currentGame != null){
+      currentGame.gameLock.release()
+    }
     val game = new Game(world, resources, gameServer )
     init(game)
     game

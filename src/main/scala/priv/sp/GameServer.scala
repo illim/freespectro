@@ -72,7 +72,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 
   // in
   def submit(turnId : Int, commandOption : Option[Command]) {
-    assert(turnId == currentTurnId.get)
+    require(turnId == currentTurnId.get, turnId + "!=" + currentTurnId.get)
     cont.get.set(commandOption)
     cont = None
   }

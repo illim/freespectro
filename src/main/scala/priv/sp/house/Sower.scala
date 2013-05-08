@@ -23,7 +23,7 @@ trait Sower {
     Creature("PredatorPlant", Some(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
     Creature("ForestDrake", Some(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
     Creature("FieryFlower", Some(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
-      env.otherPlayer.inflict(Damage(env.otherPlayer.getHouses(0).mana , isAbility = true))
+      env.otherPlayer.inflict(Damage(env.player.getHouses(0).mana , isAbility = true))
     }))))
 
   Sower.initCards(Houses.basicCostFunc)
@@ -53,13 +53,11 @@ trait Sower {
     import env._
     val slot = player.slots.value(selected)
     val cost = slot.card.cost
-    Sower.cards.find(_.cost == cost - 3).foreach{ card =>
-      card match {
-        case c : Creature =>
-          player.slots.destroy(selected)
-          player.slots.summon(selected, c)
-        case _ =>
-      }
+    Sower.cards.find(_.cost == cost - 3).foreach{
+      case c : Creature =>
+        player.slots.destroy(selected)
+        player.slots.summon(selected, c)
+      case _ =>
     }
     player.heal(cost)
   }

@@ -16,7 +16,7 @@ trait JunkMage {
     Creature("JunkyardFortune", Some(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
     Creature("ChainController", Some(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("RoamingAssassin", Some(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Some(4), 29, "Mirror spawn of adjacent creature of cost < 6", reaction = new FactoryReaction),
+    Creature("Factory", Some(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)", reaction = new FactoryReaction),
     Creature("RecyclingBot", Some(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg))
 

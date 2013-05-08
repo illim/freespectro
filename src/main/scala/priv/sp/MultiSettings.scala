@@ -17,10 +17,12 @@ class MultiSettings(
   }
   val connectBtn = addBtn("connect", this)
   val serveBtn = addBtn("serve", this)
+  val connectLocalBtn = addBtn("connectLocal", this)
+
   setSize(1024, 200)
 
   def setEnable(b : Boolean){
-    List(connectBtn, serveBtn).foreach { btn =>
+    List(connectBtn, serveBtn, connectLocalBtn).foreach { btn =>
       btn.setEnabled(b)
     }
   }
@@ -29,8 +31,13 @@ class MultiSettings(
     e.getActionCommand() match {
       case "serve" =>
         newServer(k => new MasterBoot(k, resources))
-      case "connect" =>
-        val address = java.net.InetAddress.getByAddress(ipTxts.map{_.getText().toByte}.toArray)
+      case cmd @ ("connect" | "connectLocal") =>
+        val address = java.net.InetAddress.getByAddress(
+          if (cmd == "connect") {
+            ipTxts.map{_.getText().toByte}.toArray
+          } else {
+            Array("127", "0", "0", "1").map(_.toByte)
+          })
         newServer(k => new SlaveBoot(k, address, resources))
     }
   }

@@ -19,8 +19,8 @@ object Main extends JFrame with App {
   val canvas = new java.awt.Canvas()
   val settingsPanel = new SettingsPanel
   settingsPanel.setVisible(false)
-  panel.add(canvas)
   panel.add(settingsPanel)
+  panel.add(canvas)
   show()
   canvas.requestFocus()
 
