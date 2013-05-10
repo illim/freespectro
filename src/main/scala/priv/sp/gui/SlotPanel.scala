@@ -24,37 +24,49 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   val panel = Row(elts)
 
-  class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true) extends Task[Unit] {
+  class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true, isBlocking : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
     def duration = entity.duration
-    def init() { attach.spawn(entity)  }
+    def init() {
+      if (!isBlocking){
+        unlock()
+      }
+      attach.spawn(entity)
+    }
     def end() = {
       attach.unspawn(entity)
-      lock.synchronized{lock.notifyAll()}
+      if (isBlocking){
+        unlock()
+      }
     }
+    def unlock(){lock.synchronized{lock.notifyAll()}}
   }
+
+  import game.sp.houses._
 
   def summonSpell(command : Command, sourceCoord : Coord2i, lock : AnyRef) = {
     import command.card
     def absTargetSlotCoord = command.input.map{ slotInput =>
       (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + slotCenter
     }
-    if (card.houseIndex == 0 && card.cost == 6) {
-      panel.addTask(new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize)))
-    } else if (card.houseIndex == 2 && card.cost == 3) {
+    if (card == Fire.cards(5)) {         panel.addTask( new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize)))
+    } else if (card == Water.cards(7)) { panel.addTask( new SpellAnim(lock, new AcidRain(game.sp)))
+    } else if (card == Earth.cards(8)) { panel.addTask( new SpellAnim(lock, new StoneRain(game.sp)))
+    } else if (card == Air.cards(2)) {
       panel.addTask(
         new SpellAnim(lock,
           isRelative = false,
           entity = new Lightning(game.sp, sourceCoord, absTargetSlotCoord.get, slots(0).coord)))
-    } else if (card.houseIndex == 2 && card.cost == 6) {
+    } else if (card == Earth.cards(1)) {
+      panel.addTask(
+        new SpellAnim(lock,
+          isRelative = false,
+          entity = new NatureRitual(absTargetSlotCoord.get, game.sp)))
+    } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,
           entity = new Lightning(game.sp, sourceCoord, slots(0).coord)))
-    } else if (card.houseIndex == 1 && card.cost == 8) {
-      panel.addTask( new SpellAnim(lock, entity = new AcidRain(game.sp)))
-    } else if (card.houseIndex == 3 && card.cost == 9) {
-      panel.addTask( new SpellAnim(lock, entity = new StoneRain(game.sp)))
-    } else if (card.houseIndex == 2 && card.cost == 8) {
+    } else if (card == Air.cards(7)) {
       val points = (List(slots(5).coord + slotCenter) /: slots.reverse){ (acc, slot) =>
         if (!slot.isEmpty){
           val deviation = if (acc.size > 1) ((acc.size % 2) -0.5) * 20 else 0

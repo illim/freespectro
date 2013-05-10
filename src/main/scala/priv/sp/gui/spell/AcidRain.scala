@@ -65,7 +65,7 @@ class AcidRain(sp : SpWorld) extends TimedEntity with Attachable {
 
   override def render() {
     glDisable(GL_TEXTURE_2D)
-    glColor4f(0.8f, 1, 0.8f, 1 - (getDelta() / duration.toFloat))
+    glColor4f(0.8f, 1, 0.6f, 1 - (getDelta() / duration.toFloat))
     glBegin(GL_LINES)
     super.render()
     glEnd()

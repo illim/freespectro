@@ -10,9 +10,10 @@ import Coord2i._
 class Stone(texture : Texture, val startPos : Coord2i, dir : Coord2i) extends Particle {
   val tfact = 10 + nextInt(10)
   val lifeTime = 4000 / tfact
+  val size = texture.size * nextFloat
   def render(t : Long) {
     val a = startPos + dir * (t / tfact.toFloat)
-    tex.drawAt(a, texture.id, texture.size)
+    tex.drawAt(a, texture.id, size)
   }
 }
 class StoneEmitter(sp : SpWorld) extends Emitter with Entity {

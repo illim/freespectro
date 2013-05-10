@@ -164,7 +164,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def spellPlayed(c : Command){
       spawn(new SpellNotif(sp, c.card))
       val sourceCoord = cardPanels(c.player).getPositionOf(c.card).getOrElse(Coord2i(0, 0))
-      val targetPlayer = if (c.input == Some(SelectOwnerCreature)) {
+      val targetPlayer = if (c.card.inputSpec == Some(SelectOwnerCreature)) {
         c.player
       } else other(c.player)
       gameLock.waitLock{ lock =>

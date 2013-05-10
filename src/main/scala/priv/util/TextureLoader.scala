@@ -53,6 +53,19 @@ trait TextureLoader {
     new SampleTexture(scratch, textWidth, textHeight, buffImage.getColorModel().hasAlpha(), bytesPerPixel)
   }
 
+  def loadSamples(name: String, offsets : List[(Int, Int)], textWidth: Int, textHeight: Int): List[Texture] = {
+    val buffImage = getBuffImage(name)
+    val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
+    offsets.map{ case (xOffSet, yOffSet) =>
+      val scratch = ByteBuffer.allocateDirect(textWidth * textHeight * bytesPerPixel).order(ByteOrder.nativeOrder())
+      scratch.clear()
+      scratch.put(buffImage.getRaster().getDataElements(xOffSet, yOffSet, textWidth, textHeight, null).asInstanceOf[Array[Byte]])
+      scratch.rewind()
+
+      new SampleTexture(scratch, textWidth, textHeight, buffImage.getColorModel().hasAlpha(), bytesPerPixel)
+    }
+  }
+
   def loadAnimation(path: String, cols: Int, rows: Int, textWidth: Int, textHeight: Int): Array[Texture] = {
     val toReturntextures = new Array[Texture](cols * rows)
 
