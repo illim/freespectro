@@ -50,6 +50,9 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,
           entity = new Lightning(game.sp, sourceCoord, slots(0).coord)))
+    } else if (card.houseIndex == 1 && card.cost == 8) {
+      panel.addTask(
+        new SpellAnim(lock, isRelative = true, entity = new AcidRain(game.sp)))
     } else if (card.houseIndex == 2 && card.cost == 8) {
       val points = (List(slots(5).coord + slotCenter) /: slots.reverse){ (acc, slot) =>
         if (!slot.isEmpty){
