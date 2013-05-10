@@ -11,13 +11,13 @@ import Coord2i._
 
 trait Particle{
   def startPos : Coord2i
+  def lifeTime : Int
   var creationTime = 0L
   def render(t : Long)
 }
 
 trait Emitter { _ : Entity =>
   def rate : Int
-  def fade : Int
   def maxTime : Int
   def build(time : Long) : Particle
   var particles = Vector.empty[Particle]
@@ -32,7 +32,7 @@ trait Emitter { _ : Entity =>
       lastEmit = delta
     }
     particles.foreach{ p =>
-      if (p.creationTime > fade){
+      if (delta - p.creationTime > p.lifeTime){
         particles= particles.filterNot(_ == p)
       } else {
         p.render(delta - p.creationTime)
@@ -42,6 +42,7 @@ trait Emitter { _ : Entity =>
 }
 
 class RainDrop(val startPos : Coord2i, dir : Coord2i) extends Particle {
+  val lifeTime = 900
   def render(t : Long) {
     val a = startPos + dir * (t / 30f)
     val b = a + dir
@@ -51,7 +52,6 @@ class RainDrop(val startPos : Coord2i, dir : Coord2i) extends Particle {
 }
 class RainEmitter extends Emitter with Entity {
   val rate = 10
-  val fade = 900
   val maxTime = 1300
   def getRandomPoint = Coord2i(100 + nextInt(600), nextInt(50))
   val dir = Coord2i(-2, 5)
