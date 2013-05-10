@@ -34,10 +34,11 @@ class BaseTextures(textures: Textures) {
     "Images/Combat/slot.tga",
     "blank.png")
 
-  val parts = loadSamples("Images/Combat/parts.tga", (0 to 4).map( i => (i * 32, 0)).toList, 32, 32)
+  val parts = loadSamples("Images/Combat/parts.tga", (0 to 5).map( i => (i * 32, 0)).toList, 32, 32)
   val fire = parts(0)
   val stones = parts.slice(1, 3)
   val natureLight = parts(4)
+  val pollen = parts(5)
 
   def getBorder(card: Card) = if (card.isSpell) borderTexSpell else borderTex
 }

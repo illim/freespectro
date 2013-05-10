@@ -24,18 +24,18 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   val panel = Row(elts)
 
-  class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true, isBlocking : Boolean = true) extends Task[Unit] {
+  class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true, blocking : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
     def duration = entity.duration
     def init() {
-      if (!isBlocking){
+      if (!blocking){
         unlock()
       }
       attach.spawn(entity)
     }
     def end() = {
       attach.unspawn(entity)
-      if (isBlocking){
+      if (blocking){
         unlock()
       }
     }
@@ -62,6 +62,12 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         new SpellAnim(lock,
           isRelative = false,
           entity = new NatureRitual(absTargetSlotCoord.get, game.sp)))
+    } else if (card == Sower.cards(3)) {
+      panel.addTask(
+        new SpellAnim(lock,
+          isRelative = false,
+          blocking = false,
+          entity = new Pollinate(absTargetSlotCoord.get, game.sp)))
     } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,
