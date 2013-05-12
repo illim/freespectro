@@ -34,7 +34,10 @@ class BaseTextures(textures: Textures) {
     "Images/Combat/slot.tga",
     "blank.png")
 
-  val parts = loadSamples("Images/Combat/parts.tga", (0 to 5).map( i => (i * 32, 0)).toList, 32, 32)
+  val parts = loadSamples("Images/Combat/parts.tga", (0 to 5).map( i => (i * 32, 0)).toList, 32, 32).map{ t =>
+    textures.resources += ("part" + t.id -> t)
+    t
+  }
   val fire = parts(0)
   val stones = parts.slice(1, 3)
   val natureLight = parts(4)

@@ -103,14 +103,14 @@ trait ZenMage {
   }
 
   private class EGuardReaction extends DefaultReaction {
-    final override def onProtect(selected : Int, d : DamageEvent) : Int = {
+    final override def onProtect(selected : Int, d : DamageEvent) = {
       if (d.target.isEmpty){
         d.source.foreach{ src =>
           d.updater.focus(selected, d.playerId, blocking = false)
           d.updater.players(src.playerId).slots.inflictCreature(src.num, Damage(3, isAbility = true))
         }
       }
-      d.amount
+      d.damage
     }
   }
 

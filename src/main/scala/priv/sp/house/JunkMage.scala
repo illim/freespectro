@@ -110,14 +110,14 @@ trait JunkMage {
 class JFReaction extends DefaultReaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
-    val playerUpdate = updater.players(playerId)
-    val slot = playerUpdate.slots.value(selected)
+    val player = updater.players(playerId)
+    val slot = player.slots.value(selected)
     if (!slot.data.asInstanceOf[Boolean]
-        && (d.target.isEmpty || playerUpdate.slots.value(d.target.get).card.cost < 4)){
+        && (d.target.isEmpty || player.slots.value(d.target.get).card.cost < 4)){
         updater.focus(selected, playerId, blocking = false)
-        playerUpdate.slots.setData(selected, Boolean.box(true))
-        math.max(0, d.amount - 2)
-    } else d.amount
+        player.slots.setData(selected, Boolean.box(true))
+        d.damage.copy(amount = math.max(0, d.damage.amount - 2))
+    } else d.damage
   }
 }
 

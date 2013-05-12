@@ -15,16 +15,15 @@ import priv.Texture
 trait TextureLoader {
 
   def loadTexture(name: String): Texture = {
-    println("loading " + name)
     val buffImage = getBuffImage(name)
 
     val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
-    println(
+/**    println(
       "load " + name
         + ", bpp " + bytesPerPixel
         + ", height " + buffImage.getHeight
         + ", width " + buffImage.getWidth
-        + ", type " + buffImage.getType)
+        + ", type " + buffImage.getType)*/
     val scratch = ByteBuffer.allocateDirect(buffImage.getWidth() * buffImage.getHeight() * bytesPerPixel).order(ByteOrder.nativeOrder())
     scratch.clear()
     scratch.put(buffImage.getData().getDataElements(0, 0, buffImage.getWidth(), buffImage.getHeight(), null).asInstanceOf[Array[Byte]])

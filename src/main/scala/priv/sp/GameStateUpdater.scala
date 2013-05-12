@@ -42,12 +42,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       if (slotFieldUpdate.isDirty){
         // hack? for example avoid case of card moving during mass damage
         slotFieldUpdate.logs.foreach{
-          case dead : Dead =>
-            slots.update(s => dead.card.slotEffect.unapplySlots(dead.num, s))
-            dead.card.reaction.onDeath(dead.num, dead)
-            slots.value.foreach{ case (n, slot) =>
-              if (n != dead.num) slot.card.reaction.onDeath(n, dead)
-            }
+          case dead : Dead => slots.onDead(dead)
           case _ =>
         }
         slots.logs = Nil
@@ -56,7 +51,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
     }
 
     def runSlots(){
-      getSlots.toList.sortBy(_._1).foreach { case (num, _) =>
+      getSlots.foreach { case (num, _) =>
         getSlots.get(num).foreach{ slot =>
           if (slot.attack > 0 && slot.hasRunOnce){
             runSlot(num, slot)
@@ -101,7 +96,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
     def inflict(d : Damage, source : Option[SlotSource] = None) = {
       if (!ended) {
-        val life = pstate.life - guard(mod(d).amount, source)
+        val life = pstate.life - guard(mod(d), source).amount
         if (life <= 0){
           ended = true
         }
@@ -163,10 +158,10 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
       } else d
     }
 
-    private def guard(amount : Int, source : Option[SlotSource] = None) = {
-      (amount /: getSlots) { case (acc, (num, slot)) =>
+    private def guard(damage : Damage, source : Option[SlotSource] = None) = {
+      (damage /: getSlots) { case (acc, (num, slot)) =>
         val a = slot.card.mod match {
-          case Some(SpellProtectOwner(mod)) => mod(acc)
+          case Some(SpellProtectOwner(mod)) => acc.copy(amount = mod(acc.amount))
           case _ => acc
         }
         slot.card.reaction.onProtect(num, DamageEvent(a, None, id, self, source))
@@ -216,7 +211,7 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       def inflictCreatures(damage : Damage) {
         val d = mod(damage)
-        slots.toList.sortBy(_._1).foreach { case (num, _) =>
+        slots.foreach { case (num, _) =>
           damageSlot(d, num)
         }
       }
@@ -230,8 +225,8 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
           num -> SlotState.addLife(slot, amount)
         })
 
-      def protect(num : Int, amount : Int) = {
-        (amount /: getSlots) { case (acc, (n, slot)) =>
+      def protect(num : Int, damage : Damage) = {
+        (damage /: getSlots) { case (acc, (n, slot)) =>
           slot.card.reaction.onProtect(n, DamageEvent(acc, Some(num), id, self, None))
         }
       }
@@ -279,19 +274,33 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
       private def damageSlot(damage : Damage, num : Int) = {
         if (slots.isDefinedAt(num)){
-          val d = damage.copy(amount = protect(num, damage.amount)) // /!\ possible side effect
+          val d = protect(num, damage) // /!\ possible side effect
           slots(num).inflict(d) match {
-            case None          => destroy(num)
+            case None          => delayedDestroy(num)
             case Some(newslot) => write(slots + (num -> newslot))
           }
         }
       }
 
-      def destroy(num : Int){
+      private def delayedDestroy(num : Int){
         val card = slots(num).card
         write(slots - num)
         val dead = Dead(num, card, id, self)
         logs = dead :: logs
+      }
+
+      def destroy(num : Int){
+        val card = slots(num).card
+        write(slots - num)
+        onDead(Dead(num, card, id, self))
+      }
+
+      def onDead(dead : Dead){
+        write(dead.card.slotEffect.unapplySlots(dead.num, slots))
+        dead.card.reaction.onDeath(dead.num, dead)
+        slots.foreach{ case (n, slot) =>
+          if (n != dead.num) slot.card.reaction.onDeath(n, dead)
+        }
       }
 
       def reactSummon(summonEvent : SummonEvent) = {

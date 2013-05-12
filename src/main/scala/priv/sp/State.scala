@@ -7,10 +7,11 @@ case class GameState(players: List[PlayerState]) {
   def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
 }
 case class PlayerState(
-  houses   : PlayerState.HousesType,
-  slots    : PlayerState.SlotsType = PlayerState.emptySlots,
-  life     : Int = 60,
-  effects  : List[CardSpec.PhaseEffect] = Nil)
+  houses     : PlayerState.HousesType,
+  descReader : DescReader,
+  slots      : PlayerState.SlotsType = PlayerState.emptySlots,
+  life       : Int = 60,
+  effects    : List[CardSpec.PhaseEffect] = Nil)
 class HouseState(val mana: Int) extends AnyVal with Serializable
 case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int, data : AnyRef = null){
   def inflict(damage : Damage) : Option[SlotState] = {
@@ -39,9 +40,10 @@ case class PlayerHouseDesc(house : House, cards : Array[Card]){
 }
 
 object PlayerState {
-  type SlotsType = immutable.Map[Int, SlotState]
+  type SlotsType = immutable.TreeMap[Int, SlotState]
   type HousesType = Vector[HouseState]
-  val emptySlots = immutable.Map.empty[Int, SlotState]
+  val emptySlots = immutable.TreeMap.empty[Int, SlotState]
+  def init(houseState : PlayerState.HousesType, desc : PlayerDesc) = PlayerState(houseState, new DescReader(desc), effects = desc.houses(4).house.effects)
 }
 object SlotState {
   @inline def addLife(slot : SlotState, amount : Int) = {
@@ -55,4 +57,9 @@ object GameDesc {
   val playersL = Lens.lensu[GameDesc, Array[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = Lens.lensu[GameDesc, PlayerDesc]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id))
   val housesL = Lens.lensu[PlayerDesc, Array[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
+}
+
+// TODO
+class DescReader(val playerDesc : PlayerDesc) {
+
 }

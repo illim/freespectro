@@ -6,7 +6,7 @@ object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 
-case class House(name: String, cards: List[Card], houseIndex : Int = 4){
+case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil){
   val houseId = House.currentId.incrementAndGet()
 
   def costs = cards.map(_.cost)
@@ -39,12 +39,12 @@ object HouseSingleton extends Houses
 
 class Houses
   extends Fire with Water with Air with EarthHouse with Mecanic
-  with JunkMage with ZenMage with Sower {
+  with JunkMage with ZenMage with Sower with LostChurch {
   import CardSpec._
   import GameCardEffect._
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(Mecanic, Junk, Zen, Sower)
+  val special = List(Mecanic, Junk, Zen, Sower, LostChurch)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)

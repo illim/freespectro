@@ -138,18 +138,18 @@ class DefaultSlotEffect extends SlotEffect {
 sealed trait BoardEvent
 case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 // need source if no target
-case class DamageEvent(amount : Int, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater, source : Option[SlotSource]) extends BoardEvent
+case class DamageEvent(damage : Damage, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater, source : Option[SlotSource]) extends BoardEvent
 case class SummonEvent(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 
 trait Reaction {
-  def onProtect(selected : Int, d : DamageEvent) : Int
+  def onProtect(selected : Int, d : DamageEvent) : Damage
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
 }
 
 class DefaultReaction extends Reaction {
-  def onProtect(selected : Int, d : DamageEvent) = d.amount
+  def onProtect(selected : Int, d : DamageEvent) = d.damage
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
