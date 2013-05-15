@@ -18,7 +18,7 @@ trait Water {
     Creature("MerfolkElder", Attack(3), 16, "Increase air mana growth by 1", effects = effects(OnTurn -> addMana(1, 2))),
     Creature("IceGuard", Attack(3), 20, "Halve damage dealt to owner", mod = Some(new SpellProtectOwner(x => math.ceil(x / 2.0).intValue))),
     new GiantTurtle,
-    Spell("AcidicRain", "Damage all creature by 15 and decrease mana of opponent by 1", effects = effects(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
+    Spell("AcidicShower", "Damage all creature by 15 and decrease mana of opponent by 1", effects = effects(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
     })),
     Creature("MerfolkOverlord", Attack(7), 34, "Adjacent cards attack the turn they're summoned", reaction = new OverlordSlotReaction),
@@ -29,7 +29,7 @@ trait Water {
     }))), houseIndex = 1)
 }
 
-class GiantTurtle extends Creature ("GiantTurtle", Attack(5), 17, "Absorb 5 damage"){
+class GiantTurtle extends Creature ("HugeTurtle", Attack(5), 17, "Absorb 5 damage"){
   override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
 }
 

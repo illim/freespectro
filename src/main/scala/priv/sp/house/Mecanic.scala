@@ -9,9 +9,9 @@ trait Mecanic {
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", "Increase mechanic mana by 1", effects = effects(Direct -> addMana(1, 4))),
-    Creature("DwarvenRifleman", Attack(4), 17, "Deals 4 damage to summoned opponent creatures", reaction = new DwarfRiflemanReaction),
-    Creature("DwarvenCraftsman", Attack(2), 17, "Increase mechanic mana growth by 1", effects = effects(OnTurn -> addMana(1, 4))),
-    Creature("Ornithopter", Attack(4), 24, "Every turn deals 2 damage to opponent creatures", effects = effects(OnTurn -> focus(damageCreatures(Damage(2, isAbility = true))))),
+    Creature("Rifleman", Attack(4), 17, "Deals 4 damage to summoned opponent creatures", reaction = new DwarfRiflemanReaction),
+    Creature("Craftsman", Attack(2), 17, "Increase mechanic mana growth by 1", effects = effects(OnTurn -> addMana(1, 4))),
+    Creature("Hornythopter", Attack(4), 24, "Every turn deals 2 damage to opponent creatures", effects = effects(OnTurn -> focus(damageCreatures(Damage(2, isAbility = true))))),
     new SteelGolem,
     Creature("Cannon", Attack(8), 29, "Every turn deals 8 damage to opponent creature with most life", effects = effects(OnTurn -> focus(cannon))),
     Spell("Cannonade", "Deals 19 damage to opponent creatures", effects = effects(Direct -> damageCreatures(Damage(19, isSpell = true)))),
