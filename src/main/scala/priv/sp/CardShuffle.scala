@@ -1,5 +1,6 @@
 package priv.sp
 
+import collection._
 import util.Random
 
 class CardShuffle(houses : Houses) {
@@ -39,7 +40,7 @@ object CardModel {
     def apply(house : House) = house.costs
   }
   class ExcludePlayerCards(p: PlayerDesc) extends GetCardRange {
-    val playerCards = p.houses.map{ h => h.house.name -> h.cardList.map(_.cost).to[Set] }.toMap
+    val playerCards = p.houses.map{ h => h.house.name -> h.cards.map(_.cost).to[immutable.Set] }.toMap
     def apply(house : House) = {
       playerCards.get(house.name) match {
         case Some(cards) => house.costs.filterNot(cards.contains _)
@@ -59,8 +60,9 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
     (0 to 4).map{ i =>
       val house = houses(i).house
       val solveds = houses(i).getSolveds
-      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c.cost)).to[Array])
-    }.toArray)
+      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c.cost)).map(c =>
+CardDesc(c))(breakOut))
+    }(breakOut) : Vector[PlayerHouseDesc])
 }
 
 /**
@@ -81,8 +83,8 @@ class HModel(cp : CPSolver, val house : House, spHouses : Houses, getCardRange :
     (0 to 3).map(i => CPVarInt(cp, range))
   }
 
-  def getSolveds = cards.map(_.value).to[Set]
-  private def range = getCardRange(house).to[Set]
+  def getSolveds : Set[Int] = cards.map(_.value)(breakOut)
+  private def range = getCardRange(house).to[immutable.Set]
 }
 
 class CardShuffler(cardModel : CardModel) extends CpHelper {

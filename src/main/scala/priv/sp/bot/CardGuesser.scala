@@ -21,7 +21,9 @@ class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
 }
 
 class ModelFilter(val knownCards : Set[(Card, Int)], p: PlayerDesc) {
-  val playerCards = p.houses.map{ h => h.house.name -> h.cardList.map(_.cost).to[Set] }.toMap
+  val playerCards = p.houses.map{ h =>
+    h.house.name -> (h.cards.map(_.cost)(breakOut) : Set[Int])
+  }.toMap
 
   def getExclusions(house : House) = {
     playerCards.get(house.name) match {
@@ -51,8 +53,8 @@ class GCardModel(val cp : CPSolver, val houses : List[GHModel]){
       val house = houses(i).house
       val solveds = houses(i).getSolveds
       println("house " + house.name + " : " + solveds.toList)
-      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c)).to[Array])
-    }.toArray)
+      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c)).map(CardDesc(_))(breakOut))
+    }(breakOut) : Vector[PlayerHouseDesc])
 }
 
 class GHModel(cp : CPSolver, val house : House, spHouses : Houses, knowledge : ModelFilter){

@@ -137,6 +137,9 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     } else d
   }
 
+  def addDescMod(dmod : DescMod)   { write(pstate.copy(desc = pstate.desc.add(dmod))) }
+  def removeDescMod(dmod : DescMod){ write(pstate.copy(desc = pstate.desc.remove(dmod))) }
+
   private def guard(damage : Damage, source : Option[SlotSource] = None) = {
     (damage /: getSlots) { case (acc, (num, slot)) =>
       val a = slot.card.mod match {

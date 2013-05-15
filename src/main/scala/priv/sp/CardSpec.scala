@@ -13,7 +13,6 @@ sealed abstract class Card extends Externalizable {
   def image: String
   def inputSpec: Option[CardInputSpec]
   def effects: Array[Option[CardSpec.Effect]]
-  def isAvailable(house: HouseState) = cost <= house.mana
   def description : String
 
   var cost = 0
@@ -189,4 +188,8 @@ trait AttackStateFunc extends AttackSource {
 }
 case class ManaAttack(houseIndex : Int) extends AttackStateFunc {
   def apply(attack : Int, player : PlayerUpdate) : Int = attack + player.getHouses(houseIndex).mana
+}
+
+trait DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc]
 }

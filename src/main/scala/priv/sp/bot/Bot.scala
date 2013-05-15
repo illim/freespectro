@@ -8,6 +8,12 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
   println("AI K :" + otherPlayerDesc.houses.map{ h =>
     h.house.name + "/" + h.cards.toList
   })
+  // bs
+  def ripDescReader(gs : GameState) = {
+    GameState(gs.players.zipWithIndex.map{ case (p, i) =>
+      p.copy(desc = new DescReader(desc.players(i), p.desc.descMods))
+    })
+  }
   private def ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( _ => otherPlayerDesc)
 }
 
@@ -87,22 +93,23 @@ class Choices(bot : Bot) {
     val otherSlots = state.players(other(playerId)).slots
 
     bot.k.desc.players(playerId).houses.flatMap { houseDesc  =>
-      val houseState = state.players(playerId).houses(houseDesc.index)
+      val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
 
-      houseDesc.cardList.withFilter(_.isAvailable(houseState)).flatMap { card =>
+      houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { cardDesc =>
+        import cardDesc.card
         card.inputSpec match {
-          case None => List(Command(playerId, card, None, card.cost))
+          case None => List(Command(playerId, card, None, cardDesc.cost))
           case Some(SelectOwnerSlot) =>
             emptySlots.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)), card.cost)
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
           case Some(SelectOwnerCreature) =>
             slots.keys.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)), card.cost)
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
           case Some(SelectTargetCreature) =>
             otherSlots.keys.map { num =>
-              Command(playerId, card, Some(new SlotInput(num)), card.cost)
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
         }
       }
@@ -117,24 +124,25 @@ class Choices(bot : Bot) {
     val emptySlot = Random.shuffle(slotRange.filter(num => !slots.isDefinedAt(num))).headOption
     val otherSlot = Random.shuffle(state.players(other(playerId)).slots).headOption
     val houseDesc = bot.k.desc.players(playerId).houses(Random.nextInt(5))
-    val houseState = state.players(playerId).houses(houseDesc.index)
-    val cards = houseDesc.cardList.filter(_.isAvailable(houseState))
+    val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
+    val cards = houseDesc.cards.filter(_.isAvailable(houseState))
     val cardOption = Random.shuffle(cards).headOption
 
-    cardOption.flatMap { card =>
+    cardOption.flatMap { cardDesc =>
+      import cardDesc.card
       card.inputSpec match {
-        case None => Some(Command(playerId, card, None, card.cost))
+        case None => Some(Command(playerId, card, None, cardDesc.cost))
         case Some(SelectOwnerSlot) =>
           emptySlot.map { num =>
-            Command(playerId, card, Some(new SlotInput(num)), card.cost)
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerCreature) =>
           slot.map { case (num, _) =>
-            Command(playerId, card, Some(new SlotInput(num)), card.cost)
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectTargetCreature) =>
           otherSlot.map { case (num, _) =>
-            Command(playerId, card, Some(new SlotInput(num)), card.cost)
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
       }
     }

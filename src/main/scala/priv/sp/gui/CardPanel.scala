@@ -6,10 +6,11 @@ import priv.sp._
 
 class CardPanel(playerId: PlayerId, game: Game) {
   private val houseCardButtons = game.desc.players(playerId).houses.zipWithIndex.map { case (houseDesc, idx) =>
+      def getCard(i : Int) = game.state.players(playerId).desc.get.houses(idx).cards(i)
       def getHouseState = game.state.players(playerId).houses(idx)
 
-      new HouseLabel(new DamagableInt(getHouseState.mana, game), houseDesc.house, game) -> houseDesc.cards.map { card =>
-        new CardButton(card, getHouseState, game)
+      new HouseLabel(new DamagableInt(getHouseState.mana, game), houseDesc.house, game) -> (0 to 3).map { i =>
+        new CardButton(getCard(i), getHouseState, game)
       }
   }
   val cardButtons = houseCardButtons.flatMap(_._2)
@@ -20,8 +21,8 @@ class CardPanel(playerId: PlayerId, game: Game) {
     cardButtons.foreach { cardButton =>
       cardButton.on {
         case MouseClicked(_) if cardButton.holder.isActive =>
-          import cardButton.card
-          game.commandRecorder.setCommand(Command(game.myPlayerId, card, None, card.cost))
+          import cardButton.{holder, card}
+          game.commandRecorder.setCommand(Command(game.myPlayerId, card, None, holder.desc.cost))
           if (card.inputSpec.isDefined) {
             lastSelected.foreach(_.selected = false)
             cardButton.selected = true
@@ -45,6 +46,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
   val specialCardButtons = houseCardButtons(4)._2
   def refresh(silent : Boolean) {
     houseLabels.foreach(_.mana.refresh(silent))
+    cardButtons.foreach(_.refresh())
   }
   def setEnabled(flag: Boolean) {
     cardButtons.foreach{ btn =>

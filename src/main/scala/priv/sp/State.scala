@@ -8,7 +8,7 @@ case class GameState(players: List[PlayerState]) {
 }
 case class PlayerState(
   houses     : PlayerState.HousesType,
-  descReader : DescReader,
+  desc       : DescReader,
   slots      : PlayerState.SlotsType = PlayerState.emptySlots,
   life       : Int = 60,
   effects    : List[CardSpec.PhaseEffect] = Nil)
@@ -25,17 +25,16 @@ case class SlotState(card: Creature, life: Int, status : Int, attackSources: Att
 }
 
 // Description (should not change during the game)
-case class GameDesc(players : Array[PlayerDesc])
-case class PlayerDesc(houses : Array[PlayerHouseDesc]){
-  houses.zipWithIndex.foreach{ case (house, i) => house.index = i}
+case class GameDesc(players : Vector[PlayerDesc])
+case class PlayerDesc(houses : Vector[PlayerHouseDesc]){
 
   def getIndexOfCardInHouse(card : Card) = {
     houses.find(_.cards.contains(card)).map(_.cards.indexOf(card)).getOrElse(-1)
   }
 }
-case class PlayerHouseDesc(house : House, cards : Array[Card]){
-  var index = 0
-  val cardList = cards.toList
+case class PlayerHouseDesc(house : House, cards : Vector[CardDesc])
+case class CardDesc(card : Card, cost : Int){
+  def isAvailable(house: HouseState) = cost <= house.mana
 }
 
 object PlayerState {
@@ -52,12 +51,27 @@ object SlotState {
 
 import scalaz._
 object GameDesc {
-  val playersL = Lens.lensu[GameDesc, Array[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
+  val playersL = Lens.lensu[GameDesc, Vector[PlayerDesc]]((p, x) => p.copy(players = x), _.players)
   def playerLens(id : Int) = Lens.lensu[GameDesc, PlayerDesc]((p, x) => p.copy(players = p.players.updated(id, x)), _.players(id))
-  val housesL = Lens.lensu[PlayerDesc, Array[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
+  val housesL = Lens.lensu[PlayerDesc, Vector[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
+}
+object CardDesc {
+  def apply(c : Card) : CardDesc = CardDesc(c, c.cost)
 }
 
-// TODO
-class DescReader(val playerDesc : PlayerDesc) {
+case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.empty) {
+  val get = if (descMods.isEmpty) init else {
+    PlayerDesc(init.houses.map{ h =>
+      PlayerHouseDesc(h.house, modify(h.house, h.cards))
+    })
+  }
 
+  def modify(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    (cards /: descMods){ (acc, mod) =>
+      mod(house, acc)
+    }
+  }
+
+  def add(mod : DescMod) = copy(descMods = descMods :+ mod)
+  def remove(mod : DescMod) = copy(descMods = descMods.filterNot(_ == mod))
 }

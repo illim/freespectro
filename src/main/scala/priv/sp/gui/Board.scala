@@ -64,7 +64,7 @@ class CommandRecorder(game: Game) {
   }
 
   private def continue(c : Option[Command]) = {
-    cont.get.set(c.map(c => c.copy(cost = c.card.cost)))
+    cont.get.set(c)
     cont = None
   }
 

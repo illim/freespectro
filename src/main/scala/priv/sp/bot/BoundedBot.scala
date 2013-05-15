@@ -10,7 +10,8 @@ import collection._
 // not using flat uct for opponent next move fairness?
 class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val sp : SpWorld) extends Bot {
   def executeAI(start: GameState) = {
-    new BoundedBotAI(botPlayerId, start, this).execute()
+    val st = k.ripDescReader(start)
+    new BoundedBotAI(botPlayerId, st, this).execute()
   }
 }
 

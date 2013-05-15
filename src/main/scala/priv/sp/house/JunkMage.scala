@@ -73,7 +73,7 @@ trait JunkMage {
     val otherSlots = env.otherPlayer.slots
     val slots = env.player.slots
     if (otherSlots(env.selected).value.isEmpty) {
-      otherSlots.slots.collect{ case slot if slots(slot.num).value.isEmpty => slot }.sortBy(x => math.abs(x.num - env.selected)).headOption.foreach{ dest =>
+      otherSlots.slots.collect{ case slot if slots(slot.num).value.isEmpty && slot.value.isDefined => slot }.sortBy(x => math.abs(x.num - env.selected)).headOption.foreach{ dest =>
         dest.inflict(Damage(5, isAbility = true))
         slots.move(env.selected, dest.num)
       }
