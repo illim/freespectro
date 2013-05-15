@@ -69,6 +69,10 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slotState.card.reaction.onRemove(this)
   }
 
+  def focus(blocking : Boolean = true){
+    slots.updateListener.focus(num, id, blocking)
+  }
+
   private def delayedDestroy(){
     val card = get.card
     remove()

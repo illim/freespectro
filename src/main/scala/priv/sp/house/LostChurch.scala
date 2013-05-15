@@ -9,6 +9,7 @@ trait LostChurch {
 
   private val prisoner = Creature("Prisoner", Attack(3), 7, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
   private val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 45, "Immune to spell & ability when liberator is alive.")
+  private val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours.", effects = effects(Direct -> oppress))
 
   val LostChurch = House("LostChurch", List(
     Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 3 damage.",
@@ -17,13 +18,19 @@ trait LostChurch {
     Spell("WildJustice", "Deals (12 - attack) damage to each creature.",
           effects = effects(Direct -> wildJustice)),
     Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\ntakes them back when dying.", effects = effects(Direct -> addMana(2, 0, 1, 2, 3))),
-    Creature("Scarecrow", Attack(8), 26, "Deals 10 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare)),
+    Creature("Scarecrow", Attack(8), 26, "Deals 8 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare)),
     new SkinnedBeast,
     Creature("Falconer", Attack(6), 28, "Each turns deals (2 * slot distance) damage to highest cost creature\n and creatures between.", effects = effects(OnTurn -> focus(falcon))),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner. When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
+  private val scarecrow = LostChurch.cards(4)
   LostChurch.initCards(Houses.basicCostFunc)
+  List(prisoner, enragedPrisoner, windOfOppression).foreach{ c =>
+    c.houseIndex = LostChurch.houseIndex
+    c.houseId = LostChurch.houseId
+  }
+  windOfOppression.cost = 2
 
   private def spawnPrisoner : Effect = { env : Env =>
     import env._
@@ -31,7 +38,9 @@ trait LostChurch {
       val emptySlots = player.slots.slots.filter(_.value.isEmpty)
       if (emptySlots.nonEmpty) {
         // todo deterministic random generator + exchange seed for multi
-        emptySlots(scala.util.Random.nextInt(emptySlots.size)).add(prisoner)
+        val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
+        slot.add(prisoner)
+        slot.focus(blocking = false)
       }
     }
   }
@@ -45,10 +54,7 @@ trait LostChurch {
     }
   }
 
-  private def preachCost  = { env : Env =>
-    env.player.addDescMod(PreacherMod)
-  }
-
+  private def preachCost  = { env : Env => env.player.addDescMod(PreacherMod)  }
   case object PreacherMod extends DescMod {
     def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
       if (house == LostChurch) cards
@@ -73,6 +79,30 @@ trait LostChurch {
     if (slot.value.isDefined){
       slot.inflict(Damage(10, isAbility = true))
       slot.toggle(stunFlag)
+    }
+    env.player.addDescMod(ScareMod)
+  }
+  case object ScareMod extends DescMod {
+    def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+      if (house == LostChurch){
+        cards.map{ c =>
+          if (c.card == scarecrow){
+            CardDesc(windOfOppression)
+          } else c
+        }
+      } else cards
+    }
+  }
+  private def oppress = { env : Env =>
+    import env._
+    findCard(player, _ == scarecrow).foreach{ slot =>
+      slotInterval(slot.num - 1, slot.num + 1).foreach{ n =>
+        val oppSlot = otherPlayer.slots(n)
+        if (oppSlot.value.isDefined){
+          oppSlot.inflict(Damage(8, isAbility = true))
+          oppSlot.toggle(stunFlag)
+        }
+      }
     }
   }
 
