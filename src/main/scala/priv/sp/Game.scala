@@ -103,6 +103,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         refresh()
         endOr {
           p.applyEffects(CardSpec.OnEndTurn)
+          p.slots.toggleRun()
           persistUpdater()
           endOr {
             val otherPlayer = p.otherPlayer

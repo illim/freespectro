@@ -63,6 +63,7 @@ trait Bot {
         p.runSlots()
         if (!u.ended) {
           p.applyEffects(CardSpec.OnEndTurn)
+          p.slots.toggleRun()
           val otherPlayer = p.otherPlayer
           otherPlayer.prepareNextTurn()
           if (!u.ended) {

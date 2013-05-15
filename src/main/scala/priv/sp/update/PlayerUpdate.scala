@@ -3,6 +3,7 @@ package priv.sp.update
 import collection._
 import priv.sp._
 import priv.util.FieldUpdate
+import CardSpec._
 
 class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends FieldUpdate(Some(updater), updater.state.players(id)) { playerFieldUpdate =>
   def pstate = value
@@ -32,7 +33,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def runSlots(){
     getSlots.foreach { case (num, _) =>
       getSlots.get(num).foreach{ slot =>
-        if (slot.attack > 0 && slot.hasRunOnce){
+        if (slot.attack > 0 && slot.isRunnable){
           runSlot(num, slot)
         }
       }
@@ -122,7 +123,6 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
 
   def prepareNextTurn(){
-    slots.toggleRun()
     houses.incrMana()
   }
 

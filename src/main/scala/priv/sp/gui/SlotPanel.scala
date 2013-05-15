@@ -15,7 +15,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         game)).toList
   val elts = lifeLabel :: /**testButton ::: */ slots
 
-  def testButton = (if (playerId == game.myPlayerId) List(TestButton(game.sp)) else Nil)
+  //def testButton = (if (playerId == game.myPlayerId) List(TestButton(game.sp)) else Nil)
 
   val slotOffset = lifeLabel.size
   val slotSize = slots(0).size
@@ -62,12 +62,12 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         new SpellAnim(lock,
           isRelative = false,
           entity = new NatureRitual(absTargetSlotCoord.get, game.sp)))
-/**    } else if (card == Sower.cards(3)) {
+    } else if (card == Sower.cards(3)) {
       panel.addTask(
         new SpellAnim(lock,
           isRelative = false,
           blocking = false,
-          entity = new Pollinate(absTargetSlotCoord.get, game.sp)))*/
+          entity = new Pollinate(absTargetSlotCoord.get, game.sp)))
     } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,

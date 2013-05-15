@@ -2,9 +2,9 @@ package priv.sp.house
 
 import priv.sp._
 import priv.sp.update._
+import CardSpec._
 
 trait Water {
-  import CardSpec._
   import GameCardEffect._
 
   val Water = House("water", List(
@@ -36,7 +36,7 @@ class GiantTurtle extends Creature ("GiantTurtle", Attack(5), 17, "Absorb 5 dama
 private class OverlordSlotReaction extends DefaultReaction {
   final override def onAdd(selected : Int, slot : SlotUpdate) = {
     if (math.abs(selected - slot.num) == 1){
-      slot.toggleRun()
+      slot.toggle(runFlag)
     }
   }
 }

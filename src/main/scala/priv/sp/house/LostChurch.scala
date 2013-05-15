@@ -2,7 +2,7 @@ package priv.sp.house
 
 import priv.sp._
 import priv.sp.update._
-/**
+
 trait LostChurch {
   import CardSpec._
   import GameCardEffect._
@@ -13,65 +13,88 @@ trait LostChurch {
   val LostChurch = House("LostChurch", List(
     Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 3 damage.",
           effects = effects(Direct -> speedDrug)),
-    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.", effects = effects(OnTurn -> addMana(1, 4))),
-    Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\ntakes them back when dying.", effects = effects(Direct -> addMana(2, 0, 1, 2, 3))),
+    Creature("Preacher", Attack(6), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.", effects = effects(OnTurn -> addMana(1, 4))),
     Spell("WildJustice", "Deals (12 - attack) damage to each creature.",
           effects = effects(Direct -> wildJustice)),
-    Creature("Scarecrow", Attack(8), 26, "Deals 10 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> { env : Env =>
-        env.focus()
-        env.otherPlayer.slots.inflictCreature(env.selected, Damage(10, isAbility = true))
-      })),
+    Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\ntakes them back when dying.", effects = effects(Direct -> addMana(2, 0, 1, 2, 3))),
+    Creature("Scarecrow", Attack(8), 26, "Deals 10 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare)),
     new SkinnedBeast,
     Creature("Falconer", Attack(6), 28, "Each turns deals (2 * slot distance) damage to highest cost creature\n and creatures between.", effects = effects(OnTurn -> focus(falcon))),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner. When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
-    effects = List(OnEndTurn -> spawnPrisoner))
+    effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
   LostChurch.initCards(Houses.basicCostFunc)
 
   private def spawnPrisoner : Effect = { env : Env =>
     import env._
-    if (!player.slots.value.exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
-      val emptySlots = slotRange.filter(n => !player.slots.value.isDefinedAt(n))
+    if (!player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
+      val emptySlots = player.slots.slots.filter(_.value.isEmpty)
       if (emptySlots.nonEmpty) {
         // todo deterministic random generator + exchange seed for multi
-        player.slots.add(emptySlots(scala.util.Random.nextInt(emptySlots.size)), prisoner)
+        emptySlots(scala.util.Random.nextInt(emptySlots.size)).add(prisoner)
       }
+    }
+  }
+
+  private def weaken : Effect = { env : Env =>
+    import env._
+    player.slots().foreach{ case (num, slot) =>
+      if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && !slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
+        player.slots(num).attack.add(LCAttack(- slot.card.attack.base.get / 4))
+      }
+    }
+  }
+
+  private def scare = { env : Env =>
+    env.focus()
+    val slot = env.otherPlayer.slots(env.selected)
+    if (slot.value.isDefined){
+      slot.inflict(Damage(10, isAbility = true))
+      slot.toggle(stunFlag)
     }
   }
 
   private def deliverPrisoner = { env : Env =>
     import env._
     player.slots.value.find{ case (n, slot) => slot.card == prisoner }.foreach{ case (n, slot) =>
-      player.slots.destroy(n)
-      player.slots.add(n, enragedPrisoner)
+      player.slots(n).destroy()
+      player.slots(n).add(enragedPrisoner)
     }
   }
 
   private def speedDrug = { env : Env =>
     import env._
+    val bonus = AttackAdd(1)
     player.slots.inflictCreatures(Damage(3, isSpell = true))
-    player.slots.update(_.map{ case (n, slot) =>
-      n -> slot.copy(attack = slot.attack + 1)
-    })
+    player.slots.foreach(_.attack.add(bonus))
   }
 
   private def wildJustice = { env : Env =>
     import env._
-    player.slots.value.foreach{ case (n, slot) =>
-      player.slots.inflictCreature(n, Damage(math.max(0, 12 - slot.attack), isSpell = true))
+    def onPlayer(p : PlayerUpdate){
+      p.slots.slots.foreach{ slot =>
+        if (slot.value.isDefined){
+          slot.inflict(Damage(math.max(0, 12 - slot.get.attack), isSpell = true))
+        }
+      }
     }
-    otherPlayer.slots.value.foreach{ case (n, slot) =>
-      otherPlayer.slots.inflictCreature(n, Damage(math.max(0, 12 - slot.attack), isSpell = true))
-    }
+    onPlayer(player)
+    onPlayer(otherPlayer)
   }
 
   private def falcon = { env: Env =>
     import env._
 
-    otherPlayer.slots.slots.toSeq.filter(_._1 != selected).sortBy(_._2.card.cost).lastOption foreach { case (num, slot) =>
+    otherPlayer.slots().toSeq.filter(_._1 != selected).sortBy(_._2.card.cost).lastOption foreach { case (num, slot) =>
       for(n <- selected to num by math.signum(num - selected)){
-        otherPlayer.slots.inflictCreature(n, (Damage(2 * math.abs(n - selected), isAbility = true)))
+        otherPlayer.slots(n).inflict(Damage(2 * math.abs(n - selected), isAbility = true))
       }
+    }
+  }
+
+  private def findCard(player : PlayerUpdate, f : Creature => Boolean) : Option[SlotUpdate] = {
+    player.slots.slots.find{ s =>
+      s.value.isDefined && f(s.get.card)
     }
   }
 
@@ -80,8 +103,8 @@ trait LostChurch {
       import dead._
       if (selected == num){
         val player = updater.players(playerId)
-        player.slots.value.find{ case (n, slot) => slot.card == enragedPrisoner }.foreach{ case (n, slot) =>
-          player.slots.inflictCreature(n, Damage(15))
+        findCard(player, _ == enragedPrisoner).foreach{ slot =>
+          slot.inflict(Damage(15))
         }
       }
     }
@@ -119,4 +142,6 @@ class FalseProphetReaction extends DefaultReaction {
     }
   }
 }
-*/
+
+
+case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = attack + half }

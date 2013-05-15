@@ -8,7 +8,7 @@ import priv.GuiElem
 
 // total crap
 class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState], game : Game) extends GuiElem with Damagable {
-  import game.sp.baseTextures.slotTex
+  import game.sp.baseTextures.{slotTex, stunTex}
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
@@ -17,6 +17,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   private var moveAnim = Option.empty[MoveAnimTask]
   var focusScale = Option.empty[Float]
   val slotSize = Coord2i(120, 142)
+  val stunPos = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
   private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
 
@@ -51,6 +52,9 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           glTranslatef(pos.x, pos.y, 0)
         }
         tex.draw(cardTex)
+        if (slotState.has(CardSpec.stunFlag)) {
+          tex.drawAt(stunPos, stunTex.id, stunTex.size)
+        }
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
         Fonts.font.draw(72, 1, slotState.card.cost, 'blue)

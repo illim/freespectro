@@ -11,7 +11,7 @@ trait Fire {
     Creature("Goblin", Attack(4), 16, "Every turn deals 2 damage to owner adjacent cards", effects = effects(OnTurn -> goblinBerserker)),
     Creature("WallofFire", Attack(0), 5, "Deals 5 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(Damage(5, isAbility = true)))),
     Creature("FireMonk", Attack(3), 13, "Every turn increase fire mana growth by 1", effects = effects(OnTurn -> addMana(1, 0))),
-    Creature("FireDrake", Attack(4), 18, "Attack the turn he is summoned", runOnce = true),
+    Creature("FireDrake", Attack(4), 18, "Attack the turn he is summoned", status = runFlag),
     Creature("OrcChieftain", Attack(3), 16, "Increase attack of adjacent card by 2", reaction = new OrcSlotReaction),
     Spell("FlameWave", "Deals 9 damage to opponent creatures", effects = effects(Direct -> damageCreatures(Damage(9, isSpell = true)))),
     Creature("BullCommander", Attack(6), 20, "Increase attack of owner card by 1", reaction = new BullSlotReaction),
@@ -69,12 +69,12 @@ private abstract class AttackBonusReaction extends DefaultReaction {
   val bonus : AttackSource
 
   final override def onAdd(selected : Int, slot : SlotUpdate) = {
-    if (cond(selected, slot.num)) {
-      slot.attack.add(bonus)
-    } else if (selected == slot.num){
+    if (selected == slot.num){
       slot.slots.foreach{ s =>
         if (cond(s.num, slot.num)) s.attack.add(bonus)
       }
+    } else if (cond(selected, slot.num)) {
+      slot.attack.add(bonus)
     }
   }
 

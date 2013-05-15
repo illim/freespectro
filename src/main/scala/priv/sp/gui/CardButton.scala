@@ -92,6 +92,7 @@ class CardButton(val baseCard : Card, houseState: => HouseState, game : Game) ex
 
 }
 
+/**
 case class TestButton(sp: SpWorld) extends GuiElem {
   val size = Coord2i(200, 200)//sp.baseTextures.blank.coord
   val selectedGlow = sp.baseShaders.selectedGlow("test", size.x)
@@ -120,3 +121,4 @@ case class TestButton(sp: SpWorld) extends GuiElem {
     println("testcoord" + c)
   }
 }
+*/

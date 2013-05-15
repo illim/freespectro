@@ -52,7 +52,7 @@ case class Creature(
   data        : AnyRef = null, // initialize slot custom data
   runAttack   : RunAttack = SingleTargetAttack,
   immune      : Boolean = false,
-  runOnce     : Boolean = false) extends Card {
+  status      : Int = 0) extends Card {
 
   def this() = this(null, AttackSources(), 0)
 
@@ -85,6 +85,9 @@ case object SelectTargetCreature extends CardInputSpec
 class SlotInput(val num: Int) extends AnyVal with Serializable
 
 object CardSpec {
+  val runFlag = 1
+  val stunFlag = 2
+
   type Phase = Int
   val Direct = 0
   val OnTurn = 1

@@ -49,7 +49,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
       updateListener.move(num, dest, id)
       slot.remove()
       slots(dest).add(
-        SlotState(s.card, s.life, s.hasRunOnce, s.card.attack, slot.getAttack(s.card.attack) , s.data))
+        SlotState(s.card, s.life, s.status, s.card.attack, slot.getAttack(s.card.attack) , s.data))
     }
   }
 
