@@ -1,6 +1,7 @@
 package priv.sp.house
 
 import priv.sp._
+import priv.sp.update._
 import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
@@ -8,71 +9,71 @@ import CardSpec._
 trait ZenMage {
 
   val Zen : House = House("Zen", List(
-    Creature("Elementesist", Some(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
-    Creature("RedlightBringer", Some(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
+    Creature("Elementesist", Attack(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
+    Creature("RedlightBringer", Attack(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
     Spell("Focus", "Every owner card dedicate 50% of their attack to the focused creature.",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focus)),
-    Creature("ElectricGuard", Some(3), 21, "deals 3 damage to creatures damaging owner.", reaction = new EGuardReaction),
-    Creature("Dreamer", Some(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
-    Creature("Mimic", Some(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
-    Creature("SpiralOfLight", Some(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
+    Creature("ElectricGuard", Attack(3), 21, "deals 3 damage to creatures damaging owner.", reaction = new EGuardReaction),
+    Creature("Dreamer", Attack(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
+    Creature("Mimic", Attack(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
+    Creature("SpiralOfLight", Attack(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
   Zen.initCards(Houses.basicCostFunc)
 
-  private val cocoon = new Creature("Cocoon", Some(0), 13){
+  private val cocoon = new Creature("Cocoon", Attack(0), 13){
     cost = 0
     houseIndex = Zen.houseIndex
     houseId = Zen.houseId
   }
 
-  private class ElemAttack extends Attack {
+  private class ElemAttack extends RunAttack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
       val otherPlayer = updater.players(other(id))
       otherPlayer.getSlots.get(num) match {
         case None => otherPlayer.inflict(d)
         case Some(oppositeSlot) =>
           val h = oppositeSlot.card.houseIndex
-          otherPlayer.slots.value.foreach{ case (n, s) =>
-            if (s.card.houseIndex == h){
-              otherPlayer.slots.inflictCreature(n, d)
+          otherPlayer.slots.foreach{ s =>
+            if (s.get.card.houseIndex == h){
+              s.inflict(d)
             }
           }
       }
     }
   }
 
-  private class RedlightAttack extends Attack {
+  private class RedlightAttack extends RunAttack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
       val player      = updater.players(id)
       val otherPlayer = player.otherPlayer
-      val bonus       = List(num-1, num+1).filter(player.slots.value.isDefinedAt _)
-      val targets     = if (bonus.isEmpty) List(num) else (num -1 to num +1)
+      val bonus       = player.slots(num).adjacentSlots.count(_.value.isDefined)
+      val targets     = if (bonus == 0) List(num) else (num -1 to num +1)
 
       targets.foreach { n =>
         otherPlayer.getSlots.get(n) match {
           case None => if (n == num) player.otherPlayer.inflict(d)
           case Some(oppositeSlot) =>
-            if (bonus.size == 0){
-              otherPlayer.slots.inflictCreature(n, d)
-            } else if (n == num) {
-              otherPlayer.slots.inflictCreature(n, d.copy(amount = d.amount + bonus.size))
+            val slot = otherPlayer.slots(n)
+            if (n == num) {
+              slot.inflict(d.copy(amount = d.amount + bonus))
             } else {
-              otherPlayer.slots.inflictCreature(n, d.copy(amount = bonus.size))
+              slot.inflict(d.copy(amount = bonus))
             }
         }
       }
     }
   }
 
-  private class SpiralAttack extends Attack {
+  private class SpiralAttack extends RunAttack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
       val otherPlayer = updater.players(id).otherPlayer
 
-      (num - 2 to num +2).foreach{ n =>
+      slotInterval(num - 2, num +2).foreach{ n =>
         val damage = d.copy(amount = d.amount - math.abs(num - n))
-        if (otherPlayer.getSlots.isDefinedAt(n)) otherPlayer.slots.inflictCreature(n, damage)
+        val slot = otherPlayer.slots(n)
+        if (slot.value.isDefined) slot.inflict(damage)
         else if (n == num) {
           otherPlayer.inflict(d)
         }
@@ -83,22 +84,20 @@ trait ZenMage {
   private def focus = { env: Env =>
     import env._
 
-    val damage = Damage(player.slots.value.toList.map(_._2.attack).sum / 2, isSpell = true)
-    otherPlayer.slots.inflictCreature(env.selected, damage)
-    val (newSlots, backup) = ((PlayerState.emptySlots, Map.empty[Int, Int]) /: player.slots.value){ case ((newslots, backup), (num, slot)) =>
-      val old = (num, slot.attack)
-      (newslots + (num -> slot.copy(attack = math.ceil(slot.attack/2f).toInt)), backup + old)
-    }
-    player.slots.write(newSlots)
-    player.addEffect(OnEndTurn -> new RecoverAttack(backup))
+    val factor = AttackFactor(0.5f)
+    val amount = player.slots.foldl(0)((acc, x) => acc + math.ceil(x.get.attack / 2f).toInt)
+    otherPlayer.slots(env.selected).inflict(Damage(amount, isSpell = true))
+    player.slots.foreach(_.attack.add(factor))
+    player.addEffect(OnEndTurn -> new RemoveAttack(factor))
   }
 
   private def spiral = {env: Env =>
     import env._
 
-    (selected-2 to selected +2).foreach{ num =>
+    slotInterval(selected - 2, selected +2).foreach{ num =>
       val amount = 3 - (selected - num)
-      if (player.slots.value.isDefinedAt(num)) player.slots.healCreature(num, amount)
+      val slot = player.slots(num)
+      if (slot.value.isDefined) slot.heal(amount)
     }
   }
 
@@ -107,7 +106,7 @@ trait ZenMage {
       if (d.target.isEmpty){
         d.source.foreach{ src =>
           d.updater.focus(selected, d.playerId, blocking = false)
-          d.updater.players(src.playerId).slots.inflictCreature(src.num, Damage(3, isAbility = true))
+          d.updater.players(src.playerId).slots(src.num).inflict(Damage(3, isAbility = true))
         }
       }
       d.damage
@@ -138,7 +137,7 @@ trait ZenMage {
     def apply(env : Env){
       if (c.card.inputSpec.exists{
         case SelectOwnerSlot =>
-          env.player.slots.value.get(c.input.get.num).exists(_.card == cocoon)
+          env.player.slots().get(c.input.get.num).exists(_.card == cocoon)
         case _ => false
       }){
         env.player.heal(3)
@@ -152,11 +151,11 @@ trait ZenMage {
     def apply(env : Env){
       if (! c.card.inputSpec.exists{
         case SelectOwnerSlot =>
-          env.player.slots.value.isDefinedAt(c.input.get.num)
+          env.player.slots().isDefinedAt(c.input.get.num)
         case SelectOwnerCreature =>
-          !env.player.slots.value.isDefinedAt(c.input.get.num)
+          !env.player.slots().isDefinedAt(c.input.get.num)
         case SelectTargetCreature =>
-          !env.otherPlayer.slots.value.isDefinedAt(c.input.get.num)
+          !env.otherPlayer.slots().isDefinedAt(c.input.get.num)
       }){
         env.player.submit(c)
       }
@@ -165,7 +164,7 @@ trait ZenMage {
   }
 }
 
-class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned gives 3 water mana.\nZen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
+class ZenFighter extends Creature ("ZenFighter", Attack(7), 31, "When summoned gives 3 water mana.\nZen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
 
   override def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect) (life - math.ceil(0.3 * (damage.amount))).toInt
@@ -176,16 +175,13 @@ class ZenFighter extends Creature ("ZenFighter", Some(7), 31, "When summoned giv
 object DreamCommandFlag extends CommandFlag
 
 
-class RecoverAttack(backup : Map[Int, Int]) extends Function[Env, Unit]{
+class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
   def apply(env : Env){
-    env.player.slots.update{ s =>
-      s.map{ case (num, slot) =>
-        backup.get(num) match {
-          case Some(old) => (num -> slot.copy(attack = old))
-            case _ => (num -> slot)
-        }
-      }
-    }
-    env.player.removeEffect(_.isInstanceOf[RecoverAttack])
+    env.player.slots.foreach(_.attack.remove(attack))
+    env.player.removeEffect(_.isInstanceOf[RemoveAttack])
   }
+}
+
+case class AttackFactor(fact : Float) extends AttackFunc {
+  def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
 }

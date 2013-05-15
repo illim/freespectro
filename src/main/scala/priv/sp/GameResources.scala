@@ -19,7 +19,7 @@ class GameResources {
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
 
-  var playerChoices = List(sp.houses.LostChurch, sp.houses.Zen)
+  var playerChoices = List(sp.houses.Junk, sp.houses.Sower)
 
   def release(){
     println("releasing resources")

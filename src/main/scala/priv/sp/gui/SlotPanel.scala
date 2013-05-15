@@ -62,12 +62,12 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         new SpellAnim(lock,
           isRelative = false,
           entity = new NatureRitual(absTargetSlotCoord.get, game.sp)))
-    } else if (card == Sower.cards(3)) {
+/**    } else if (card == Sower.cards(3)) {
       panel.addTask(
         new SpellAnim(lock,
           isRelative = false,
           blocking = false,
-          entity = new Pollinate(absTargetSlotCoord.get, game.sp)))
+          entity = new Pollinate(absTargetSlotCoord.get, game.sp)))*/
     } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,

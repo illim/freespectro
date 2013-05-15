@@ -1,6 +1,7 @@
 package priv.sp.bot
 
 import priv.sp._
+import priv.sp.update._
 
 class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
   val desc = ripPlayerState.exec(gameDesc)

@@ -1,12 +1,13 @@
 package priv.sp.house
 
 import priv.sp._
+import priv.sp.update._
 
 trait Sower {
   import CardSpec._
   import GameCardEffect._
 
-  val monsterPlant = Creature("MonsterPlant", Some(6), 21, "when kills creature, heals completely all monster plants on the board.", runAttack = new MonsterPlantAttack)
+  val monsterPlant = Creature("MonsterPlant", Attack(6), 21, "when kills creature, heals completely all monster plants on the board.", runAttack = new MonsterPlantAttack)
 
   val Sower = House("Sower", List(
     Spell("Tangling", "Transfers X health from target creature to opposite creature\n(X = attack of target creature)",
@@ -19,10 +20,10 @@ trait Sower {
     Spell("Pollination", "turns target creature of X level into special creature of (X minus 3) level\nwith full hp and heals X life to owner.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> pollinate)),
-    Creature("BloodSundew", Some(6), 24, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
-    Creature("PredatorPlant", Some(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
-    Creature("ForestDrake", Some(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
-    Creature("FieryFlower", Some(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
+    Creature("BloodSundew", Attack(6), 24, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
+    Creature("PredatorPlant", Attack(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
+    Creature("ForestDrake", Attack(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
+    Creature("FieryFlower", Attack(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
       env.otherPlayer.inflict(Damage(env.player.getHouses(0).mana , isAbility = true))
     }))))
 
@@ -30,32 +31,30 @@ trait Sower {
 
   private def tangle = { env : Env =>
     import env._
-    val slot = otherPlayer.slots.value(selected)
-    val damage = Damage(slot.attack, isSpell = true)
-    otherPlayer.slots.inflictCreature(selected, damage)
-    if (player.slots.value.isDefinedAt(selected)){
-      player.slots.healCreature(selected, damage.amount)
+    val slot = otherPlayer.slots(selected)
+    val damage = Damage(slot.get.attack, isSpell = true)
+    slot.inflict(damage)
+    val opp = player.slots(selected)
+    if (opp.value.isDefined){
+      opp.heal(damage.amount)
     }
   }
 
   private def devour = { env : Env =>
     import env._
-    player.slots.destroy(selected)
-    val (newSlots, backup) = ((PlayerState.emptySlots, Map.empty[Int, Int]) /: player.slots.value){ case ((newslots, backup), (num, slot)) =>
-      val old = (num, slot.attack)
-      (newslots + (num -> slot.copy(attack = slot.attack * 2)), backup + old)
-    }
-    player.slots.write(newSlots)
-    player.addEffect(OnEndTurn -> new RecoverAttack(backup))
+    player.slots(selected).destroy()
+    val factor = AttackFactor(2f)
+    player.slots.foreach(_.attack.add(factor))
+    player.addEffect(OnEndTurn -> new RemoveAttack(factor))
   }
 
   private def pollinate : Effect = { env : Env =>
     import env._
-    val slot = player.slots.value(selected)
-    val cost = slot.card.cost
+    val slot = player.slots(selected)
+    val cost = slot.get.card.cost
     Sower.cards.find(_.cost == cost - 3).foreach{
       case c : Creature =>
-        player.slots.destroy(selected)
+        slot.destroy()
         player.slots.summon(selected, c)
       case _ =>
     }
@@ -64,29 +63,30 @@ trait Sower {
 
   private def fieryFlower = {env : Env =>
     import env._
-    otherPlayer.slots.value.toSeq.sortBy(_._2.life)(math.Ordering.Int.reverse).headOption foreach { case (num, slot) =>
+    otherPlayer.slots.filleds.sortBy(_.get.life).lastOption foreach { slot =>
       updater.focus(selected, playerId)
-      otherPlayer.slots.inflictCreature(num, (Damage(math.ceil(slot.life / 2f).toInt, isAbility = true)))
+      slot.inflict(Damage(math.ceil(slot.get.life / 2f).toInt, isAbility = true))
     }
     player.houses.incrMana(1, 0)
   }
 
-  private class MonsterPlantAttack extends Attack {
+  private class MonsterPlantAttack extends RunAttack {
     def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
       val player = updater.players(id)
       val otherPlayer = player.otherPlayer
-      otherPlayer.getSlots.get(num) match {
-        case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
-        case Some(_) =>
-          otherPlayer.slots.inflictCreature(num, d)
-          // FIXME maybe not good at all and should add source in damage?
-          if (!otherPlayer.slots.value.isDefinedAt(num)){
-            player.slots.value.foreach{ case (n, slot) =>
-              if (slot.card == monsterPlant){
-                player.slots.healCreature(n, monsterPlant.life)
-              }
+      val slot = otherPlayer.slots(num)
+      if (slot.value.isEmpty) {
+        otherPlayer.inflict(d, Some(SlotSource(id, num)))
+      } else {
+        slot.inflict(d)
+        // FIXME maybe not good at all and should add source in damage?
+        if (slot.value.isEmpty){
+          player.slots.foreach{ slot =>
+            if (slot.get.card == monsterPlant){
+              slot.heal(monsterPlant.life)
             }
           }
+        }
       }
     }
   }
@@ -99,9 +99,9 @@ trait Sower {
       if (selectedPlayerId == playerId && selected != num && card.houseId == Sower.houseId){
         updater.focus(selected, playerId)
         val slots = updater.players(playerId).slots
-        val dists = slotRange.collect{ case n if !slots.value.isDefinedAt(n) => (n, math.abs(n - selected)) }
+        val dists = slotRange.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
         dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
-          slots.add(pos, card)
+          slots(pos).add(card)
         }
       }
     }
@@ -110,39 +110,38 @@ trait Sower {
 }
 
 // code horror
-private class BloodSundewAttack extends Attack {
+private class BloodSundewAttack extends RunAttack {
 
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val player = updater.players(id)
     val otherPlayer = player.otherPlayer
-    val healAmount = otherPlayer.getSlots.get(num) match {
+    val slot = otherPlayer.slots(num)
+    val healAmount = slot.value match {
       case None =>
         val oldl = otherPlayer.value.life
         otherPlayer.inflict(d, Some(SlotSource(id, num)))
         oldl - otherPlayer.value.life
-      case Some(slot) =>
-        val oldl = slot.life
-        otherPlayer.slots.inflictCreature(num, d)
-        val newl = otherPlayer.slots.value.get(num).map(_.life) getOrElse 0
+      case Some(slotState) =>
+        val oldl = slotState.life
+        slot.inflict(d)
+        val newl = slot.value.map(_.life) getOrElse 0
         oldl - newl
     }
-    if (player.slots.value.isDefinedAt(num)){ // horror due to zen eguard
-      player.slots.healCreature(num, healAmount)
-    }
+    player.slots(num).heal(healAmount)
   }
 }
 
-private class PredatorPlantAttack extends Attack {
+private class PredatorPlantAttack extends RunAttack {
 
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val player = updater.players(id)
     val otherPlayer = player.otherPlayer
-    otherPlayer.getSlots.get(num) match {
+    val slot = otherPlayer.slots(num)
+    slot.value match {
       case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
-      case Some(slot) =>
-        val x = slot.card.life - slot.life
-        otherPlayer.slots.inflictCreature(num, d.copy(amount = d.amount + x))
+      case Some(slotState) =>
+        val x = slotState.card.life - slotState.life
+        slot.inflict(d.copy(amount = d.amount + x))
     }
   }
 }
-

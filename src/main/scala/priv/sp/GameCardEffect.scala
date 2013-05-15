@@ -3,6 +3,7 @@ package priv.sp
 import collection._
 import scalaz._
 import CardSpec._
+import priv.sp.update._
 
 object GameCardEffect {
 
@@ -23,12 +24,12 @@ object GameCardEffect {
   def damage(d : Damage) = { env : Env => env.otherPlayer.inflict(d, env.source) }
   def damageCreatures(d : Damage) : Effect  = { env : Env => env.otherPlayer.slots.inflictCreatures(d) }
   def damageCreature(d: Damage) : Effect = { env : Env =>
-    env.otherPlayer.slots.inflictCreature(env.selected, d)
+    env.otherPlayer.slots(env.selected).inflict(d)
   }
   def massDamage(d : Damage, immuneSelf : Boolean = false) = { env : Env =>
     if (immuneSelf){
       env.player.slots.value.foreach{ case (num, _) =>
-        if (num != env.selected) env.player.slots.inflictCreature(num, d)
+        if (num != env.selected) env.player.slots(num).inflict(d)
       }
     } else {
       env.player.slots.inflictCreatures(d)
@@ -38,7 +39,7 @@ object GameCardEffect {
 
   def heal(amount : Int) = { env : Env => env.player.heal(amount) }
   def healCreature(amount : Int) : Effect  = { env : Env =>
-    env.player.slots.healCreature(env.selected, amount)
+    env.player.slots(env.selected).heal(amount)
   }
   def healCreatures(amount : Int) : Effect  = { env : Env =>
     env.player.slots.healCreatures(amount)

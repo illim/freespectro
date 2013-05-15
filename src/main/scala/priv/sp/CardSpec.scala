@@ -2,6 +2,7 @@ package priv.sp
 
 import collection._
 import java.io._
+import priv.sp.update._
 
 object Card {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
@@ -41,24 +42,24 @@ sealed abstract class Card extends Externalizable {
 
 case class Creature(
   name : String,
-  attack : Option[Int],
+  attack : AttackSources,
   life : Int,
   description : String = "",
   inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
   effects     : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
   mod         : Option[Mod] = None,
-  slotEffect  : SlotEffect = CardSpec.defaultSlotEffect,
   reaction    : Reaction = CardSpec.defaultReaction,
   data        : AnyRef = null, // initialize slot custom data
-  runAttack   : Attack = SingleTargetAttack,
+  runAttack   : RunAttack = SingleTargetAttack,
   immune      : Boolean = false,
   runOnce     : Boolean = false) extends Card {
 
-  def this() = this(null, None, 0)
+  def this() = this(null, AttackSources(), 0)
 
   def inflict(damage : Damage, life : Int) = {
     if (damage.isEffect && immune) life else life - damage.amount
   }
+
   def image = name + ".JPG"
 }
 
@@ -112,28 +113,12 @@ object CardSpec {
       effects.foreach(_(env))
     }
   }
-  val defaultSlotEffect = new DefaultSlotEffect
   val defaultReaction = new DefaultReaction
 }
 
 trait Mod
 case class SpellMod(modify : Int => Int) extends Mod
 case class SpellProtectOwner(modify : Int => Int) extends Mod
-
-trait SlotEffect {
-  // update elemental or a creature just summoned
-  def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState
-  // applied when effective creature is summoned
-  def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
-  // applied when effective creature is dead
-  def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType
-}
-
-class DefaultSlotEffect extends SlotEffect {
-  def applySlot(selected : Int, num : Int, slot : SlotState) : SlotState = slot
-  def applySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
-  def unapplySlots(selected : Int, slots : PlayerState.SlotsType) : PlayerState.SlotsType = slots
-}
 
 sealed trait BoardEvent
 case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
@@ -142,6 +127,8 @@ case class DamageEvent(damage : Damage, target : Option[Int], playerId : PlayerI
 case class SummonEvent(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
 
 trait Reaction {
+  def onAdd(selected : Int, slot : SlotUpdate)
+  def onRemove(slot : SlotUpdate)
   def onProtect(selected : Int, d : DamageEvent) : Damage
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
@@ -149,6 +136,8 @@ trait Reaction {
 }
 
 class DefaultReaction extends Reaction {
+  def onAdd(selected : Int, slot : SlotUpdate){}
+  def onRemove(slot : SlotUpdate){}
   def onProtect(selected : Int, d : DamageEvent) = d.damage
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
@@ -157,22 +146,44 @@ class DefaultReaction extends Reaction {
 
 case class SlotSource(playerId : PlayerId, num : Int)
 
-trait Attack {
+trait RunAttack {
   def apply(num : Int, d : Damage,updater : GameStateUpdater, playerId : PlayerId)
 }
-object SingleTargetAttack extends Attack {
+object SingleTargetAttack extends RunAttack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
-    otherPlayer.getSlots.get(num) match {
-      case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
-      case Some(_) => otherPlayer.slots.inflictCreature(num, d)
+    val slot = otherPlayer.slots(num)
+    if (slot.value.isEmpty) {
+      otherPlayer.inflict(d, Some(SlotSource(id, num)))
+    } else {
+      slot.inflict(d)
     }
   }
 }
-object MultiTargetAttack extends Attack {
+object MultiTargetAttack extends RunAttack {
   def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
     val otherPlayer = updater.players(other(id))
     otherPlayer.inflict(d, Some(SlotSource(id, num)))
     otherPlayer.slots.inflictCreatures(d)
   }
+}
+
+object Attack {
+  def apply(base : Int) : AttackSources = AttackSources(Some(base))
+}
+
+case class AttackSources(base : Option[Int] = None, sources : Vector[AttackSource] = Vector.empty) {
+  def add(source : AttackSource)    = copy(sources = sources :+ source)
+  def remove(source : AttackSource) = copy(sources = sources.filterNot(_ == source))
+}
+
+trait AttackSource
+trait AttackFunc extends AttackSource {
+  def apply(attack : Int) : Int
+}
+trait AttackStateFunc extends AttackSource {
+  def apply(attack : Int, player : PlayerUpdate) : Int
+}
+case class ManaAttack(houseIndex : Int) extends AttackStateFunc {
+  def apply(attack : Int, player : PlayerUpdate) : Int = attack + player.getHouses(houseIndex).mana
 }

@@ -207,8 +207,9 @@ trait ResourceCache[A, B] {
 
 abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) {
   var tid = 0
-  var dirty = false
+  var dirty = 0
   var value = getValue
+  var valuedirty = 0 // if dirty is set by children value is out of sync
 
   def initNewUpdate(value : A) : this.type = {
     write(value)
@@ -217,8 +218,9 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
   }
 
   def reinit() : this.type = {
-    if (tid != parent.get.tid) {
-      dirty = false
+    if (! isInited) {
+      dirty = 0
+      valuedirty = 0
       value = getValue
       tid = parent.get.tid
     }
@@ -230,11 +232,21 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
     setDirty()
   }
 
-  def isDirty = parent.exists(_.tid == tid && dirty)
-  private def setDirty(){
+  // f is a whole rebuild of the value
+  def updated(f : => A) : A = {
+    if (valuedirty != dirty) {
+      value = f
+      valuedirty = dirty
+    }
+    value
+  }
+
+  def isInited = tid == parent.get.tid
+  def isDirty = parent.exists(_.tid == tid && dirty > 0)
+  def setDirty(){
     parent.foreach{ p =>
       p.setDirty()
-      dirty = true
+      dirty += 1
     }
   }
 

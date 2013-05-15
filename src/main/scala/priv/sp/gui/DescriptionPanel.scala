@@ -13,7 +13,7 @@ class DescriptionPanel(game : Game) extends GuiElem {
       Fonts.big.draw(0, 0, card.name, 'white)
       card match {
         case c : Creature =>
-          Fonts.font.draw(0, 25, "Life : " + c.life+"  Attack : " + c.attack.getOrElse("X"), 'white)
+          Fonts.font.draw(0, 25, "Life : " + c.life+"  Attack : " + c.attack.base.getOrElse("X"), 'white)
         case _ =>
       }
       if (card.description.size < 60){

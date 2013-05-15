@@ -1,11 +1,12 @@
 package priv.sp
 
-import collection._
-import priv._
-import priv.sp.gui._
-import scalaz._
-import priv.sp.bot._
 import java.util.concurrent._
+import collection._
+import scalaz._
+import priv._
+import priv.sp.bot._
+import priv.sp.gui._
+import priv.sp.update._
 import util.Utils._
 
 class Game(val world: World, resources : GameResources, val server : GameServer) { game =>

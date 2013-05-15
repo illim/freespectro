@@ -13,15 +13,11 @@ case class PlayerState(
   life       : Int = 60,
   effects    : List[CardSpec.PhaseEffect] = Nil)
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attack: Int, data : AnyRef = null){
+case class SlotState(card: Creature, life: Int, hasRunOnce: Boolean, attackSources: AttackSources, attack : Int, data : AnyRef = null){
+
   def inflict(damage : Damage) : Option[SlotState] = {
     val newlife = card.inflict(damage, life)
     if (newlife < 1) None else Some(copy(life = newlife))
-  }
-  def addAttack(x : Int) = {
-    if (card.attack.isEmpty || card.attack != Some(0)){
-      copy(attack = attack + x)
-    } else this
   }
 }
 
@@ -50,7 +46,6 @@ object SlotState {
     slot.copy(life = math.min(slot.card.life, slot.life + amount))
   }
 }
-
 
 import scalaz._
 object GameDesc {

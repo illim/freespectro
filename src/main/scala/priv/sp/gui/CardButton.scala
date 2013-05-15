@@ -75,7 +75,7 @@ class CardButton(val baseCard : Card, houseState: => HouseState, game : Game) ex
         Fonts.font.draw(72, 9, spell.cost, 'blue)
       case creature: Creature =>
         Fonts.font.draw(72, 1, creature.cost, 'blue)
-        Fonts.font.draw(4, 80, creature.attack.map(_.toString) getOrElse "?", 'red)
+        Fonts.font.draw(4, 80, creature.attack.base.map(_.toString) getOrElse "?", 'red)
         Fonts.font.draw(70, 80, creature.life, 'green)
     }
     if (!isActive) grey.end()
