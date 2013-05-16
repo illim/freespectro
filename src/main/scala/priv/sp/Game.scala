@@ -61,7 +61,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   private def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
-    world.spawn(Translate(Coord2i(300, 350), new GuiButton(msg, Fonts.big)))
+    world.spawn(Translate(Coord2i(100, 150), new GuiButton(msg, Fonts.big)))
   }
 
   private def persist[A](stateFunc: State[GameState, A]) : A = {
