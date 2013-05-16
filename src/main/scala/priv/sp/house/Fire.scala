@@ -37,7 +37,7 @@ trait Fire {
     val damage = Damage(10, isSpell = true)
     otherPlayer.slots.foreach{ slot =>
       slot.inflict(
-        if (slot.num == selected) Damage(18, true) else damage)
+        if (slot.num == selected) Damage(18, isSpell = true) else damage)
     }
   }
 

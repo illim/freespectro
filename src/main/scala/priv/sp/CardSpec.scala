@@ -45,9 +45,9 @@ case class Creature(
   life : Int,
   description : String = "",
   inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
-  effects     : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
+  var effects     : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
   mod         : Option[Mod] = None,
-  reaction    : Reaction = CardSpec.defaultReaction,
+  var reaction    : Reaction = CardSpec.defaultReaction,
   data        : AnyRef = null, // initialize slot custom data
   runAttack   : RunAttack = SingleTargetAttack,
   immune      : Boolean = false,

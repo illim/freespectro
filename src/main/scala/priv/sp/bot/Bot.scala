@@ -92,7 +92,7 @@ class Choices(bot : Bot) {
     val emptySlots = slotRange.filter(num => !slots.isDefinedAt(num))
     val otherSlots = state.players(other(playerId)).slots
 
-    bot.k.desc.players(playerId).houses.flatMap { houseDesc  =>
+    state.players(playerId).desc.get.houses.flatMap { houseDesc  =>
       val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
 
       houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { cardDesc =>
@@ -123,7 +123,7 @@ class Choices(bot : Bot) {
     val slot = Random.shuffle(slots).headOption
     val emptySlot = Random.shuffle(slotRange.filter(num => !slots.isDefinedAt(num))).headOption
     val otherSlot = Random.shuffle(state.players(other(playerId)).slots).headOption
-    val houseDesc = bot.k.desc.players(playerId).houses(Random.nextInt(5))
+    val houseDesc = state.players(playerId).desc.get.houses(Random.nextInt(5))
     val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
     val cards = houseDesc.cards.filter(_.isAvailable(houseState))
     val cardOption = Random.shuffle(cards).headOption
