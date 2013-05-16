@@ -60,7 +60,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   def onDead(dead : Dead){
-    dead.card.reaction.onDeath(dead.num, dead)
+    dead.card.reaction.onMyDeath(dead)
     foreach{ s =>
       if (s.num != dead.num) s.get.card.reaction.onDeath(s.num, dead)
     }
@@ -84,5 +84,10 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     var r = z
     foreach{ s => r = f(r, s) }
     r
+  }
+  def findCard(card : Card) : Option[SlotUpdate] = {
+    slots.find{ s =>
+      s.value.isDefined && s.get.card == card
+    }
   }
 }

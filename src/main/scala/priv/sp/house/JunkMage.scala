@@ -3,7 +3,7 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-trait JunkMage {
+class JunkMage {
   import CardSpec._
   import GameCardEffect._
 
@@ -180,16 +180,14 @@ class FactoryReaction extends MirrorSummon {
 class RecyclingBotReaction extends DefaultReaction {
   final override def onDeath(selected : Int, dead : Dead){
     import dead._
-    if (selected != num){
-      val playerUpdate = updater.players(playerId)
-      val selectedSlot = playerUpdate.slots(selected)
-      selectedSlot.value.foreach{ botSlot =>
-        updater.focus(selected, playerId)
-        if (botSlot.life == botSlot.card.life) {
-          playerUpdate.heal(2)
-        } else {
-          selectedSlot.heal(10)
-        }
+    val playerUpdate = updater.players(playerId)
+    val selectedSlot = playerUpdate.slots(selected)
+    selectedSlot.value.foreach{ botSlot =>
+      updater.focus(selected, playerId)
+      if (botSlot.life == botSlot.card.life) {
+        playerUpdate.heal(2)
+      } else {
+        selectedSlot.heal(10)
       }
     }
   }

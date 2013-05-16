@@ -72,6 +72,6 @@ case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.emp
     }
   }
 
-  def add(mod : DescMod) = copy(descMods = descMods :+ mod)
+  def add(mods : DescMod*) = copy(descMods = descMods ++ mods)
   def remove(mod : DescMod) = copy(descMods = descMods.filterNot(_ == mod))
 }

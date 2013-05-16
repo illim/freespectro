@@ -3,7 +3,7 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-trait Sower {
+class Sower {
   import CardSpec._
   import GameCardEffect._
 

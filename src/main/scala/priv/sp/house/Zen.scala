@@ -6,7 +6,7 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
-trait ZenMage {
+class ZenMage {
 
   val Zen : House = House("Zen", List(
     Creature("Elementesist", Attack(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),

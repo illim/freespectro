@@ -8,7 +8,6 @@ class CardPanel(playerId: PlayerId, game: Game) {
   private val houseCardButtons = game.desc.players(playerId).houses.zipWithIndex.map { case (houseDesc, idx) =>
       def getCard(i : Int) = game.state.players(playerId).desc.get.houses(idx).cards(i)
       def getHouseState = game.state.players(playerId).houses(idx)
-
       new HouseLabel(new DamagableInt(getHouseState.mana, game), houseDesc.house, game) -> (0 to 3).map { i =>
         new CardButton(getCard(i), getHouseState, game)
       }

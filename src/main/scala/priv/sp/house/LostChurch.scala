@@ -3,34 +3,44 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-trait LostChurch {
+class LostChurch {
   import CardSpec._
   import GameCardEffect._
 
-  private val prisoner = Creature("Prisoner", Attack(3), 7, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
+  private val prisoner = Creature("Prisoner", Attack(2), 9, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
   private val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 45, "Immune to spell & ability when liberator is alive.")
   private val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours.", effects = effects(Direct -> oppress))
+  private val darkMonk = Creature("DarkMonk", Attack(2), 13, "Decrease opponent fire mana growth by 1", effects = effects(OnEndTurn -> { env : Env => env.otherPlayer.houses.incrMana(-1 , 0) }))
+  private val falconer = Creature("Falconer", Attack(6), 28, "Each turns deals (2 * slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon)))
 
-  val LostChurch = House("LostChurch", List(
-    Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 3 damage.",
+  val LostChurch : House = House("LostChurch", List(
+    Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 4 damage.",
           effects = effects(Direct -> speedDrug)),
-    Creature("Preacher", Attack(6), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.", effects = effects(OnTurn -> addMana(1, 4), Direct -> preachCost), reaction = new PreacherReaction),
     Spell("WildJustice", "Deals (12 - attack) damage to each creature.",
           effects = effects(Direct -> wildJustice)),
-    Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\ntakes them back when dying.", effects = effects(Direct -> addMana(2, 0, 1, 2, 3))),
-    Creature("Scarecrow", Attack(8), 26, "Deals 8 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare)),
+    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd temporarily 1 attack to prisoner", effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
+    Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\nIncrease cost of basic card by 1", reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
+    Creature("Scarecrow", Attack(7), 26, "Deals 7 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
     new SkinnedBeast,
-    Creature("Falconer", Attack(6), 28, "Each turns deals (2 * slot distance) damage to highest cost creature\n and creatures between.", effects = effects(OnTurn -> focus(falcon))),
+    Creature("AstralEscape", Attack(4), 40, "damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner. When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
+  private val falseProphet = LostChurch.cards(3)
   private val scarecrow = LostChurch.cards(4)
+  private val liberator = LostChurch.cards(7)
   LostChurch.initCards(Houses.basicCostFunc)
-  List(prisoner, enragedPrisoner, windOfOppression).foreach{ c =>
+  List(prisoner, enragedPrisoner, windOfOppression, darkMonk, falconer).foreach{ c =>
     c.houseIndex = LostChurch.houseIndex
     c.houseId = LostChurch.houseId
   }
   windOfOppression.cost = 2
+  darkMonk.cost = 3
+  falconer.cost = 6
+
+  private val falseProphetAbility = Ability(falseProphet, darkMonk)
+  private val liberatorAbility = Ability(liberator, falconer)
+  private val scarecrowAbility = Ability(scarecrow, windOfOppression)
 
   private def spawnPrisoner : Effect = { env : Env =>
     import env._
@@ -49,13 +59,12 @@ trait LostChurch {
     import env._
     player.slots().foreach{ case (num, slot) =>
       if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && !slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
-        player.slots(num).attack.add(LCAttack(- slot.card.attack.base.get / 4))
+        player.slots(num).attack.add(LCAttack(- slot.card.attack.base.get / 3))
       }
     }
   }
 
-  private def preachCost  = { env : Env => env.player.addDescMod(PreacherMod)  }
-  case object PreacherMod extends DescMod {
+  case object IncrBasicCostMod extends DescMod {
     def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
       if (house == LostChurch) cards
       else {
@@ -64,12 +73,34 @@ trait LostChurch {
     }
   }
 
+  private def giveHope(player : PlayerUpdate) = {
+    player.slots.findCard(prisoner).foreach{ slot =>
+      slot.attack.add(new HopeAttackBonus)
+    }
+  }
+  private def preach = { env : Env =>
+    import env._
+    player.addDescMod(IncrBasicCostMod)
+    giveHope(player)
+  }
+  class HopeAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
   class PreacherReaction extends DefaultReaction {
-    final override def onDeath(selected : Int, dead : Dead){
+    final override def onMyDeath(dead : Dead){
       import dead._
-      if (selected == num){
-        updater.players(playerId).removeDescMod(PreacherMod)
-      }
+      updater.players(playerId).removeDescMod(IncrBasicCostMod)
+    }
+  }
+  private def prophetize = { env : Env =>
+    import env._
+    player.houses.incrMana(2, 0, 1, 2, 3)
+    player.addDescMod(IncrBasicCostMod, falseProphetAbility)
+    giveHope(player)
+  }
+  class FalseProphetReaction extends DefaultReaction {
+    final override def onMyDeath(dead : Dead){
+      import dead._
+      val player = updater.players(playerId)
+      player.removeDescMod(IncrBasicCostMod)
     }
   }
 
@@ -77,31 +108,30 @@ trait LostChurch {
     env.focus()
     val slot = env.otherPlayer.slots(env.selected)
     if (slot.value.isDefined){
-      slot.inflict(Damage(10, isAbility = true))
-      slot.toggle(stunFlag)
+      slot.inflict(Damage(7, isAbility = true))
     }
-    env.player.addDescMod(ScareMod)
-  }
-  case object ScareMod extends DescMod {
-    def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
-      if (house == LostChurch){
-        cards.map{ c =>
-          if (c.card == scarecrow){
-            CardDesc(windOfOppression)
-          } else c
-        }
-      } else cards
-    }
+    env.player.addDescMod(scarecrowAbility)
   }
   private def oppress = { env : Env =>
     import env._
-    findCard(player, _ == scarecrow).foreach{ slot =>
+    player.slots.findCard(scarecrow).foreach{ slot =>
       slotInterval(slot.num - 1, slot.num + 1).foreach{ n =>
         val oppSlot = otherPlayer.slots(n)
         if (oppSlot.value.isDefined){
           oppSlot.inflict(Damage(8, isAbility = true))
           oppSlot.toggle(stunFlag)
         }
+      }
+    }
+  }
+  private class ScarecrowReaction extends DefaultReaction {
+    final override def onMyDeath(dead : Dead){
+      import dead._
+      val player = updater.players(playerId)
+      player.removeDescMod(scarecrowAbility)
+      val slot = player.otherPlayer.slots(num)
+      if (slot.value.isDefined){
+        slot.heal(5)
       }
     }
   }
@@ -112,12 +142,13 @@ trait LostChurch {
       player.slots(n).destroy()
       player.slots(n).add(enragedPrisoner)
     }
+    player.addDescMod(liberatorAbility)
   }
 
   private def speedDrug = { env : Env =>
     import env._
     val bonus = AttackAdd(1)
-    player.slots.inflictCreatures(Damage(3, isSpell = true))
+    player.slots.inflictCreatures(Damage(4, isSpell = true))
     player.slots.foreach(_.attack.add(bonus))
   }
 
@@ -137,35 +168,43 @@ trait LostChurch {
   private def falcon = { env: Env =>
     import env._
 
-    otherPlayer.slots().toSeq.filter(_._1 != selected).sortBy(_._2.card.cost).lastOption foreach { case (num, slot) =>
-      for(n <- selected to num by math.signum(num - selected)){
-        otherPlayer.slots(n).inflict(Damage(2 * math.abs(n - selected), isAbility = true))
+    otherPlayer.slots.slots foreach { slot =>
+      if (slot.num != selected){
+        slot.inflict(Damage(2 * math.abs(slot.num - selected), isAbility = true))
       }
     }
   }
 
-  private def findCard(player : PlayerUpdate, f : Creature => Boolean) : Option[SlotUpdate] = {
-    player.slots.slots.find{ s =>
-      s.value.isDefined && f(s.get.card)
+  class AstralEscapeReaction extends DefaultReaction {
+    final override def onProtect(selected : Int, d : DamageEvent) = {
+      import d._
+      var res = d.damage
+      if (d.target.isDefined){
+        val player = updater.players(playerId)
+        val slot = player.slots(d.target.get)
+        if (slot.get.card == prisoner){
+          player.slots(selected).inflict(d.damage)
+          res = d.damage.copy(amount = 0)
+        }
+      }
+      res
     }
   }
 
   class LiberatorReaction extends DefaultReaction {
-    final override def onDeath(selected : Int, dead : Dead){
+    final override def onMyDeath(dead : Dead){
       import dead._
-      if (selected == num){
-        val player = updater.players(playerId)
-        findCard(player, _ == enragedPrisoner).foreach{ slot =>
-          slot.inflict(Damage(15))
-        }
+      val player = updater.players(playerId)
+      player.slots.findCard(enragedPrisoner).foreach{ slot =>
+        slot.inflict(Damage(15))
       }
     }
 
     final override def onProtect(selected : Int, d : DamageEvent) = {
       import d._
       val player = updater.players(playerId)
-      d.target match {
-        case Some(n) if player.slots.value(n).card == enragedPrisoner && d.damage.isEffect =>
+      d.target match { // hack
+        case Some(n) if selected != n && player.slots(n).get.card == enragedPrisoner && d.damage.isEffect =>
           d.damage.copy(amount = 0)
         case _ => d.damage
       }
@@ -173,25 +212,21 @@ trait LostChurch {
   }
 }
 
-class SkinnedBeast extends Creature("SkinnedBeast", Attack(8), 31, "Damage done to him is transformed into (10 - damage)."){
+class SkinnedBeast extends Creature("SkinnedBeast", Attack(7), 28, "Damage done to him is transformed into (10 - damage)."){
   override def inflict(damage : Damage, life : Int) = super.inflict(damage.copy(amount = math.max(0, 10 - damage.amount)), life)
 }
 
 class PrisonerReaction extends DefaultReaction {
-  final override def onDeath(selected : Int, dead : Dead){
+  final override def onMyDeath(dead : Dead){
     import dead._
-    if (selected == num){
-      updater.players(playerId).houses.incrMana(-1, 0, 1, 2, 3)
-    }
+    updater.players(playerId).houses.incrMana(-1, 0, 1, 2, 3)
   }
 }
 
 class FalseProphetReaction extends DefaultReaction {
-  final override def onDeath(selected : Int, dead : Dead){
+  final override def onMyDeath(dead : Dead){
     import dead._
-    if (selected == num){
-      updater.players(playerId).houses.incrMana(-2, 0, 1, 2, 3)
-    }
+    updater.players(playerId).houses.incrMana(-2, 0, 1, 2, 3)
   }
 }
 

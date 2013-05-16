@@ -132,6 +132,7 @@ trait Reaction {
   def onAdd(selected : Int, slot : SlotUpdate)
   def onRemove(slot : SlotUpdate)
   def onProtect(selected : Int, d : DamageEvent) : Damage
+  def onMyDeath(dead : Dead)
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
@@ -141,6 +142,7 @@ class DefaultReaction extends Reaction {
   def onAdd(selected : Int, slot : SlotUpdate){}
   def onRemove(slot : SlotUpdate){}
   def onProtect(selected : Int, d : DamageEvent) = d.damage
+  def onMyDeath(dead : Dead) {}
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)

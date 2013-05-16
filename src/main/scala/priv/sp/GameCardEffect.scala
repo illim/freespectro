@@ -48,4 +48,17 @@ object GameCardEffect {
   def addMana(amount : Int, houseIndex : Int*) = {env : Env =>
     env.player.houses.incrMana(amount, houseIndex : _*)
   }
+  def addDescMod(mod : DescMod) = { env : Env => env.player.addDescMod(mod) }
+}
+
+case class Ability(card : Card, ability : Card) extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex == 4) {
+      cards.map{ c =>
+        if (c.card == card){
+          CardDesc(ability)
+        } else c
+      }
+    } else cards
+  }
 }
