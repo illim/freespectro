@@ -5,9 +5,9 @@ import priv.sp.update._
 
 class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(Card, Int)], val otherPlayerDesc : PlayerDesc) {
   val desc = ripPlayerState.exec(gameDesc)
-  println("AI K :" + otherPlayerDesc.houses.map{ h =>
+/**  println("AI K :" + otherPlayerDesc.houses.map{ h =>
     h.house.name + "/" + h.cards.toList
-  })
+  })*/
   // bs
   def ripDescReader(gs : GameState) = {
     GameState(gs.players.zipWithIndex.map{ case (p, i) =>

@@ -2,10 +2,9 @@ package priv.sp.house
 
 import priv.sp._
 
-trait Mecanic {
+class Mecanic {
   import CardSpec._
   import GameCardEffect._
-
 
   val Mecanic = House("Mechanics", List(
     Spell("Overtime", "Increase mechanic mana by 1", effects = effects(Direct -> addMana(1, 4))),

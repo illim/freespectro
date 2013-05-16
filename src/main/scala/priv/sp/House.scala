@@ -38,7 +38,7 @@ object Houses {
 object HouseSingleton extends Houses
 
 class Houses
-  extends Fire with Water with Air with EarthHouse with Mecanic {
+  extends Fire with Water with Air with EarthHouse {
   import CardSpec._
   import GameCardEffect._
 
@@ -46,9 +46,10 @@ class Houses
   val lostChurch = new LostChurch
   val sower = new Sower
   val junkMage = new JunkMage
+  val mecanic = new Mecanic
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(zenMage.Zen, lostChurch.LostChurch, sower.Sower, junkMage.Junk)
+  val special = List(junkMage.Junk, lostChurch.LostChurch, mecanic.Mecanic, sower.Sower, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)

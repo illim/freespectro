@@ -60,8 +60,7 @@ class CardModel(val cp : CPSolver, val houses : List[HModel]){
     (0 to 4).map{ i =>
       val house = houses(i).house
       val solveds = houses(i).getSolveds
-      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c.cost)).map(c =>
-CardDesc(c))(breakOut))
+      PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c.cost)).map(CardDesc(_))(breakOut))
     }(breakOut) : Vector[PlayerHouseDesc])
 }
 
@@ -92,6 +91,7 @@ class CardShuffler(cardModel : CardModel) extends CpHelper {
   import cardModel._
 
   def solve(timeLimit : Int = Int.MaxValue) = {
+    val vars = allCards.toArray
     cp.subjectTo{
       houses.foreach{ house =>
         import house.cards
@@ -126,12 +126,13 @@ class CardShuffler(cardModel : CardModel) extends CpHelper {
       cp.add(contains(5, earth) ==> notContains(6, earth))
 
     } exploration {
-      cp.binary(allCards.toArray, _.size, getRandom _ )
+      cp.binary(vars, _.size, getRandom _ )
+      //println(allCards)
     }
     // maybe this can be considered as a hack and hide a real problem
     // or is it just a variable relaxing method by retrying and hoping random doesn't lead to a dead end
     // i don't really know (todo use vizualisation tool)
-    softRun(cp, timeLimit)
+    softRun(cp, vars, timeLimit)
   }
 
   def oneManaGen = sum(

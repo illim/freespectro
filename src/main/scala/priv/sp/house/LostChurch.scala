@@ -10,7 +10,8 @@ class LostChurch {
   private val prisoner = Creature("Prisoner", Attack(2), 9, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
   private val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 45, "Immune to spell & ability when liberator is alive.")
   private val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours.", effects = effects(Direct -> oppress))
-  private val darkMonk = Creature("DarkMonk", Attack(2), 13, "Decrease opponent fire mana growth by 1", effects = effects(OnEndTurn -> { env : Env => env.otherPlayer.houses.incrMana(-1 , 0) }))
+  private val darkMonk = Creature("DarkMonk", Attack(2), 13, "Decrease opponent fire mana by 1\nand increase cost of them by 1 when alive.",
+                                  effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
   private val falconer = Creature("Falconer", Attack(6), 28, "Each turns deals (2 * slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon)))
 
   val LostChurch : House = House("LostChurch", List(
@@ -18,16 +19,19 @@ class LostChurch {
           effects = effects(Direct -> speedDrug)),
     Spell("WildJustice", "Deals (12 - attack) damage to each creature.",
           effects = effects(Direct -> wildJustice)),
-    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner", effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
-    Creature("FalseProphet", Attack(5), 19, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nAdd 1 attack to prisoner\nIncrease cost of basic card by 1", reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
-    Creature("Scarecrow", Attack(7), 26, "Deals 7 damage on opposite creature, when dying heal opposite creature by 7.", effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
+    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
+             effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
+    Creature("FalseProphet", Attack(5), 19, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nAdd 1 attack to prisoner\nIncrease cost of basic card by 1",
+             reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
     new SkinnedBeast,
+    Creature("Scarecrow", Attack(7), 26, "Deals 7 damage on opposite creature, when dying heal opposite creature by 7.",
+             effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
     Creature("AstralEscape", Attack(4), 40, "damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner. When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
   private val falseProphet = LostChurch.cards(3)
-  private val scarecrow = LostChurch.cards(4)
+  private val scarecrow = LostChurch.cards(5)
   private val liberator = LostChurch.cards(7)
   LostChurch.initCards(Houses.basicCostFunc)
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk, falconer).foreach{ c =>
@@ -54,7 +58,10 @@ class LostChurch {
       }
     }
   }
-
+  private def guardFire = { env : Env =>
+    env.otherPlayer.houses.incrMana(-1 , 0)
+    env.otherPlayer.addDescMod(IncrFireCostMod)
+  }
   private def weaken : Effect = { env : Env =>
     import env._
     player.slots().foreach{ case (num, slot) =>
@@ -215,13 +222,23 @@ class FalseProphetReaction extends DefaultReaction {
     updater.players(playerId).houses.incrMana(-2, 0, 1, 2, 3)
   }
 }
+class DarkMonkReaction extends DefaultReaction {
+  final override def onMyDeath(dead : Dead){
+    import dead._
+    updater.players(other(playerId)).removeDescMod(IncrFireCostMod)
+  }
+}
 class HopeAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
 case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = attack + half }
 case object IncrBasicCostMod extends DescMod {
   def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
     if (house.houseIndex == 4) cards
-    else {
-      cards.map(c => c.copy( cost = c.cost + 1))
-    }
+    else cards.map(c => c.copy( cost = c.cost + 1))
+  }
+}
+case object IncrFireCostMod extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex == 0) cards.map(c => c.copy( cost = c.cost + 1))
+    else cards
   }
 }
