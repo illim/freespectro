@@ -18,9 +18,9 @@ class LostChurch {
           effects = effects(Direct -> speedDrug)),
     Spell("WildJustice", "Deals (12 - attack) damage to each creature.",
           effects = effects(Direct -> wildJustice)),
-    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd temporarily 1 attack to prisoner", effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
-    Creature("FalseProphet", Attack(5), 19, "Give 2 mana to each basic house,\nIncrease cost of basic card by 1", reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
-    Creature("Scarecrow", Attack(7), 26, "Deals 7 damage on opposite creature, when dying heal opposite creature by 5.", effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
+    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner", effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
+    Creature("FalseProphet", Attack(5), 19, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nAdd 1 attack to prisoner\nIncrease cost of basic card by 1", reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
+    Creature("Scarecrow", Attack(7), 26, "Deals 7 damage on opposite creature, when dying heal opposite creature by 7.", effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
     new SkinnedBeast,
     Creature("AstralEscape", Attack(4), 40, "damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner. When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
@@ -34,7 +34,7 @@ class LostChurch {
     c.houseIndex = LostChurch.houseIndex
     c.houseId = LostChurch.houseId
   }
-  windOfOppression.cost = 2
+  windOfOppression.cost = 3
   darkMonk.cost = 3
   falconer.cost = 6
 
@@ -63,16 +63,6 @@ class LostChurch {
       }
     }
   }
-
-  case object IncrBasicCostMod extends DescMod {
-    def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
-      if (house == LostChurch) cards
-      else {
-        cards.map(c => c.copy( cost = c.cost + 1))
-      }
-    }
-  }
-
   private def giveHope(player : PlayerUpdate) = {
     player.slots.findCard(prisoner).foreach{ slot =>
       slot.attack.add(new HopeAttackBonus)
@@ -83,7 +73,6 @@ class LostChurch {
     player.addDescMod(IncrBasicCostMod)
     giveHope(player)
   }
-  class HopeAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
   class PreacherReaction extends DefaultReaction {
     final override def onMyDeath(dead : Dead){
       import dead._
@@ -131,7 +120,7 @@ class LostChurch {
       player.removeDescMod(scarecrowAbility)
       val slot = player.otherPlayer.slots(num)
       if (slot.value.isDefined){
-        slot.heal(5)
+        slot.heal(7)
       }
     }
   }
@@ -167,8 +156,7 @@ class LostChurch {
 
   private def falcon = { env: Env =>
     import env._
-
-    otherPlayer.slots.slots foreach { slot =>
+    otherPlayer.slots.foreach { slot =>
       if (slot.num != selected){
         slot.inflict(Damage(2 * math.abs(slot.num - selected), isAbility = true))
       }
@@ -215,19 +203,25 @@ class LostChurch {
 class SkinnedBeast extends Creature("SkinnedBeast", Attack(7), 28, "Damage done to him is transformed into (10 - damage)."){
   override def inflict(damage : Damage, life : Int) = super.inflict(damage.copy(amount = math.max(0, 10 - damage.amount)), life)
 }
-
 class PrisonerReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
     import dead._
     updater.players(playerId).houses.incrMana(-1, 0, 1, 2, 3)
   }
 }
-
 class FalseProphetReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
     import dead._
     updater.players(playerId).houses.incrMana(-2, 0, 1, 2, 3)
   }
 }
-
+class HopeAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
 case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = attack + half }
+case object IncrBasicCostMod extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex == 4) cards
+    else {
+      cards.map(c => c.copy( cost = c.cost + 1))
+    }
+  }
+}
