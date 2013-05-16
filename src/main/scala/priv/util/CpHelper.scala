@@ -18,12 +18,12 @@ object CpHelper {
     def isCompleted = cp.allBounds(vars)
 
     if (timeLimit != Int.MaxValue){
-      cp.run(2, timeLimit = timeLimit)
+      cp.run(1, timeLimit = timeLimit)
     } else {
       var failed = true
       var i = 0
       while(failed && i < MAXRETRY){
-        cp.run(2, timeLimit = 1 + i)
+        cp.run(1, timeLimit = 1 + i)
         failed = cp.isFailed || !isCompleted
         i += 1
       }
