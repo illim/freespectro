@@ -85,4 +85,5 @@ class AttackUpdate(slot : SlotUpdate) extends FieldUpdate(Some(slot), slot.value
 
   def add(source : AttackSource)   { if (value.base != some0) write(value.add(source))  }
   def remove(source : AttackSource){ write(value.remove(source))  }
+  def has[A : reflect.ClassTag] = value.sources.exists(_.isInstanceOf[A])
 }

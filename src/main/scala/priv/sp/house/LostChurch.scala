@@ -9,7 +9,7 @@ class LostChurch {
 
   val prisoner = Creature("Prisoner", Attack(2), 10, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
   val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 45, "Immune to spell & ability when liberator is alive.")
-  val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours.", effects = effects(Direct -> oppress))
+  val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours. Deals 7 damage to them", effects = effects(Direct -> oppress))
   val darkMonk = Creature("DarkMonk", Attack(2), 13, "Decrease opponent fire mana by 2\nand increase cost of them by 1 when alive.",
     effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
 
@@ -21,16 +21,16 @@ class LostChurch {
     Creature("FalseProphet", Attack(5), 19, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
       reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
     Creature("AstralEscape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
-    Spell("Madden", "Deals 11 damage to each opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden)),
     Creature("Scarecrow", Attack(8), 31, "Stuns&Deals 7 damage to opposite creature\nWhen dying heal opposite creature by 7.",
       effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
-    Creature("Falconer" , Attack(6), 28, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
+    Spell("Madden", "Deals 10 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden)),
+    Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
   val preacher = LostChurch.cards(1)
   val falseProphet = LostChurch.cards(2)
-  val scarecrow = LostChurch.cards(5)
+  val scarecrow = LostChurch.cards(4)
   LostChurch.initCards(Houses.basicCostFunc)
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk).foreach{ c =>
     c.houseIndex = LostChurch.houseIndex
@@ -51,7 +51,7 @@ class LostChurch {
         val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
         slot.add(prisoner)
         if (player.slots.findCard(preacher).isDefined){
-          slot.attack.add(new OneAttackBonus)
+          slot.attack.add(new PreacherAttackBonus)
         }
         slot.focus(blocking = false)
       }
@@ -65,13 +65,15 @@ class LostChurch {
     import env._
     player.slots().foreach{ case (num, slot) =>
       if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && !slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
-        player.slots(num).attack.add(LCAttack(- slot.card.attack.base.get / 3))
+        player.slots(num).attack.add(LCAttack(- math.ceil(slot.card.attack.base.get / 3f).toInt))
       }
     }
   }
   def giveHope(player : PlayerUpdate) = {
     player.slots.findCard(prisoner).foreach{ slot =>
-      slot.attack.add(new OneAttackBonus)
+      if (!slot.attack.has[PreacherAttackBonus]){
+        slot.attack.add(new PreacherAttackBonus)
+      }
     }
   }
   def preach = { env : Env =>
@@ -114,7 +116,7 @@ class LostChurch {
       slotInterval(slot.num - 1, slot.num + 1).foreach{ n =>
         val oppSlot = otherPlayer.slots(n)
         if (oppSlot.value.isDefined){
-          oppSlot.inflict(Damage(8, isAbility = true))
+          oppSlot.inflict(Damage(7, isAbility = true))
           oppSlot.toggle(stunFlag)
         }
       }
@@ -149,7 +151,7 @@ class LostChurch {
   def madden = { env : Env =>
     import env._
     otherPlayer.slots.foreach{ slot =>
-      val d = Damage(11, isSpell = true)
+      val d = Damage(10, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
         slot.attack.add(new OneAttackBonus)
@@ -223,6 +225,7 @@ class DarkMonkReaction extends DefaultReaction {
   }
 }
 class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
+class PreacherAttackBonus extends OneAttackBonus
 case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = attack + half }
 case object IncrBasicCostMod extends DescMod {
   def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
