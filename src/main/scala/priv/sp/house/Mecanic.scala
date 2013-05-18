@@ -33,9 +33,9 @@ class DwarfRiflemanReaction extends DefaultReaction {
   val damage = Damage(4, isAbility = true)
   final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
     import summoned._
-    if (selectedPlayerId != playerId){
-      updater.focus(selected, selectedPlayerId)
-      updater.players(playerId).slots(num).inflict(damage)
+    if (selectedPlayerId != player.id){
+      player.updater.focus(selected, selectedPlayerId)
+      player.slots(num).inflict(damage)
     }
   }
 }

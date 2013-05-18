@@ -37,7 +37,17 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
-  resources.gameExecutor.submit(runnable(waitPlayer(owner)))
+  resources.gameExecutor.submit(runnable(start()))
+
+  private def start(){
+    persist(updater.lift{ u =>
+      playerIds.foreach{ id =>
+        u.players(id).applyEffects(CardSpec.OnStart)
+      }
+    })
+    refresh()
+    waitPlayer(owner)
+  }
 
   private def waitPlayer(player: PlayerId) {
     if (player == server.playerId) {
@@ -153,7 +163,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       state.checkEnded.foreach(endGame _)
     }
     def summon(num : Int, slot : SlotState, playerId : PlayerId){
-      val sourceCoord = cardPanels(playerId).getPositionOf(slot.card).getOrElse(Coord2i(0, 0))
+      val sourceCoord = (cardPanels(playerId).getPositionOf(slot.card) orElse cardPanels(other(playerId)).getPositionOf(slot.card)).getOrElse(Coord2i(0, 0))
       val slotButton = slotPanels(playerId).slots(num)
       spawn(slotButton.summon(sourceCoord, slot), blocking = true)
       persistUpdater()

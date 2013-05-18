@@ -27,10 +27,13 @@ class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initStat
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
-  def result = state.copy(players = playerIds.map{ id =>
-    val fp = playerFieldUpdates(id)
-    if (fp.isDirty) fp.result else state.players(id)
-  })
+  def result = {
+    playerFieldUpdates.foreach(_.flush())
+    state.copy(players = playerIds.map{ id =>
+      val fp = playerFieldUpdates(id)
+      if (fp.isDirty) fp.result else state.players(id)
+    })
+  }
 }
 
 

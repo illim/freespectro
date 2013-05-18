@@ -25,6 +25,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def slots = { ensureInited(); slotUpdates }
   def filleds = { ensureInited(); slotUpdates.filter(_.value.isDefined) }
+  def getEmptySlots = { ensureInited(); slotUpdates.filter(_.value.isEmpty) }
   def apply(n : Int) = slots(n)
   def ensureInited() = if (!first.isInited){ slotUpdates.foreach(_.reinit()) }
 
@@ -35,9 +36,13 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   // todo move it to slot
   def summon(num : Int, creature : Creature) {
-    val slot = slots(num).add(creature)
-    updateListener.summon(num, slot, id)
-    val summonEvent = SummonEvent(num, creature, id, updater)
+    val slot = slots(num)
+    if (slot.value.isDefined){
+      creature.reaction.onSpawnOver(slot)
+    }
+    val slotState = slot.add(creature)
+    updateListener.summon(num, slotState, id)
+    val summonEvent = SummonEvent(num, creature, player)
     otherPlayer.slots.reactSummon(summonEvent)
     reactSummon(summonEvent)
   }
@@ -55,7 +60,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def protect(num : Int, damage : Damage) = {
     foldl(damage) { (acc, s) =>
-      s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), id, updater, None))
+      s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
     }
   }
 

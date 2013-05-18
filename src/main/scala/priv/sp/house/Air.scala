@@ -42,9 +42,8 @@ trait Air {
 class PhoenixReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
     import dead._
-    val playerUpdate = updater.players(playerId)
-    if (playerUpdate.houses.value(0).mana > 9) {
-      playerUpdate.slots(num).add(dead.card)
+    if (player.houses.value(0).mana > 9) {
+      player.slots(num).add(card)
     }
   }
 }

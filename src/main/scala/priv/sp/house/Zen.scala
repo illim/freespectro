@@ -29,8 +29,8 @@ class ZenMage {
   }
 
   private class ElemAttack extends RunAttack {
-    def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-      val otherPlayer = updater.players(other(id))
+    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+      val otherPlayer = player.otherPlayer
       otherPlayer.getSlots.get(num) match {
         case None => otherPlayer.inflict(d)
         case Some(oppositeSlot) =>
@@ -45,8 +45,7 @@ class ZenMage {
   }
 
   private class RedlightAttack extends RunAttack {
-    def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-      val player      = updater.players(id)
+    def apply(num : Int, d : Damage, player : PlayerUpdate) {
       val otherPlayer = player.otherPlayer
       val bonus       = player.slots(num).adjacentSlots.count(_.value.isDefined)
       val targets     = if (bonus == 0) List(num) else (num -1 to num +1)
@@ -67,8 +66,8 @@ class ZenMage {
   }
 
   private class SpiralAttack extends RunAttack {
-    def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-      val otherPlayer = updater.players(id).otherPlayer
+    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+      val otherPlayer = player.otherPlayer
 
       slotInterval(num - 2, num +2).foreach{ n =>
         val damage = d.copy(amount = d.amount - math.abs(num - n))
@@ -103,10 +102,11 @@ class ZenMage {
 
   private class EGuardReaction extends DefaultReaction {
     final override def onProtect(selected : Int, d : DamageEvent) = {
-      if (d.target.isEmpty){
-        d.source.foreach{ src =>
-          d.updater.focus(selected, d.playerId, blocking = false)
-          d.updater.players(src.playerId).slots(src.num).inflict(Damage(3, isAbility = true))
+      import d._
+      if (target.isEmpty){
+        source.foreach{ src =>
+          player.updater.focus(selected, player.id, blocking = false)
+          player.updater.players(src.playerId).slots(src.num).inflict(Damage(3, isAbility = true))
         }
       }
       d.damage

@@ -51,7 +51,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     if (value.isDefined) {
       val d = slots.protect(num, damage) // /!\ possible side effect
       get.inflict(d) match {
-        case None          => delayedDestroy()
+        case None          => delayedDestroy(d)
         case Some(newslot) => write(Some(newslot))
       }
     }
@@ -60,12 +60,13 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def destroy(){
     val card = get.card
     remove()
-    slots.onDead(Dead(num, card, id, updater))
+    slots.onDead(Dead(num, card, player, isEffect = true))
   }
 
   def remove(){
     val slotState = get
     write(None)
+    attackUpdate.invalidate() // FIXME hack?
     slotState.card.reaction.onRemove(this)
   }
 
@@ -73,10 +74,10 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slots.updateListener.focus(num, id, blocking)
   }
 
-  private def delayedDestroy(){
+  private def delayedDestroy(d : Damage){
     val card = get.card
     remove()
-    slots.log(Dead(num, card, id, updater))
+    slots.log(Dead(num, card, player, isEffect = d.isEffect))
   }
 }
 
@@ -85,5 +86,8 @@ class AttackUpdate(slot : SlotUpdate) extends FieldUpdate(Some(slot), slot.value
 
   def add(source : AttackSource)   { if (value.base != some0) write(value.add(source))  }
   def remove(source : AttackSource){ write(value.remove(source))  }
-  def has[A : reflect.ClassTag] = value.sources.exists(_.isInstanceOf[A])
+  def has[A : reflect.ClassTag] = value.sources.exists{
+    case _ : A => true
+    case _ => false
+  }
 }

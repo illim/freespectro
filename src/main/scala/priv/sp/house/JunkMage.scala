@@ -119,11 +119,10 @@ class JunkMage {
 class JFReaction extends DefaultReaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
-    val player = updater.players(playerId)
     val slot = player.slots(selected)
     if (!slot.get.data.asInstanceOf[Boolean]
         && (d.target.isEmpty || player.slots(d.target.get).get.card.cost < 4)){
-        updater.focus(selected, playerId, blocking = false)
+        player.updater.focus(selected, player.id, blocking = false)
         slot.setData(Boolean.box(true))
         d.damage.copy(amount = math.max(0, d.damage.amount - 2))
     } else d.damage
@@ -135,14 +134,14 @@ trait MirrorSummon extends DefaultReaction {
   final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
     import summoned._
     val step = selected - num
-    if (selectedPlayerId == playerId
+    if (selectedPlayerId == player.id
         && math.abs(step) == 1
         && card.cost < maxCost + 1){
       val pos = selected + step
       if (inSlotRange(pos)){
-        val slot = updater.players(playerId).slots(pos)
+        val slot = player.slots(pos)
         if (slot.value.isEmpty){
-          updater.focus(selected, playerId)
+          player.updater.focus(selected, player.id)
           slot.add(card)
         }
       }
@@ -155,10 +154,9 @@ class ChainControllerReaction extends MirrorSummon {
     import dead._
     val step = num - selected
     if (card.cost < 6 && math.abs(step) == 1){
-      val playerUpdate = updater.players(playerId)
       def getAt(n : Int) = {
         if (inSlotRange(n)){
-          playerUpdate.slots(n).value match {
+          player.slots(n).value match {
             case Some(slot) if slot.card.cost < 6 => Some(n)
             case _ => None
           }
@@ -166,8 +164,8 @@ class ChainControllerReaction extends MirrorSummon {
       }
 
       (getAt(num + step) orElse getAt(selected - step)).foreach{ dest =>
-        updater.focus(selected, playerId)
-        playerUpdate.slots.move(dest, num)
+        player.updater.focus(selected, player.id)
+        player.slots.move(dest, num)
       }
     }
   }
@@ -180,12 +178,11 @@ class FactoryReaction extends MirrorSummon {
 class RecyclingBotReaction extends DefaultReaction {
   final override def onDeath(selected : Int, dead : Dead){
     import dead._
-    val playerUpdate = updater.players(playerId)
-    val selectedSlot = playerUpdate.slots(selected)
+    val selectedSlot = player.slots(selected)
     selectedSlot.value.foreach{ botSlot =>
-      updater.focus(selected, playerId)
+      player.updater.focus(selected, player.id)
       if (botSlot.life == botSlot.card.life) {
-        playerUpdate.heal(2)
+        player.heal(2)
       } else {
         selectedSlot.heal(10)
       }

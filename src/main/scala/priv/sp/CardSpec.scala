@@ -91,7 +91,8 @@ object CardSpec {
   val Direct = 0
   val OnTurn = 1
   val OnEndTurn = 2
-  val phases = Array(Direct, OnTurn, OnEndTurn)
+  val OnStart = 3
+  val phases = Array(Direct, OnTurn, OnEndTurn, OnStart)
 
   type Effect = GameCardEffect.Env => Unit
   type PhaseEffect = (CardSpec.Phase, CardSpec.Effect)
@@ -123,10 +124,14 @@ case class SpellMod(modify : Int => Int) extends Mod
 case class SpellProtectOwner(modify : Int => Int) extends Mod
 
 sealed trait BoardEvent
-case class Dead(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+trait PlayerEvent extends BoardEvent {
+  def player : PlayerUpdate
+  def otherPlayer = player.otherPlayer
+}
+case class Dead(num : Int, card : Creature, player : PlayerUpdate , isEffect : Boolean) extends PlayerEvent
 // need source if no target
-case class DamageEvent(damage : Damage, target : Option[Int], playerId : PlayerId, updater : GameStateUpdater, source : Option[SlotSource]) extends BoardEvent
-case class SummonEvent(num : Int, card : Creature, playerId : PlayerId, updater : GameStateUpdater) extends BoardEvent
+case class DamageEvent(damage : Damage, target : Option[Int], player : PlayerUpdate, source : Option[SlotSource]) extends PlayerEvent
+case class SummonEvent(num : Int, card : Creature, player : PlayerUpdate) extends PlayerEvent
 
 trait Reaction {
   def onAdd(selected : Int, slot : SlotUpdate)
@@ -135,6 +140,7 @@ trait Reaction {
   def onMyDeath(dead : Dead)
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
+  def onSpawnOver(slot : SlotUpdate)
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
 }
 
@@ -145,29 +151,31 @@ class DefaultReaction extends Reaction {
   def onMyDeath(dead : Dead) {}
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
+  def onSpawnOver(slot : SlotUpdate) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }
 
 case class SlotSource(playerId : PlayerId, num : Int)
 
 trait RunAttack {
-  def apply(num : Int, d : Damage,updater : GameStateUpdater, playerId : PlayerId)
+  // TODO maybe refactor and put player here
+  def apply(num : Int, d : Damage, player : PlayerUpdate)
 }
 object SingleTargetAttack extends RunAttack {
-  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-    val otherPlayer = updater.players(other(id))
+  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     if (slot.value.isEmpty) {
-      otherPlayer.inflict(d, Some(SlotSource(id, num)))
+      otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
     } else {
       slot.inflict(d)
     }
   }
 }
 object MultiTargetAttack extends RunAttack {
-  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-    val otherPlayer = updater.players(other(id))
-    otherPlayer.inflict(d, Some(SlotSource(id, num)))
+  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    val otherPlayer = player.otherPlayer
+    otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
     otherPlayer.slots.inflictCreatures(d)
   }
 }

@@ -83,8 +83,7 @@ class LostChurch {
   }
   class PreacherReaction extends DefaultReaction {
     final override def onMyDeath(dead : Dead){
-      import dead._
-      updater.players(playerId).removeDescMod(IncrBasicCostMod)
+      dead.player.removeDescMod(IncrBasicCostMod)
     }
   }
   def prophetize = { env : Env =>
@@ -94,10 +93,8 @@ class LostChurch {
   }
   class FalseProphetReaction extends DefaultReaction {
     final override def onMyDeath(dead : Dead){
-      import dead._
-      val player = updater.players(playerId)
-      player.removeDescMod(IncrBasicCostMod)
-      player.houses.incrMana(-1, 0, 1, 2, 3)
+      dead.player.removeDescMod(IncrBasicCostMod)
+      dead.player.houses.incrMana(-1, 0, 1, 2, 3)
     }
   }
 
@@ -124,10 +121,8 @@ class LostChurch {
   }
   class ScarecrowReaction extends DefaultReaction {
     final override def onMyDeath(dead : Dead){
-      import dead._
-      val player = updater.players(playerId)
-      player.removeDescMod(scarecrowAbility)
-      val slot = player.otherPlayer.slots(num)
+      dead.player.removeDescMod(scarecrowAbility)
+      val slot = dead.player.otherPlayer.slots(dead.num)
       if (slot.value.isDefined){
         slot.heal(7)
       }
@@ -161,6 +156,7 @@ class LostChurch {
   }
   def falcon = { env: Env =>
     import env._
+    focus()
     otherPlayer.slots.foreach { slot =>
       if (slot.num != selected){
         slot.inflict(Damage(2 * math.abs(slot.num - selected), isAbility = true))
@@ -172,8 +168,7 @@ class LostChurch {
     final override def onProtect(selected : Int, d : DamageEvent) = {
       import d._
       var res = d.damage
-      if (d.target.isDefined){
-        val player = updater.players(playerId)
+      if (target.isDefined){
         val slot = player.slots(d.target.get)
         if (slot.get.card == prisoner){
           player.slots(selected).inflict(d.damage)
@@ -186,18 +181,14 @@ class LostChurch {
 
   class LiberatorReaction extends DefaultReaction {
     final override def onMyDeath(dead : Dead){
-      import dead._
-      val player = updater.players(playerId)
-      player.slots.findCard(enragedPrisoner).foreach{ slot =>
+      dead.player.slots.findCard(enragedPrisoner).foreach{ slot =>
         slot.inflict(Damage(15))
       }
     }
 
     final override def onProtect(selected : Int, d : DamageEvent) = {
-      import d._
-      val player = updater.players(playerId)
       d.target match { // hack
-        case Some(n) if selected != n && player.slots(n).get.card == enragedPrisoner && d.damage.isEffect =>
+        case Some(n) if selected != n && d.player.slots(n).get.card == enragedPrisoner && d.damage.isEffect =>
           d.damage.copy(amount = 0)
         case _ => d.damage
       }
@@ -208,20 +199,17 @@ class LostChurch {
 
 class PrisonerReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
-    import dead._
-    updater.players(playerId).houses.incrMana(-1, 0, 1, 2, 3)
+    dead.player.houses.incrMana(-1, 0, 1, 2, 3)
   }
 }
 class FalseProphetReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
-    import dead._
-    updater.players(playerId).houses.incrMana(-2, 0, 1, 2, 3)
+    dead.player.houses.incrMana(-2, 0, 1, 2, 3)
   }
 }
 class DarkMonkReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
-    import dead._
-    updater.players(other(playerId)).removeDescMod(IncrFireCostMod)
+    dead.otherPlayer.removeDescMod(IncrFireCostMod)
   }
 }
 class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }

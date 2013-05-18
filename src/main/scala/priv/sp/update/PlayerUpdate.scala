@@ -17,18 +17,18 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def getSlots    = if (slotsUpdate.isDirty) slotsUpdate() else pstate.slots // horrible perf probably
   def slots       = slotsUpdate.reinit()
   def houses      = houseFieldUpdate.reinit()
-  def result = {
+  // hack? for example avoid case of card moving during mass damage
+  // not great on dead effect happens maybe too late
+  def flush() = {
     if (slotsUpdate.isDirty){
-      // hack? for example avoid case of card moving during mass damage
-      //slots.update(s => dead.card.slotEffect.unapplySlots(dead.num, s))
       slotsUpdate.logs.foreach{
         case dead : Dead => slots.onDead(dead)
         case _ =>
       }
       slots.logs = Nil
     }
-    pstate.copy(slots = getSlots, houses = getHouses)
   }
+  def result = pstate.copy(slots = getSlots, houses = getHouses)
 
   def runSlots(){
     getSlots.foreach { case (num, _) =>
@@ -42,7 +42,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
 
   def runSlot(numSlot: Int, slot: SlotState) = {
     val d = Damage(slot.attack)
-    slot.card.runAttack(numSlot, d, updater, id)
+    slot.card.runAttack(numSlot, d, this)
     updateListener.runSlot(numSlot, id)
   }
 
@@ -58,7 +58,13 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
       updateListener.refresh(silent = true)
       if (!command.card.isSpell) {
         command.input.foreach{ slotInput =>
-          slots.summon(slotInput.num, command.card.asCreature)
+          val targetSlots = command.card.inputSpec match {
+            case Some(SelectTargetCreature) =>
+              otherPlayer.slots
+            case _ =>
+              slots
+          }
+          targetSlots.summon(slotInput.num, command.card.asCreature)
         }
       }
       command.card.effects(CardSpec.Direct) foreach { f =>
@@ -146,7 +152,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         case Some(SpellProtectOwner(mod)) => acc.copy(amount = mod(acc.amount))
         case _ => acc
       }
-      slot.card.reaction.onProtect(num, DamageEvent(a, None, id, updater, source))
+      slot.card.reaction.onProtect(num, DamageEvent(a, None, this, source))
     }
   }
 

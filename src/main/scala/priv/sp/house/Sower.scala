@@ -71,12 +71,11 @@ class Sower {
   }
 
   private class MonsterPlantAttack extends RunAttack {
-    def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-      val player = updater.players(id)
+    def apply(num : Int, d : Damage, player : PlayerUpdate) {
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
-        otherPlayer.inflict(d, Some(SlotSource(id, num)))
+        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
       } else {
         slot.inflict(d)
         // FIXME maybe not good at all and should add source in damage?
@@ -96,9 +95,9 @@ class Sower {
 
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
       import summoned._
-      if (selectedPlayerId == playerId && selected != num && card.houseId == Sower.houseId){
-        updater.focus(selected, playerId)
-        val slots = updater.players(playerId).slots
+      if (selectedPlayerId == player.id && selected != num && card.houseId == Sower.houseId){
+        player.updater.focus(selected, player.id)
+        val slots = player.slots
         val dists = slotRange.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
         dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
           slots(pos).add(card)
@@ -112,14 +111,13 @@ class Sower {
 // code horror
 private class BloodSundewAttack extends RunAttack {
 
-  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-    val player = updater.players(id)
+  def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     val healAmount = slot.value match {
       case None =>
         val oldl = otherPlayer.value.life
-        otherPlayer.inflict(d, Some(SlotSource(id, num)))
+        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
         oldl - otherPlayer.value.life
       case Some(slotState) =>
         val oldl = slotState.life
@@ -133,12 +131,11 @@ private class BloodSundewAttack extends RunAttack {
 
 private class PredatorPlantAttack extends RunAttack {
 
-  def apply(num : Int, d : Damage, updater : GameStateUpdater, id : PlayerId) {
-    val player = updater.players(id)
+  def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
-      case None => otherPlayer.inflict(d, Some(SlotSource(id, num)))
+      case None => otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
       case Some(slotState) =>
         val x = slotState.card.life - slotState.life
         slot.inflict(d.copy(amount = d.amount + x))
