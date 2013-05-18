@@ -16,9 +16,9 @@ class LostChurch {
   val LostChurch : House = House("LostChurch", List(
     Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 4 damage.",
       effects = effects(Direct -> speedDrug)),
-    Creature("Preacher", Attack(5), 19, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
+    Creature("Preacher", Attack(4), 15, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
       effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
-    Creature("FalseProphet", Attack(5), 19, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
+    Creature("FalseProphet", Attack(4), 18, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
       reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
     Creature("AstralEscape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Scarecrow", Attack(8), 31, "Stuns&Deals 7 damage to opposite creature\nWhen dying heal opposite creature by 7.",

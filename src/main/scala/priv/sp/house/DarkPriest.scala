@@ -9,6 +9,8 @@ class DarkPriest {
 
   val restlessSoul = Creature("RestlessSoul", Attack(3), 11, "If dies, reborns at the end of opponent turn and\ngives 2 special mana to dark priest.", reaction = new RestlessReaction)
   val shadowPriest = Creature("ShadowOfPriest", Attack(3), 11, "Every turn heals 1 life to dark priest and all his creatures.", effects = effects(OnTurn -> shadowHeal))
+  val heretic = Creature("Heretic", Attack(6), 20, reaction = new HereticReaction)
+  val blackAngel = Creature("BlackAngel", Attack(8), 25, runAttack = new BlackAngelAttack)
 
   val DarkPriest : House = House("DarkPriest", List(
     Creature("Ghost", Attack(5), 16, "If killed with spell or creature ability, reborns and switches sides.\nWhen enters the game, heals to owner 1 life for each his creature on the board.", reaction = new GhostReaction, effects = effects(Direct -> ghostHeal)),
@@ -17,13 +19,34 @@ class DarkPriest {
     Creature("EnergyVampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
     Creature("BlackMonk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
     Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), reaction = new BetrayerReaction, effects = effects(OnTurn -> betray)),
-    Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack)),
+    Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
+    Creature("Missionary", Attack(3), 36, "when enters the game, weakest friendly creature and weakest enemy creature of the same element lose half of current health.", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
     effects = List(OnStart -> initRestless))
 
   val ghost = DarkPriest.cards(0).asCreature
   DarkPriest.initCards(Houses.basicCostFunc)
 
-  def betray =  { env : Env =>
+  def missionar = { env : Env =>
+    import env._
+    getWeakest(player, Some(selected)).foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
+    getWeakest(otherPlayer, None).foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
+  }
+  def getWeakest(p : PlayerUpdate, excluding : Option[Int]) = {
+    p.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
+      if (Some(s.num) == excluding){
+        acc
+      } else {
+        acc match {
+          case None => Some(s)
+          case Some(slot) =>
+            if (slot.get.attack > s.get.attack){
+              Some(s)
+            } else acc
+        }
+      }
+    }
+  }
+  def betray = { env : Env =>
     import env._
     val slot = env.player.slots(selected)
     val d = Damage(4, isAbility = true)
@@ -52,6 +75,7 @@ class DarkPriest {
   }
   def shadowHeal = { env : Env =>
     import env._
+    focus()
     otherPlayer.heal(1)
     otherPlayer.slots.healCreatures(1)
   }
@@ -98,6 +122,43 @@ class DarkPriest {
           val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
           slot.add(ghost)
           slot.focus(blocking = false)
+        }
+      }
+    }
+  }
+  class MissionaryReaction extends DefaultReaction {
+    final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+      import summoned._
+      if (selectedPlayerId == player.id && card.attack.base.isEmpty){
+        val slot = player.slots(selected)
+        slot.destroy()
+        slot.add(heretic)
+      }
+    }
+  }
+  class HereticReaction extends DefaultReaction {
+    final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+      import summoned._
+      if (selectedPlayerId == player.id && card.houseIndex == 4){
+        val slot = player.slots(selected)
+        slot.destroy()
+        slot.add(blackAngel)
+      }
+    }
+  }
+
+  class BlackAngelAttack extends RunAttack {
+
+    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+      val otherPlayer = player.otherPlayer
+      val slot = otherPlayer.slots(num)
+      if (slot.value.isEmpty) {
+        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+      } else {
+        slot.inflict(d)
+        // FIXME maybe not good at all and should add source in damage?
+        if (slot.value.isEmpty){
+          player.slots(num).heal(blackAngel.life)
         }
       }
     }
