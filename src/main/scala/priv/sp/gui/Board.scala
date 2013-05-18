@@ -39,7 +39,7 @@ import priv.util.TVar
 
 class CommandRecorder(game: Game) {
   private var value = Option.empty[Command]
-  private var cont  = Option.empty[TVar[Option[Command]]]
+  var cont  = Option.empty[TVar[Option[Command]]]
 
   def setCommand(command: Command) {
     game.slotPanels.foreach(_.disable())

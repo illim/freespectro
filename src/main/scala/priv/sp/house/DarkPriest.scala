@@ -16,7 +16,7 @@ class DarkPriest {
     Spell("BlackMass", "Sacrifices target creature and deals 4X damage to all enemy creatures\n(X - number of different elements to which enemy creatures belong).", inputSpec = Some(SelectOwnerCreature), effects = effects(Direct -> blackMass)),
     Creature("EnergyVampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
     Creature("BlackMonk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
-    Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies. Every turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), reaction = new BetrayerReaction, effects = effects(OnTurn -> betray)),
+    Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), reaction = new BetrayerReaction, effects = effects(OnTurn -> betray)),
     Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack)),
     effects = List(OnStart -> initRestless))
 
@@ -106,12 +106,15 @@ class DarkPriest {
 
 class BlackMonkReaction extends DefaultReaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
-    d.target match { // hack
+    import d._
+    target match { // hack
       case Some(n) if selected == n =>
-        d.player.heal(d.damage.amount)
+        val life = player.getSlots(selected).life
+        val healAmount = if (damage.amount > life) life else damage.amount
+        player.heal(healAmount)
       case _ =>
     }
-    d.damage
+    damage
   }
 }
 

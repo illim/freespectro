@@ -34,7 +34,11 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   private val updater = new GameStateUpdater(state)
 
   updater.updateListener = new GameUpdateListener
-  skipButton.on{ case MouseClicked(_) => commandRecorder.skip() }
+  skipButton.on{ case MouseClicked(_) =>
+    if (state.checkEnded.isEmpty && commandRecorder.cont.isDefined) {
+      commandRecorder.skip()
+    }
+  }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
   resources.gameExecutor.submit(runnable(start()))
