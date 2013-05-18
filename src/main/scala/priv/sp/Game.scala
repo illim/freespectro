@@ -50,7 +50,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       }
     })
     refresh()
-    waitPlayer(owner)
+    waitPlayer(server.startingPlayer)
   }
 
   private def waitPlayer(player: PlayerId) {

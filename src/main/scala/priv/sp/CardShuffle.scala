@@ -5,13 +5,13 @@ import util.Random
 
 class CardShuffle(houses : Houses) {
 
-  def get(specialHouses : List[House]) = {
-    val p1 = createPlayer(owner, specialHouses(owner), None)
-    val p2 = createPlayer(opponent, specialHouses(opponent), Some(p1._1))
+  def get(specialHouses : List[House], startingPlayer : PlayerId = owner) = {
+    val p1 = createPlayer(owner, specialHouses(owner), startingPlayer)
+    val p2 = createPlayer(opponent, specialHouses(opponent), startingPlayer, Some(p1._1))
     List(p1, p2)
   }
 
-  def createPlayer(p : PlayerId, specialHouse : House, exclusion : Option[PlayerDesc] = None) = {
+  def createPlayer(p : PlayerId, specialHouse : House, startingPlayer : PlayerId, exclusion : Option[PlayerDesc] = None) = {
     val getCardRange = exclusion match {
       case Some(p) => new CardModel.ExcludePlayerCards(p)
       case None => CardModel.BasicCardRange
@@ -19,7 +19,7 @@ class CardShuffle(houses : Houses) {
     val cardModel = CardModel.build(houses, specialHouse, getCardRange)
     new CardShuffler(cardModel).solve()
     val manaModel = new ManaModel(cardModel)
-    new ManaShuffler(manaModel, p == owner).solve()
+    new ManaShuffler(manaModel, p == startingPlayer).solve()
     (cardModel.toPlayerHouseDesc, manaModel.toHouseStates)
   }
 }
