@@ -73,8 +73,10 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def toggleRun() = foreach(_.toggleRun())
   def healCreatures(amount : Int) = foreach(_.heal(amount))
-  def reactSummon(summonEvent : SummonEvent) = foreach { s =>
-    s.get.card.reaction.onSummon(s.num, id, summonEvent)
+  def reactSummon(e : SummonEvent) = foreach { s =>
+    if (player.id != e.player.id || s.num != e.num){
+      s.get.card.reaction.onSummon(s.num, id, e)
+    }
   }
   def reactAdd(slot : SlotUpdate) = foreach { s =>
     s.get.card.reaction.onAdd(s.num, slot)

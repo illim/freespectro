@@ -243,7 +243,7 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
 
   def isInited = tid == parent.get.tid
   def isDirty = parent.exists(_.tid == tid && dirty > 0)
-  def invalidate(){ tid == -1  }
+  def invalidate(){ tid = parent.get.tid - 1 }
   def setDirty(){
     parent.foreach{ p =>
       p.setDirty()

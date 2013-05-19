@@ -65,8 +65,8 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 
   def remove(){
     val slotState = get
-    write(None)
     attackUpdate.invalidate() // FIXME hack?
+    write(None)
     slotState.card.reaction.onRemove(this)
   }
 

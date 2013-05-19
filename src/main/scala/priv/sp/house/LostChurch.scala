@@ -23,7 +23,7 @@ class LostChurch {
     Creature("AstralEscape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Scarecrow", Attack(8), 31, "Stuns&Deals 7 damage to opposite creature\nWhen dying heal opposite creature by 7.",
       effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
-    Spell("Madden", "Deals 10 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden)),
+    Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden)),
     Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
@@ -146,7 +146,7 @@ class LostChurch {
   def madden = { env : Env =>
     import env._
     otherPlayer.slots.foreach{ slot =>
-      val d = Damage(10, isSpell = true)
+      val d = Damage(8, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
         slot.attack.add(new OneAttackBonus)
