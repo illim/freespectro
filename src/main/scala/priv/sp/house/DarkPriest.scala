@@ -9,7 +9,7 @@ class DarkPriest {
 
   val restlessSoul = Creature("RestlessSoul", Attack(3), 11, "If dies, reborns at the end of opponent turn and\ngives 2 special mana to dark priest.", reaction = new RestlessReaction)
   val shadowPriest = Creature("ShadowOfPriest", Attack(3), 11, "Every turn heals 1 life to dark priest and all his creatures.", effects = effects(OnTurn -> shadowHeal))
-  val heretic = Creature("Heretic", Attack(6), 20, "When owner summons special creature, turns itself into black angel")
+  val heretic = Creature("Heretic", Attack(6), 20, "")
   val blackAngel = Creature("BlackAngel", Attack(8), 25, "When kills creature, completely heals itself", runAttack = new BlackAngelAttack)
 
   val DarkPriest : House = House("DarkPriest", List(
@@ -20,7 +20,7 @@ class DarkPriest {
     Creature("BlackMonk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
     Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), reaction = new BetrayerReaction, effects = effects(OnTurn -> betray)),
     Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
-    Creature("Missionary", Attack(3), 36, "When enters the game, weakest friendly creature and\nweakest enemy creature of the same element lose half of current health.", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
+    Creature("Missionary", Attack(3), 36, "When enters the game, weakest friendly creature and\nweakest enemy creature of the same element lose half of current health.\nWhen owner summons elemental creature, turns it into heretic\nWhen owner summons special creature, turns itself into black angel", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
     effects = List(OnStart -> initRestless))
 
   val ghost = DarkPriest.cards(0).asCreature
@@ -28,12 +28,8 @@ class DarkPriest {
 
   def missionar = { env : Env =>
     import env._
-    getWeakest(player, Some(selected)).foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
-    getWeakest(otherPlayer, None).foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
-  }
-  def getWeakest(p : PlayerUpdate, excluding : Option[Int]) = {
-    p.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
-      if (Some(s.num) == excluding){
+    val weakest = player.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
+      if (s.num == selected){
         acc
       } else {
         acc match {
@@ -44,6 +40,24 @@ class DarkPriest {
             } else acc
         }
       }
+    }
+    weakest.foreach{ w =>
+      val houseIndex = w.get.card.houseIndex
+      w.inflict(Damage(w.get.life / 2, isAbility = true))
+      val weakestOther = otherPlayer.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
+        if (s.get.card.houseIndex != houseIndex){
+          acc
+        } else {
+          acc match {
+            case None => Some(s)
+            case Some(slot) =>
+              if (slot.get.attack > s.get.attack){
+                Some(s)
+              } else acc
+          }
+        }
+      }
+      weakestOther.foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
     }
   }
   def betray = { env : Env =>
