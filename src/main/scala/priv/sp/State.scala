@@ -73,5 +73,10 @@ case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.emp
   }
 
   def add(mods : DescMod*) = copy(descMods = descMods ++ mods)
-  def remove(mod : DescMod) = copy(descMods = descMods.filterNot(_ == mod))
+  def remove(mod : DescMod) = {
+    val idx = descMods.indexOf(mod)
+    if (idx != -1){
+      copy(descMods = descMods.patch(idx, Vector.empty, 1))
+    } else this
+  }
 }
