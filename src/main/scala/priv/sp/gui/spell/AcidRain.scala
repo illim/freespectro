@@ -58,7 +58,7 @@ class RainEmitter extends Emitter with Entity {
   def build(time : Long) = new RainDrop(getRandomPoint, dir)
 }
 
-class AcidRain(sp : SpWorld) extends TimedEntity with Attachable {
+class AcidRain extends TimedEntity with Attachable {
   val duration = 1500L
   val emitter = new RainEmitter
   spawn(emitter)

@@ -17,12 +17,14 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
 
   //def testButton = (if (playerId == game.myPlayerId) List(TestButton(game.sp)) else Nil)
 
-  val slotOffset = lifeLabel.size
+  val slotOffset = Coord2i(lifeLabel.size.x, 0)
   val slotSize = slots(0).size
   val slotCenter = slotSize * 0.5
   slots.foreach(listenEvent _)
 
   val panel = Row(elts)
+
+  def otherPanel = game.slotPanels(other(playerId))
 
   class SpellAnim(lock : AnyRef, entity : TimedEntity, isRelative : Boolean = true, blocking : Boolean = true) extends Task[Unit] {
     private val attach = if (isRelative) panel else game.world
@@ -50,7 +52,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
       (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + slotCenter
     }
     if (card == Fire.cards(5)) {         panel.addTask( new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize)))
-    } else if (card == Water.cards(7)) { panel.addTask( new SpellAnim(lock, new AcidRain(game.sp)))
+    } else if (card == Water.cards(7)) { panel.addTask( new SpellAnim(lock, new AcidRain))
     } else if (card == Earth.cards(8)) { panel.addTask( new SpellAnim(lock, new StoneRain(game.sp)))
     } else if (card == Air.cards(2)) {
       panel.addTask(
@@ -68,6 +70,12 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
           isRelative = false,
           blocking = false,
           entity = new Pollinate(absTargetSlotCoord.get, game.sp)))
+    } else if (card == darkPriest.DarkPriest.cards(2)) {
+      panel.addTask(
+        new SpellAnim(lock,
+          isRelative = false,
+          blocking = true,
+          entity = new BlackMass(absTargetSlotCoord.get, otherPanel)))
     } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,
@@ -75,7 +83,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
     } else if (card == Air.cards(7)) {
       val points = (List(slots(5).coord + slotCenter) /: slots.reverse){ (acc, slot) =>
         if (!slot.isEmpty){
-          val deviation = if (acc.size > 1) ((acc.size % 2) -0.5) * 20 else 0
+          val deviation = if (acc.size > 0) ((acc.size % 2) -0.5) * 20 else 0
           ((slots(slot.num).coord + slotCenter).yProj + deviation) :: acc
         } else acc
       }

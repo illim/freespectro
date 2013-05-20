@@ -52,7 +52,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     })
   }
   world.spawn(board.panel)
-  world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton, restartButton))))
+  world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, restartButton, settingsButton, skipButton))))
   resources.gameExecutor.submit(runnable(start()))
 
   private def start(){
@@ -88,7 +88,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   private def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
-    world.spawn(Translate(Coord2i(100, 150), new EndMessage(msg)))
+    world.spawn(new EndMessage(msg))
   }
 
   private def persist[A](stateFunc: State[GameState, A]) : A = {
@@ -217,4 +217,4 @@ class SpellNotif(sp : SpWorld, card: Card) extends TimedEntity {
   }
 }
 
-class EndMessage(msg : String) extends GuiButton(msg, Fonts.big)
+class EndMessage(msg : String) extends Translate(Coord2i(100, 150), new GuiButton(msg, Fonts.big))
