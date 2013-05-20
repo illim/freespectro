@@ -46,6 +46,11 @@ trait Bot {
     }
   }
 
+  def reset(){
+    knownCards = Set.empty
+    k = generateK().get
+  }
+
   private def initGameUpdate(state : GameState){
     if (updater == null){
       updater = new GameStateUpdater(state)

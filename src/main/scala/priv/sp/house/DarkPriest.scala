@@ -116,7 +116,6 @@ class DarkPriest {
   def spawnRestless(player : PlayerUpdate){
     val emptySlots = player.slots.getEmptySlots
     if (emptySlots.nonEmpty) {
-      // todo deterministic random generator + exchange seed for multi
       val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
       slot.add(restlessSoul)
       slot.focus(blocking = false)

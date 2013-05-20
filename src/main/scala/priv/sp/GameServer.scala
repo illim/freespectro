@@ -7,6 +7,7 @@ import priv.util.Utils._
 import priv.util.TVar
 import collection.JavaConversions._
 import java.util.concurrent.atomic.AtomicInteger
+import scala.util.Random
 
 /**
  * Player plays against game server hiding that it can be local(ai) or remote.
@@ -18,9 +19,13 @@ trait GameServer {
   def playerId : PlayerId
   def startingPlayer : PlayerId
   def name : String
+  def seed : Long
+  resetSeed()
 
   def waitNextCommand(c : TVar[Option[Command]], state : GameState)
   def submitCommand(commandOption : Option[Command])
+  def resetSeed(){  Random.setSeed(seed) }
+  def reset(){ }
 }
 
 class Local(resources : GameResources) extends GameServer {
@@ -33,6 +38,7 @@ class Local(resources : GameResources) extends GameServer {
   val playerId = opponent
   val name = "AI"
   val bot = new BoundedBot(playerId, desc, resources.sp)
+  val seed = Random.nextLong
   def waitNextCommand(c : TVar[Option[Command]], state : GameState) = {
     resources.aiExecutor.submit(
       runnable(c.set(bot.executeAI(state))))
@@ -48,12 +54,17 @@ class Local(resources : GameResources) extends GameServer {
       }
     }
   }
+
+  override def reset(){
+    super.reset()
+    resources.aiExecutor.submit(runnable(bot.reset()))
+  }
 }
 
 // remote game server common for master or slave
 // retarded code, assuming that the continuation is set before receiving the message
 // todo use something like a syncvar
-class CommonGameServer(val playerId : PlayerId, val name : String, val initState : GameState, val desc : GameDesc, val startingPlayer : PlayerId, peer : PeerInterface[CommonInterface]) extends GameServer {
+class CommonGameServer(val playerId : PlayerId, val name : String, val initState : GameState, val desc : GameDesc, val startingPlayer : PlayerId, val seed : Long, peer : PeerInterface[CommonInterface]) extends GameServer {
   peer.updateImpl(this)
 
   val currentTurnId = new AtomicInteger
@@ -87,6 +98,7 @@ class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
   def startingPlayer = owner
   val desc = GameDesc(Vector(p1Desc, p2Desc))
+  val seed = Random.nextLong
 
   val serverSocketAddr = new InetSocketAddress(4444)
   val serverSocket = resources.serverSocket(new ServerSocket())
@@ -98,8 +110,8 @@ class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   thread("waitclient") {
     val cs = resources.clientSocket(serverSocket.accept())
     val peer = new PeerInterface[SlaveInterface](cs, this)
-    peer.proxy.init(initState, desc)
-    k(new CommonGameServer(opponent, cs.getInetAddress().toString, initState, desc, startingPlayer, peer))
+    peer.proxy.init(initState, desc, seed)
+    k(new CommonGameServer(opponent, cs.getInetAddress().toString, initState, desc, startingPlayer, seed, peer))
   }
 }
 
@@ -107,8 +119,8 @@ class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameRe
   val socket = new Socket(address, 4444)
   val peer = new PeerInterface[MasterInterface](socket, this)
 
-  def init(state : GameState, desc : GameDesc) = {
-    k(new CommonGameServer(owner, socket.getInetAddress().toString, state, desc, owner, peer))
+  def init(state : GameState, desc : GameDesc, seed : Long) = {
+    k(new CommonGameServer(owner, socket.getInetAddress().toString, state, desc, owner, seed, peer))
   }
 }
 
@@ -117,7 +129,7 @@ trait CommonInterface {
 }
 
 trait SlaveInterface extends CommonInterface {
-  def init(state : GameState, desc : GameDesc)
+  def init(state : GameState, desc : GameDesc, seed : Long)
 }
 
 trait MasterInterface extends CommonInterface

@@ -47,7 +47,6 @@ class LostChurch {
     if (!player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
       val emptySlots = player.slots.slots.filter(_.value.isEmpty)
       if (emptySlots.nonEmpty) {
-        // todo deterministic random generator + exchange seed for multi
         val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
         slot.add(prisoner)
         if (player.slots.findCard(preacher).isDefined){

@@ -17,7 +17,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val myPlayerId    = other(server.playerId)
   val otherPlayerId = server.playerId
   val names         = playerIds.map{id => if (id == myPlayerId) "me" else server.name }
-  val gameLock      = new priv.util.RichLock
+  var gameLock      = new priv.util.RichLock
 
   // gui
   val commandRecorder  = new CommandRecorder(this)
@@ -30,6 +30,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val surrenderButton = new GuiButton("Surrender")
   val skipButton      = new GuiButton("Skip turn")
   val settingsButton  = new GuiButton("Settings")
+  val restartButton   = new GuiButton("Restart")
 
   private val updater = new GameStateUpdater(state)
 
@@ -39,11 +40,23 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       commandRecorder.skip()
     }
   }
+  restartButton.on{ case MouseClicked(_) =>
+    world.forEntity[EndMessage](world.unspawn(_))
+    cardPanels.foreach(_.setEnabled(false))
+    gameLock.release()
+    gameLock = new priv.util.RichLock
+    server.reset()
+    resources.gameExecutor.submit(runnable{
+      persistState(server.initState)
+      start()
+    })
+  }
   world.spawn(board.panel)
-  world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton))))
+  world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, skipButton, settingsButton, restartButton))))
   resources.gameExecutor.submit(runnable(start()))
 
   private def start(){
+    server.resetSeed()
     persist(updater.lift{ u =>
       playerIds.foreach{ id =>
         u.players(id).applyEffects(CardSpec.OnStart)
@@ -75,7 +88,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
   private def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
-    world.spawn(Translate(Coord2i(100, 150), new GuiButton(msg, Fonts.big)))
+    world.spawn(Translate(Coord2i(100, 150), new EndMessage(msg)))
   }
 
   private def persist[A](stateFunc: State[GameState, A]) : A = {
@@ -203,3 +216,5 @@ class SpellNotif(sp : SpWorld, card: Card) extends TimedEntity {
     tex.drawAt(Coord2i(200, 100), cardTex.id, cardTex.size)
   }
 }
+
+class EndMessage(msg : String) extends GuiButton(msg, Fonts.big)
