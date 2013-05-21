@@ -12,6 +12,7 @@ class CardShuffle(houses : Houses) {
   }
 
   def createPlayer(p : PlayerId, specialHouse : House, startingPlayer : PlayerId, exclusion : Option[PlayerDesc] = None) = {
+    Random.setSeed(System.currentTimeMillis)
     val getCardRange = exclusion match {
       case Some(p) => new CardModel.ExcludePlayerCards(p)
       case None => CardModel.BasicCardRange

@@ -38,7 +38,7 @@ class Local(resources : GameResources) extends GameServer {
   val playerId = opponent
   val name = "AI"
   val bot = new BoundedBot(playerId, desc, resources.sp)
-  val seed = Random.nextLong
+  val seed = System.currentTimeMillis
   def waitNextCommand(c : TVar[Option[Command]], state : GameState) = {
     resources.aiExecutor.submit(
       runnable(c.set(bot.executeAI(state))))
@@ -98,7 +98,7 @@ class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
   def startingPlayer = owner
   val desc = GameDesc(Vector(p1Desc, p2Desc))
-  val seed = Random.nextLong
+  val seed = System.currentTimeMillis
 
   val serverSocketAddr = new InetSocketAddress(4444)
   val serverSocket = resources.serverSocket(new ServerSocket())
