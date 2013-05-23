@@ -190,5 +190,3 @@ class RecyclingBotReaction extends DefaultReaction {
   }
 }
 
-case class AttackAdd(bonus : Int) extends AttackFunc { def apply(attack : Int) = attack + bonus }
-

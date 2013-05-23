@@ -173,15 +173,3 @@ class ZenFighter extends Creature ("ZenFighter", Attack(7), 31, "When summoned g
 }
 
 object DreamCommandFlag extends CommandFlag
-
-
-class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
-  def apply(env : Env){
-    env.player.slots.foreach(_.attack.remove(attack))
-    env.player.removeEffect(_.isInstanceOf[RemoveAttack])
-  }
-}
-
-case class AttackFactor(fact : Float) extends AttackFunc {
-  def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
-}

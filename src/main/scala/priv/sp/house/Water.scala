@@ -21,7 +21,7 @@ trait Water {
     Spell("AcidicShower", "Damage all creature by 15 and decrease mana of opponent by 1", effects = effects(Direct -> massDamage(Damage(15, isSpell = true)), Direct -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
     })),
-    Creature("MerfolkOverlord", Attack(7), 34, "Adjacent cards attack the turn they're summoned", reaction = new OverlordSlotReaction),
+    Creature("SeaLord", Attack(7), 34, "Adjacent cards attack the turn they're summoned", reaction = new OverlordSlotReaction),
     Creature("WaterElemental", AttackSources().add(ManaAttack(1)), 38, "Heals owner by 10 when summoned", effects = effects(Direct -> focus(heal(10)), OnTurn -> addMana(1, 1))),
     Creature("MindMaster", Attack(6), 22, "Increase mana growth by 1", effects = effects(OnTurn -> addMana(1, 0, 1, 2, 3, 4))),
     Creature("AstralGuard", Attack(1), 17, "Decrease mana growth by 1", effects = effects(OnEndTurn -> { env : Env =>

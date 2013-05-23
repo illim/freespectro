@@ -8,13 +8,13 @@ class LostChurch {
   import GameCardEffect._
 
   val prisoner = Creature("Prisoner", Attack(2), 10, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
-  val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 45, "Immune to spell & ability when liberator is alive.")
+  val enragedPrisoner = Creature("EnragedPrisoner", Attack(8), 35, "Immune to spell & ability when liberator is alive.", reaction = new PrisonerReaction)
   val windOfOppression = Spell("WindOfOppression", "Stun scarecrow's opposite creature and its neighbours. Deals 7 damage to them", effects = effects(Direct -> oppress))
   val darkMonk = Creature("DarkMonk", Attack(2), 13, "Decrease opponent fire mana by 2\nand increase cost of them by 1 when alive.",
     effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
 
   val LostChurch : House = House("LostChurch", List(
-    Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 4 damage.",
+    Spell("SpeedDrug", "Add +1 attack to owner creatures, deals to them 3 damage.\nEffect disappear when prisoner die.",
       effects = effects(Direct -> speedDrug)),
     Creature("Preacher", Attack(4), 13, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
       effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
@@ -23,14 +23,15 @@ class LostChurch {
     Creature("AstralEscape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
     Creature("Scarecrow", Attack(8), 31, "Stuns&Deals 7 damage to opposite creature\nWhen dying heal opposite creature by 7.",
       effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
-    Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden)),
+    Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner))),
     Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
-    Creature("Liberator", Attack(4), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))),
+    Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
 
   val preacher = LostChurch.cards(1)
   val falseProphet = LostChurch.cards(2)
   val scarecrow = LostChurch.cards(4)
+  val liberator = LostChurch.cards(5)
   LostChurch.initCards(Houses.basicCostFunc)
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk).foreach{ c =>
     c.houseIndex = LostChurch.houseIndex
@@ -138,20 +139,21 @@ class LostChurch {
 
   def speedDrug = { env : Env =>
     import env._
-    val bonus = AttackAdd(1)
-    player.slots.inflictCreatures(Damage(4, isSpell = true))
+    val bonus = LCAttackBonus(env.player.id)
     player.slots.foreach(_.attack.add(bonus))
+    player.slots.inflictCreatures(Damage(3, isSpell = true))
   }
   def madden = { env : Env =>
     import env._
+    val bonus = AttackAdd(1)
     otherPlayer.slots.foreach{ slot =>
       val d = Damage(8, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
-        slot.attack.add(new OneAttackBonus)
+        slot.attack.add(bonus)
       }
     }
-    player.slots.foreach{_.attack.add(new OneAttackBonus) }
+    player.slots.foreach{_.attack.add(bonus) }
   }
   def falcon = { env: Env =>
     import env._
@@ -193,14 +195,19 @@ class LostChurch {
       }
     }
   }
-}
 
-
-class PrisonerReaction extends DefaultReaction {
-  final override def onMyDeath(dead : Dead){
-    dead.player.houses.incrMana(-1, 0, 1, 2, 3)
+  class PrisonerReaction extends DefaultReaction {
+    final override def onMyDeath(dead : Dead){
+      if (dead.player.slots.findCard(liberator).isEmpty){
+        dead.player.houses.incrMana(-1, 0, 1, 2, 3)
+      }
+      val bonus = LCAttackBonus(dead.player.id)
+      dead.player.slots.foreach{_.attack.remove(bonus) }
+    }
   }
 }
+
+
 class FalseProphetReaction extends DefaultReaction {
   final override def onMyDeath(dead : Dead){
     dead.player.houses.incrMana(-2, 0, 1, 2, 3)
@@ -226,3 +233,5 @@ case object IncrFireCostMod extends DescMod {
     else cards
   }
 }
+
+case class LCAttackBonus(player : PlayerId) extends AttackFunc { def apply(attack : Int) = attack + 1 }
