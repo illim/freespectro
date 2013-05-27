@@ -2,6 +2,7 @@ package priv.sp.gui
 
 import priv._
 import org.lwjgl.opengl.GL11._
+import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.World
 import priv.GuiElem
@@ -15,15 +16,18 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   enabled = false
   private var card = getCard(slot)
   private var moveAnim = Option.empty[MoveAnimTask]
+  private var alpha = 1f
   var focusScale = Option.empty[Float]
   val slotSize = Coord2i(120, 142)
   val stunPos = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
   private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
+  private val fade = game.sp.baseShaders.fade
 
   def refresh() {
     val old = card
     card = getCard(slot)
+    alpha = 1
     for(before <- old; after <- card ; val d = after._1.life - before._1.life if d != 0){
       game.world.addTask(DamageAnimTask(d))
     }
@@ -36,7 +40,6 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(1, 1, 1, 1)
-
     tex.draw(slotTex.id, slotSize)
 
     card.foreach {
@@ -51,6 +54,10 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
           glTranslatef(pos.x, pos.y, 0)
         }
+        if (alpha != 1){
+          fade.begin()
+          glUniform1f(fade.fact, alpha)
+        }
         tex.draw(cardTex)
         if (slotState.has(CardSpec.stunFlag)) {
           tex.drawAt(stunPos, stunTex.id, stunTex.size)
@@ -64,6 +71,9 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           Fonts.font.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
         }
         lifeBar(slotState)
+        if (alpha != 1){
+          fade.end()
+        }
         glPopMatrix()
     }
 
@@ -119,6 +129,14 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
     def render(){
       val fact = getDelta() / moveDuration.toFloat
       location.c = dest - (dir * math.max(0, (1 - fact)))
+    }
+  }
+
+  class Fade extends TimedEntity {
+    val duration = 100L
+
+    def render(){
+      alpha = math.max(1 - getDelta() / duration.toFloat, 0)
     }
   }
 

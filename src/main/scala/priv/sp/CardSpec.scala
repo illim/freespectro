@@ -176,7 +176,7 @@ object MultiTargetAttack extends RunAttack {
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
-    otherPlayer.slots.inflictCreatures(d)
+    otherPlayer.slots.inflictCreatures(d, player.id)
   }
 }
 
@@ -186,12 +186,13 @@ object Attack {
 
 case class AttackSources(base : Option[Int] = None, sources : Vector[AttackSource] = Vector.empty) {
   def add(source : AttackSource)    = copy(sources = sources :+ source)
-  def remove(source : AttackSource) = {
+  def removeFirst(source : AttackSource) = {
     val idx = sources.indexOf(source)
     if (idx != -1){
       copy(sources = sources.patch(idx, Vector.empty, 1))
     } else this
   }
+  def removeAny(source : AttackSource) = copy(sources = sources.filterNot( _ == source))
 }
 
 trait AttackSource

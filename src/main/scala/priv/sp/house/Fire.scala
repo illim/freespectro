@@ -81,7 +81,7 @@ private abstract class AttackBonusReaction extends DefaultReaction {
   final override def onRemove(slot : SlotUpdate) = {
     slot.slots.foreach{ s =>
       if (cond(s.num, slot.num)) {
-        s.attack.remove(bonus)
+        s.attack.removeFirst(bonus)
       }
     }
   }

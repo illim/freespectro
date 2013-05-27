@@ -78,7 +78,7 @@ class DarkPriest {
     import env._
     val slots = otherPlayer.slots.filleds
     val nbElems = slots.map{ s => s.get.card.houseId }.distinct.size
-    otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, isSpell = true))
+    otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, isSpell = true), env.playerId)
     player.slots(selected).destroy()
   }
   def occult : Effect = { env : Env =>
@@ -199,7 +199,7 @@ class DarkHydraAttack extends RunAttack {
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
-    otherPlayer.slots.inflictCreatures(d)
+    otherPlayer.slots.inflictCreatures(d, player.id)
     player.heal(d.amount)
     val slot = player.slots(num)
     if (slot.value.isDefined){

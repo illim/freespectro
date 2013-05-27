@@ -21,7 +21,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   // not great on dead effect happens maybe too late
   def flush() = {
     if (slotsUpdate.isDirty){
-      slotsUpdate.logs.foreach{
+      slotsUpdate.logs.reverseIterator.foreach{
         case dead : Dead => slots.onDead(dead)
         case _ =>
       }
@@ -132,7 +132,11 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     houses.incrMana()
   }
 
-  def mod(d : Damage) = {
+  def mod(d : Damage, playerId : PlayerId) : Damage = {
+    if (playerId == id) otherPlayer.mod(d) else mod(d)
+  }
+
+  def mod(d : Damage) : Damage = {
     if (d.isSpell) {
       (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
         slot.card.mod match {

@@ -22,7 +22,7 @@ object GameCardEffect {
     f(env)
   }
   def damage(d : Damage) = { env : Env => env.otherPlayer.inflict(d, env.source) }
-  def damageCreatures(d : Damage) : Effect  = { env : Env => env.otherPlayer.slots.inflictCreatures(d) }
+  def damageCreatures(d : Damage) : Effect  = { env : Env => env.otherPlayer.slots.inflictCreatures(d, env.playerId) }
   def damageCreature(d: Damage) : Effect = { env : Env =>
     env.otherPlayer.slots(env.selected).inflict(d)
   }
@@ -32,9 +32,9 @@ object GameCardEffect {
         if (num != env.selected) env.player.slots(num).inflict(d)
       }
     } else {
-      env.player.slots.inflictCreatures(d)
+      env.player.slots.inflictCreatures(d, env.playerId)
     }
-    env.otherPlayer.slots.inflictCreatures(d)
+    env.otherPlayer.slots.inflictCreatures(d, env.playerId)
   }
 
   def heal(amount : Int) = { env : Env => env.player.heal(amount) }

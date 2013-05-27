@@ -141,7 +141,7 @@ class LostChurch {
     import env._
     val bonus = LCAttackBonus(env.player.id)
     player.slots.foreach(_.attack.add(bonus))
-    player.slots.inflictCreatures(Damage(3, isSpell = true))
+    player.slots.inflictCreatures(Damage(3, isSpell = true), env.player.id)
   }
   def madden = { env : Env =>
     import env._
@@ -202,7 +202,7 @@ class LostChurch {
         dead.player.houses.incrMana(-1, 0, 1, 2, 3)
       }
       val bonus = LCAttackBonus(dead.player.id)
-      dead.player.slots.foreach{_.attack.remove(bonus) }
+      dead.player.slots.foreach{_.attack.removeAny(bonus) }
     }
   }
 }

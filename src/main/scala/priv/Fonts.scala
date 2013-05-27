@@ -34,7 +34,7 @@ class PimpFont(awtFont : Font) {
       }
     }
     font.drawString(x, y, s.toString, c)
-    glColor4f(1, 1, 1, 1) // recover color
+//    glColor4f(1, 1, 1, 1) // recover color
   }
 
   def getWidth(s : String)= font.getWidth(s)

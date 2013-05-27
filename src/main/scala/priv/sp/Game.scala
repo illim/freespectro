@@ -186,6 +186,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       persistUpdater()
       refresh(silent = true)
     }
+    def die(num : Int, playerId : PlayerId){
+      val slotButton = slotPanels(playerId).slots(num)
+      spawn(new slotButton.Fade, blocking = true)
+    }
     def refresh(silent : Boolean) = {
       persistUpdater()
       game.refresh(silent)

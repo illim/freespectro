@@ -29,8 +29,8 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   def apply(n : Int) = slots(n)
   def ensureInited() = if (!first.isInited){ slotUpdates.foreach(_.reinit()) }
 
-  def inflictCreatures(damage : Damage) {
-    val d = mod(damage)
+  def inflictCreatures(damage : Damage, playerId : PlayerId) {
+    val d = mod(damage, playerId)
     foreach( _.damageSlot(d))
   }
 
@@ -65,6 +65,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   def onDead(dead : Dead){
+    updateListener.die(dead.num, player.id)
     dead.card.reaction.onMyDeath(dead)
     foreach{ s =>
       if (s.num != dead.num) s.get.card.reaction.onDeath(s.num, dead)

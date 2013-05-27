@@ -42,6 +42,7 @@ trait UpdateListener {
   def move(num : Int, dest : Int, playerId : PlayerId)
   def runSlot(num : Int, playerId : PlayerId)
   def summon(num : Int, slot : SlotState, playerId : PlayerId)
+  def die(num : Int, playerId : PlayerId)
   def refresh(silent : Boolean = false) // this is not great to have some gui code here
   def spellPlayed(c : Command)
 }
@@ -51,6 +52,7 @@ class DefaultUpdateListener extends UpdateListener {
   def move(num : Int, dest : Int, playerId : PlayerId) {}
   def runSlot(num : Int, playerId : PlayerId){}
   def summon(num : Int, slot : SlotState, playerId : PlayerId){}
+  def die(num : Int, playerId : PlayerId){}
   def refresh(silent : Boolean){}
   def spellPlayed(c : Command){}
 }
