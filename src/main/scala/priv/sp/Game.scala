@@ -107,7 +107,16 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       persist(updater.lift(_.players(c.player).submit(c)))
       refresh()
     }
-    run(player)
+    if(state.players(player).transitions.isEmpty) {
+      run(player)
+    } else {
+      val t = persist(updater.lift{ u =>
+        u.players(player).popTransition.get
+      })
+      t match {
+        case WaitAgain => waitPlayer(player)
+      }
+    }
   }
 
   private def run(playerId: PlayerId) {
@@ -187,8 +196,8 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       refresh(silent = true)
     }
     def die(num : Int, playerId : PlayerId){
-      val slotButton = slotPanels(playerId).slots(num)
-      spawn(new slotButton.Fade, blocking = true)
+/**      val slotButton = slotPanels(playerId).slots(num)
+      spawn(new slotButton.Fade, blocking = true)*/
     }
     def refresh(silent : Boolean) = {
       persistUpdater()

@@ -17,6 +17,11 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
   private def ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( _ => otherPlayerDesc)
 }
 
+sealed trait BotState {
+  def playerId : PlayerId
+}
+case class WaitPlayer(playerId : PlayerId) extends BotState
+
 trait Bot {
   def gameDesc: GameDesc
   def sp : SpWorld
@@ -57,11 +62,11 @@ trait Bot {
     }
   }
 
-  def simulateCommand(state: GameState, command: Command) : GameState = {
+  def simulateCommand(state: GameState, command: Command) : (GameState, BotState) = {
     simulateCommand(state, command.player, Some(command))
   }
 
-  def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : GameState = {
+  def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : (GameState, BotState)  = {
     initGameUpdate(state)
     try {
       updater.lift{ u =>
@@ -70,24 +75,28 @@ trait Bot {
         commandOption foreach { command =>
           p.submit(command)
         }
-
-        p.runSlots()
-        if (!u.ended) {
-          p.applyEffects(CardSpec.OnEndTurn)
-          p.slots.toggleRun()
-          val otherPlayer = p.otherPlayer
-          otherPlayer.prepareNextTurn()
-          if (!u.ended) {
-            otherPlayer.applyEffects(CardSpec.OnTurn)
-          }
+        p.popTransition match {
+          case None =>
+            p.runSlots()
+            if (!u.ended) {
+              p.applyEffects(CardSpec.OnEndTurn)
+              p.slots.toggleRun()
+              val otherPlayer = p.otherPlayer
+              otherPlayer.prepareNextTurn()
+              if (!u.ended) {
+                otherPlayer.applyEffects(CardSpec.OnTurn)
+              }
+            }
+            WaitPlayer(other(playerId))
+          case Some(WaitAgain) =>
+            WaitPlayer(playerId)
         }
-      } exec state
+      } run state
     } catch { case t : Throwable =>
       println("Failed on " + commandOption + "/" + state)
       throw t
     }
   }
-
 }
 
 class Choices(bot : Bot) {

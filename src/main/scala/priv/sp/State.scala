@@ -7,11 +7,12 @@ case class GameState(players: List[PlayerState]) {
   def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
 }
 case class PlayerState(
-  houses     : PlayerState.HousesType,
-  desc       : DescReader,
-  slots      : PlayerState.SlotsType = PlayerState.emptySlots,
-  life       : Int = 60,
-  effects    : List[CardSpec.PhaseEffect] = Nil)
+  houses      : PlayerState.HousesType,
+  desc        : DescReader,
+  slots       : PlayerState.SlotsType = PlayerState.emptySlots,
+  life        : Int = 60,
+  effects     : List[CardSpec.PhaseEffect] = Nil,
+  transitions : List[Transition] = Nil) // not great using this field to pass parameter
 class HouseState(val mana: Int) extends AnyVal with Serializable
 case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, data : AnyRef = null){
 
@@ -42,6 +43,12 @@ object PlayerState {
   type HousesType = Vector[HouseState]
   val emptySlots = immutable.TreeMap.empty[Int, SlotState]
   def init(houseState : PlayerState.HousesType, desc : PlayerDesc) = PlayerState(houseState, new DescReader(desc), effects = desc.houses(4).house.effects)
+  def popTransition(state : PlayerState) = {
+    state.transitions match {
+      case Nil => None
+      case head :: tail => Some((head, state.copy(transitions = tail)))
+    }
+  }
 }
 object SlotState {
   @inline def addLife(slot : SlotState, amount : Int) = {
@@ -80,3 +87,7 @@ case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.emp
     } else this
   }
 }
+
+// crappy hard coded transitions
+sealed trait Transition
+case object WaitAgain extends Transition

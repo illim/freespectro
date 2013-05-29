@@ -104,6 +104,19 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     write(pstate.copy(effects = pstate.effects.filter(e => !cond(e._2))))
   }
 
+  def addTransition(t : Transition){
+    write(pstate.copy(transitions = t :: pstate.transitions))
+  }
+
+  def popTransition : Option[Transition] = {
+    pstate.transitions match {
+      case Nil => None
+      case head :: tail =>
+        write(pstate.copy(transitions = tail))
+        Some(head)
+    }
+  }
+
   // this is probably bugged due to card moves ...
   // todo identify slot creature?
   def applyEffects(phase : CardSpec.Phase) {

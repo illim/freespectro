@@ -24,12 +24,13 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   val selector = new Selector()
   val perfStat = new PerfStat()
   val choices = new Choices(bot)
-  val deltaStart = start.players(botPlayerId).life  -start.players(other(botPlayerId)).life
+  val human = other(botPlayerId)
+  val deltaStart = start.players(botPlayerId).life - start.players(human).life
 
   def execute() = {
     val startTime = System.currentTimeMillis
     val end = startTime + duration
-    val node = Node(start, botPlayerId, Nil, None, isRoot = true)
+    val node = Node(start, WaitPlayer(botPlayerId), Nil, None, isRoot = true)
     val rootLoc = Tree(node).loc
     var next = Option(rootLoc)
     var last = rootLoc
@@ -71,9 +72,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     //println("path " + node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
-      state = bot.simulateCommand(state, player, nextCommand)
+      val (gameState, botState) = bot.simulateCommand(state, player, nextCommand)
+      state = gameState
       //print("- def:"+nextCommand + "/" + player + "/" + state.players.map(_.houses))
-      player = other(player)
+      player = botState.playerId
       nbStep += 1
       end = state.checkEnded
     }
@@ -93,19 +95,21 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
           Stream.Empty
         case None =>
           val commands = label.commandChoices.map { command =>
-            Tree(Node(label.state, other(label.playerId), path, Some(command)))
+            Tree(Node(label.state, label.outBotState, path, Some(command)))
           }
           new Stream.Cons(
-            Tree(Node(label.state, other(label.playerId), path, None)), commands)
+            Tree(Node(label.state, label.outBotState, path, None)), commands)
       }
     }
 
     def select(x : Node, y : Node, fairOnly : Boolean) : Boolean = if (fairOnly) x.getFair > y.getFair else x.getUct > y.getUct
   }
 
-  case class Node(initState: GameState, playerId: PlayerId, path : List[Node], commandOpt: Option[Command], isRoot : Boolean = false) extends LeafableNode {
+  case class Node(initState: GameState, botState : BotState, path : List[Node], commandOpt: Option[Command], isRoot : Boolean = false) extends LeafableNode {
     var numSim = 0.1f
     var rewards = 0f
+    def playerId = botState.playerId
+    val isFairOnly : Boolean = playerId == botPlayerId // ugly because wrong for root(should be read: is fair when it's the result of human play and now is bot player's turn)
 
     def parent = path.headOption
     def getAvgReward : Float = rewards/numSim
@@ -116,9 +120,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
 
-    lazy val state = if (isRoot) initState else {
+    val (state, outBotState) = if (isRoot) (initState, botState) else {
       perfStat.nbsim += 1
-      bot.simulateCommand(initState, other(playerId), commandOpt) // should be random here
+      val pid = botState.playerId
+      bot.simulateCommand(initState, pid, commandOpt) // should be random here
     }
 
     def commandChoices: Stream[Command] = choices.getNexts(state, playerId)
@@ -128,7 +133,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       val deltaReward = end.map{ p =>
         if (p == botPlayerId) 1f else -1f
       }.getOrElse {
-        val dend = st.players(botPlayerId).life - st.players(other(botPlayerId)).life
+        val dend = st.players(botPlayerId).life - st.players(human).life
         0.01f * (dend - deltaStart)
       }
       rewards += boost * deltaReward
@@ -149,9 +154,13 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
 
 trait LeafableNode{
   var leafed = false
+  def isFairOnly : Boolean
 }
 
 // full of side effect horror
+/**
+ * FIXME balancing choice when wait player twice
+ */
 trait SelectExpandLoop[A <: LeafableNode] {
 
   def maxDepth:Int
@@ -216,7 +225,7 @@ trait SelectExpandLoop[A <: LeafableNode] {
   }
 
   private def selectChild(treeLoc : TreeLoc[A]) : TreeLoc[A] = {
-    val isFairOnly = depth % 2 == 0 // if this is opponent turn, just try fairly to avoid being too optimistic
+    val isFairOnly = treeLoc.getLabel.isFairOnly
     var result = treeLoc
     var next = treeLoc.right
     while(next.isDefined){

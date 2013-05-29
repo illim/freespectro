@@ -117,6 +117,7 @@ object CardSpec {
     }
   }
   val defaultReaction = new DefaultReaction
+
 }
 
 trait Mod

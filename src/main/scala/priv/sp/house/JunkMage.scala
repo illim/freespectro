@@ -10,7 +10,7 @@ class JunkMage {
   private val trashCyborg = Creature("TrashCyborg", Attack(3), 30, "Fill the board with trash 2/11 and one cyborg.\nEvery turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
 
   val Junk : House = House("Junk", List(
-    Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 13, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
+    Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
     Spell("PoisonFlower", "Deals 5 damage to target and creatures around.\nDeals -1 mana for opponent ones.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),

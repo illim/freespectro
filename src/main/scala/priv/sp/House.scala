@@ -48,9 +48,10 @@ class Houses
   val junkMage = new JunkMage
   val mecanic = new Mecanic
   val darkPriest = new DarkPriest
+  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, junkMage.Junk, lostChurch.LostChurch, mecanic.Mecanic, sower.Sower, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, junkMage.Junk, lostChurch.LostChurch, mecanic.Mecanic, sower.Sower, zenMage.Zen, test.Test)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)
