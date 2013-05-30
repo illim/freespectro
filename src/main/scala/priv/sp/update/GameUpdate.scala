@@ -5,10 +5,12 @@ import scalaz._
 import priv.sp._
 import priv.util.FieldUpdate
 
-class GameStateUpdater(initState : GameState) extends FieldUpdate(None, initState) { self =>
+// desc is only used to get house specific listener
+class GameStateUpdater(initState : GameState, val desc : GameDesc) extends FieldUpdate(None, initState) { self =>
   private val playerFieldUpdates = playerIds.map(id => new PlayerUpdate(id, self))
   var ended = false
   var updateListener : UpdateListener = new DefaultUpdateListener
+  val houseEventListeners = playerFieldUpdates.map(_.houseEventListener)
 
   def state = value
 
@@ -55,4 +57,11 @@ class DefaultUpdateListener extends UpdateListener {
   def die(num : Int, playerId : PlayerId){}
   def refresh(silent : Boolean){}
   def spellPlayed(c : Command){}
+}
+
+// broadcast crap
+class HouseEventListener {
+  var player : PlayerUpdate = null
+  def onDeath(dead : Dead) {}
+  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
 }

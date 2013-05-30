@@ -91,7 +91,7 @@ class Sower {
   }
 
 
-  private class ForestDrakeReaction extends DefaultReaction {
+  private class ForestDrakeReaction extends Reaction {
 
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
       import summoned._
@@ -109,22 +109,10 @@ class Sower {
 }
 
 // code horror
-private class BloodSundewAttack extends RunAttack {
+private class BloodSundewAttack extends RunAttack with DamageAttack {
 
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
-    val otherPlayer = player.otherPlayer
-    val slot = otherPlayer.slots(num)
-    val healAmount = slot.value match {
-      case None =>
-        val oldl = otherPlayer.value.life
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
-        oldl - otherPlayer.value.life
-      case Some(slotState) =>
-        val oldl = slotState.life
-        slot.inflict(d)
-        val newl = slot.value.map(_.life) getOrElse 0
-        oldl - newl
-    }
+    val healAmount = damageAndGet(num, d, player)
     player.slots(num).heal(healAmount)
   }
 }

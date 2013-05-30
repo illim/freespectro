@@ -9,6 +9,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   var logs = List.empty[BoardEvent]
   private val slotUpdates = slotRange.map{ i => new SlotUpdate(i, this) }.toVector
   private val first = slotUpdates(0)
+  val playerId = player.id
 
   def updater = player.updater
   def updateListener = updater.updateListener
@@ -61,6 +62,19 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     }
   }
 
+  def switch(num : Int, dest : Int){
+    val slot = slots(num)
+    slot.value.foreach{ s =>
+      updateListener.move(num, dest, id)
+      slot.remove()
+      if (slots(dest).value.isDefined){
+        move(dest, num)
+      }
+      slots(dest).add(
+        SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
+    }
+  }
+
   def protect(num : Int, damage : Damage) = {
     foldl(damage) { (acc, s) =>
       s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
@@ -68,11 +82,9 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   def onDead(dead : Dead){
-    updateListener.die(dead.num, player.id)
+    updateListener.die(dead.num, playerId)
     dead.card.reaction.onMyDeath(dead)
-    foreach{ s =>
-      if (s.num != dead.num) s.get.card.reaction.onDeath(s.num, dead)
-    }
+    player.updater.houseEventListeners.map(_.onDeath(dead))
   }
   def buildSlotState(card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(card.attack), card.data)
   def getAttack(attackSources : AttackSources) = {
@@ -87,7 +99,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   def toggleRun() = foreach(_.toggleRun())
   def healCreatures(amount : Int) = foreach(_.heal(amount))
   def reactSummon(e : SummonEvent) = foreach { s =>
-    if (player.id != e.player.id || s.num != e.num){
+    if (playerId != e.player.id || s.num != e.num){
       s.get.card.reaction.onSummon(s.num, id, e)
     }
   }

@@ -28,7 +28,7 @@ class Trooper {
 }
 
 
-class MarineReaction extends DefaultReaction {
+class MarineReaction extends Reaction {
   val damage = Damage(4, isAbility = true)
   final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
     import summoned._

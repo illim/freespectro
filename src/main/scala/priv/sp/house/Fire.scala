@@ -64,7 +64,7 @@ private class BullSlotReaction extends AttackBonusReaction {
   val bonus = BullAttackBonus
 }
 
-private abstract class AttackBonusReaction extends DefaultReaction {
+private abstract class AttackBonusReaction extends Reaction {
   def cond(selected : Int, num : Int) : Boolean
   val bonus : AttackSource
 

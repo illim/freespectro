@@ -5,7 +5,7 @@ import priv.sp.update._
 import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
-
+/**
 class TestMage {
 
   val Test : House = House("Test", List(
@@ -31,9 +31,10 @@ class TestMage {
     })
   }
 
-  class AltarReaction extends DefaultReaction {
+  class AltarReaction extends Reaction {
     final override def onOverwrite(c : Creature, slot : SlotUpdate) {
       slot.slots.player.houses.incrMana(c.cost * 2, c.houseIndex)
     }
   }
 }
+*/

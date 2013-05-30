@@ -122,13 +122,13 @@ class DarkPriest {
     }
   }
 
-  class RestlessReaction extends DefaultReaction {
+  class RestlessReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.otherPlayer.houses.incrMana(2, 4)
     }
   }
 
-  class GhostReaction extends DefaultReaction {
+  class GhostReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       if (dead.isEffect){
         val emptySlots = dead.otherPlayer.slots.getEmptySlots
@@ -140,7 +140,7 @@ class DarkPriest {
       }
     }
   }
-  class MissionaryReaction extends DefaultReaction {
+  class MissionaryReaction extends Reaction {
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
       import summoned._
       if (selectedPlayerId == player.id){
@@ -175,7 +175,7 @@ class DarkPriest {
   }
 }
 
-class BlackMonkReaction extends DefaultReaction {
+class BlackMonkReaction extends Reaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
     target match { // hack
@@ -189,7 +189,7 @@ class BlackMonkReaction extends DefaultReaction {
   }
 }
 
-class BetrayerReaction extends DefaultReaction {
+class BetrayerReaction extends Reaction {
   final override def onSpawnOver(slot : SlotUpdate) {
     slot.destroy()
   }

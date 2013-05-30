@@ -27,6 +27,7 @@ object GameCardEffect {
     env.otherPlayer.slots(env.selected).inflict(d)
   }
   def massDamage(d : Damage, immuneSelf : Boolean = false) = { env : Env =>
+    env.otherPlayer.slots.inflictCreatures(d, env.playerId)
     if (immuneSelf){
       env.player.slots.value.foreach{ case (num, _) =>
         if (num != env.selected) env.player.slots(num).inflict(d)
@@ -34,7 +35,6 @@ object GameCardEffect {
     } else {
       env.player.slots.inflictCreatures(d, env.playerId)
     }
-    env.otherPlayer.slots.inflictCreatures(d, env.playerId)
   }
 
   def heal(amount : Int) = { env : Env => env.player.heal(amount) }

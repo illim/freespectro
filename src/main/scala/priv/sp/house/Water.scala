@@ -33,7 +33,7 @@ class GiantTurtle extends Creature ("HugeTurtle", Attack(5), 17, "Absorb 5 damag
   override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
 }
 
-private class OverlordSlotReaction extends DefaultReaction {
+private class OverlordSlotReaction extends Reaction {
   final override def onAdd(selected : Int, slot : SlotUpdate) = {
     if (math.abs(selected - slot.num) == 1){
       slot.toggle(runFlag)

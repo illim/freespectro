@@ -53,7 +53,7 @@ trait Bot {
 
   private def initGameUpdate(state : GameState){
     if (updater == null){
-      updater = new GameStateUpdater(state)
+      updater = new GameStateUpdater(state, gameDesc)
     }
   }
 

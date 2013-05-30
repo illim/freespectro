@@ -32,7 +32,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val settingsButton  = new GuiButton("Settings")
   val restartButton   = new GuiButton("Restart")
 
-  private val updater = new GameStateUpdater(state)
+  private val updater = new GameStateUpdater(state, desc)
 
   updater.updateListener = new GameUpdateListener
   skipButton.on{ case MouseClicked(_) =>

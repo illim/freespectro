@@ -100,7 +100,7 @@ class ZenMage {
     }
   }
 
-  private class EGuardReaction extends DefaultReaction {
+  private class EGuardReaction extends Reaction {
     final override def onProtect(selected : Int, d : DamageEvent) = {
       import d._
       if (target.isEmpty){
@@ -113,7 +113,7 @@ class ZenMage {
     }
   }
 
-  private class DreamerReaction extends DefaultReaction {
+  private class DreamerReaction extends Reaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (command.card.isSpell && command.flag == None){
         val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))
@@ -123,7 +123,7 @@ class ZenMage {
     }
   }
 
- private class MimicReaction extends DefaultReaction {
+ private class MimicReaction extends Reaction {
     final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (!command.card.isSpell && command.flag == None){
         val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))

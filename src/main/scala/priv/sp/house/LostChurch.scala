@@ -81,7 +81,7 @@ class LostChurch {
     player.addDescMod(IncrBasicCostMod)
     giveHope(player)
   }
-  class PreacherReaction extends DefaultReaction {
+  class PreacherReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       import dead.player
       player.slots.findCard(prisoner).foreach{ slot =>
@@ -97,7 +97,7 @@ class LostChurch {
     player.houses.incrMana(2, 0, 1, 2, 3)
     player.addDescMod(IncrBasicCostMod, falseProphetAbility)
   }
-  class FalseProphetReaction extends DefaultReaction {
+  class FalseProphetReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.player.removeDescMod(IncrBasicCostMod)
       dead.player.houses.incrMana(-1, 0, 1, 2, 3)
@@ -125,7 +125,7 @@ class LostChurch {
       }
     }
   }
-  class ScarecrowReaction extends DefaultReaction {
+  class ScarecrowReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.player.removeDescMod(scarecrowAbility)
       val slot = dead.player.otherPlayer.slots(dead.num)
@@ -171,7 +171,7 @@ class LostChurch {
     }
   }
 
-  class AstralEscapeReaction extends DefaultReaction {
+  class AstralEscapeReaction extends Reaction {
     final override def onProtect(selected : Int, d : DamageEvent) = {
       import d._
       var res = d.damage
@@ -186,7 +186,7 @@ class LostChurch {
     }
   }
 
-  class LiberatorReaction extends DefaultReaction {
+  class LiberatorReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.player.slots.findCard(enragedPrisoner).foreach{ slot =>
         slot.inflict(Damage(15))
@@ -202,7 +202,7 @@ class LostChurch {
     }
   }
 
-  class PrisonerReaction extends DefaultReaction {
+  class PrisonerReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       if (dead.player.slots.findCard(liberator).isEmpty){
         dead.player.houses.incrMana(-1, 0, 1, 2, 3)
@@ -214,12 +214,12 @@ class LostChurch {
 }
 
 
-class FalseProphetReaction extends DefaultReaction {
+class FalseProphetReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     dead.player.houses.incrMana(-2, 0, 1, 2, 3)
   }
 }
-class DarkMonkReaction extends DefaultReaction {
+class DarkMonkReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     dead.otherPlayer.removeDescMod(IncrFireCostMod)
   }

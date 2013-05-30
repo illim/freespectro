@@ -39,7 +39,7 @@ trait Air {
 
 }
 
-class PhoenixReaction extends DefaultReaction {
+class PhoenixReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     import dead._
     if (player.houses.value(0).mana > 9) {

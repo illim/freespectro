@@ -19,7 +19,7 @@ class JunkMage {
     Creature("RoamingAssassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
     Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)", reaction = new FactoryReaction),
     Creature("RecyclingBot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
-    trashCyborg))
+    trashCyborg), eventListener = Some(() => new JunkEventListener))
 
   Junk.initCards(Houses.basicCostFunc)
 
@@ -95,7 +95,7 @@ class JunkMage {
     otherPlayer.houses.incrMana(-1 , houses : _*)
   }
 
-  private class ScreamerReaction extends DefaultReaction {
+  private class ScreamerReaction extends Reaction {
     final override def onAdd(selected : Int, slot : SlotUpdate) = onRemove(slot)
     final override def onRemove(slot : SlotUpdate) = {
       slot.slots.foreach{ s =>
@@ -116,7 +116,7 @@ class JunkMage {
   }
 }
 
-class JFReaction extends DefaultReaction {
+class JFReaction extends Reaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
     import d._
     val slot = player.slots(selected)
@@ -129,7 +129,7 @@ class JFReaction extends DefaultReaction {
   }
 }
 
-trait MirrorSummon extends DefaultReaction {
+trait MirrorSummon extends Reaction {
   def maxCost : Int
   final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
     import summoned._
@@ -150,7 +150,7 @@ trait MirrorSummon extends DefaultReaction {
 }
 class ChainControllerReaction extends MirrorSummon {
   val maxCost = 3
-  final override def onDeath(selected : Int, dead : Dead){
+  final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
     import dead._
     val step = num - selected
     if (card.cost < 6 && math.abs(step) == 1){
@@ -175,8 +175,8 @@ class FactoryReaction extends MirrorSummon {
   val maxCost = 5
 }
 
-class RecyclingBotReaction extends DefaultReaction {
-  final override def onDeath(selected : Int, dead : Dead){
+class RecyclingBotReaction extends Reaction {
+  final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
     import dead._
     val selectedSlot = player.slots(selected)
     selectedSlot.value.foreach{ botSlot =>
@@ -190,3 +190,4 @@ class RecyclingBotReaction extends DefaultReaction {
   }
 }
 
+class JunkEventListener extends HouseEventListener with OwnerDeathEventListener

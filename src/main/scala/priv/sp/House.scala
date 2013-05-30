@@ -1,12 +1,13 @@
 package priv.sp
 
 import house._
+import priv.sp.update._
 
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
-
-case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil){
+// eventListener is only used for special houses
+case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[() => HouseEventListener] = None){
   val houseId = House.currentId.incrementAndGet()
 
   def costs = cards.map(_.cost)

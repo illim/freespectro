@@ -40,10 +40,16 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
       val d = slots.protect(num, damage) // /!\ possible side effect
-      get.inflict(d) match {
-        case None          => delayedDestroy(d)
-        case Some(newslot) => write(Some(newslot))
+      val slot = get
+      val amount = slot.inflict(d) match {
+        case None =>
+          delayedDestroy(d)
+          slot.life
+        case Some(newslot) =>
+          write(Some(newslot))
+          slot.life - newslot.life
       }
+      slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
     }
   }
 

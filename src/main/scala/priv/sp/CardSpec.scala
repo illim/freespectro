@@ -20,6 +20,7 @@ sealed abstract class Card extends Externalizable {
   var houseId = 0
   var houseIndex = 0
   final val isSpell = isInstanceOf[Spell]
+  def isSpecial = houseIndex == 4
   def asCreature = {
     this match {
       case creature: Creature => creature
@@ -45,9 +46,9 @@ case class Creature(
   life : Int,
   description : String = "",
   inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
-  var effects     : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
+  var effects : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
   mod         : Option[Mod] = None,
-  var reaction    : Reaction = CardSpec.defaultReaction,
+  var reaction: Reaction = CardSpec.defaultReaction,
   data        : AnyRef = null, // initialize slot custom data
   runAttack   : RunAttack = SingleTargetAttack,
   immune      : Boolean = false,
@@ -117,7 +118,7 @@ object CardSpec {
       effects.foreach(_(env))
     }
   }
-  val defaultReaction = new DefaultReaction
+  val defaultReaction = new Reaction
 }
 
 trait Mod
@@ -134,24 +135,13 @@ case class Dead(num : Int, card : Creature, player : PlayerUpdate , isEffect : B
 case class DamageEvent(damage : Damage, target : Option[Int], player : PlayerUpdate, source : Option[SlotSource]) extends PlayerEvent
 case class SummonEvent(num : Int, card : Creature, player : PlayerUpdate) extends PlayerEvent
 
-trait Reaction {
-  def onAdd(selected : Int, slot : SlotUpdate)
-  def onRemove(slot : SlotUpdate)
-  def onProtect(selected : Int, d : DamageEvent) : Damage
-  def onMyDeath(dead : Dead)
-  def onDeath(selected : Int, dead : Dead)
-  def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
-  def onSpawnOver(slot : SlotUpdate)
-  def onOverwrite(c : Creature, slot : SlotUpdate)
-  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
-}
-
-class DefaultReaction extends Reaction {
+class Reaction {
   def onAdd(selected : Int, slot : SlotUpdate){}
   def onRemove(slot : SlotUpdate){}
   def onProtect(selected : Int, d : DamageEvent) = d.damage
+  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
   def onMyDeath(dead : Dead) {}
-  def onDeath(selected : Int, dead : Dead) {}
+  def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def onSpawnOver(slot : SlotUpdate) {}
   def onOverwrite(c : Creature, slot : SlotUpdate) {}
@@ -161,7 +151,6 @@ class DefaultReaction extends Reaction {
 case class SlotSource(playerId : PlayerId, num : Int)
 
 trait RunAttack {
-  // TODO maybe refactor and put player here
   def apply(num : Int, d : Damage, player : PlayerUpdate)
 }
 object SingleTargetAttack extends RunAttack {

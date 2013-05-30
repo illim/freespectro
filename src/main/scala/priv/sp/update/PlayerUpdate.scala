@@ -11,6 +11,8 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def ended = updater.ended
   private var slotsUpdate = new SlotsUpdate(this)
   private var houseFieldUpdate = new HouseFieldUpdate
+  val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.map(_()).getOrElse(new HouseEventListener)
+  houseEventListener.player = this
 
   def otherPlayer = updater.players(other(id)) // not great
   def getHouses   = if (houseFieldUpdate.isDirty) houseFieldUpdate.value else pstate.houses
