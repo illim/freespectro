@@ -17,3 +17,9 @@ class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
 case class AttackFactor(fact : Float) extends AttackFunc {
   def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
 }
+
+case object SkipTurn extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    cards.map(c => c.copy( enabled = false ))
+  }
+}

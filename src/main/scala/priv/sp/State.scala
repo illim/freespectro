@@ -12,7 +12,13 @@ case class PlayerState(
   slots       : PlayerState.SlotsType = PlayerState.emptySlots,
   life        : Int = 60,
   effects     : List[CardSpec.PhaseEffect] = Nil,
-  transitions : List[Transition] = Nil) // not great using this field to pass parameter
+  transitions : List[Transition] = Nil) { // not great using this field to pass parameter
+
+  def isDisabled = desc.get.houses.forall{ h =>
+    val hs = houses(h.house.houseIndex)
+    h.cards.forall(c => ! c.isAvailable(hs))
+  }
+}
 class HouseState(val mana: Int) extends AnyVal with Serializable
 case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, data : AnyRef = null){
 
@@ -34,8 +40,8 @@ case class PlayerDesc(houses : Vector[PlayerHouseDesc]){
   }
 }
 case class PlayerHouseDesc(house : House, cards : Vector[CardDesc])
-case class CardDesc(card : Card, cost : Int){
-  def isAvailable(house: HouseState) = cost <= house.mana
+case class CardDesc(card : Card, cost : Int, enabled : Boolean){
+  def isAvailable(house: HouseState) = cost <= house.mana && enabled
 }
 
 object PlayerState {
@@ -63,7 +69,7 @@ object GameDesc {
   val housesL = Lens.lensu[PlayerDesc, Vector[PlayerHouseDesc]]((p, h) => p.copy(houses = h), _.houses)
 }
 object CardDesc {
-  def apply(c : Card) : CardDesc = CardDesc(c, c.cost)
+  def apply(c : Card) : CardDesc = CardDesc(c, c.cost, true)
 }
 
 case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.empty) {
@@ -89,5 +95,7 @@ case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.emp
 }
 
 // crappy hard coded transitions
-sealed trait Transition
-case object WaitAgain extends Transition
+sealed trait Transition {
+  def playerId : PlayerId
+}
+case class WaitPlayer(playerId : PlayerId) extends Transition

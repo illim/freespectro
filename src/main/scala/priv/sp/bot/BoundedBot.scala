@@ -72,10 +72,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     //println("path " + node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
-      val (gameState, botState) = bot.simulateCommand(state, player, nextCommand)
+      val (gameState, transition) = bot.simulateCommand(state, player, nextCommand)
       state = gameState
       //print("- def:"+nextCommand + "/" + player + "/" + state.players.map(_.houses))
-      player = botState.playerId
+      player = transition.playerId
       nbStep += 1
       end = state.checkEnded
     }
@@ -95,20 +95,20 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
           Stream.Empty
         case None =>
           val commands = label.commandChoices.map { command =>
-            Tree(Node(label.state, label.outBotState, path, Some(command)))
+            Tree(Node(label.state, label.outTransition, path, Some(command)))
           }
           new Stream.Cons(
-            Tree(Node(label.state, label.outBotState, path, None)), commands)
+            Tree(Node(label.state, label.outTransition, path, None)), commands)
       }
     }
 
     def select(x : Node, y : Node, fairOnly : Boolean) : Boolean = if (fairOnly) x.getFair > y.getFair else x.getUct > y.getUct
   }
 
-  case class Node(initState: GameState, botState : BotState, path : List[Node], commandOpt: Option[Command], isRoot : Boolean = false) extends LeafableNode {
+  case class Node(initState: GameState, transition : Transition, path : List[Node], commandOpt: Option[Command], isRoot : Boolean = false) extends LeafableNode {
     var numSim = 0.1f
     var rewards = 0f
-    def playerId = botState.playerId
+    def playerId = transition.playerId
     val isFairOnly : Boolean = playerId == botPlayerId // ugly because wrong for root(should be read: is fair when it's the result of human play and now is bot player's turn)
 
     def parent = path.headOption
@@ -120,9 +120,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
 
-    val (state, outBotState) = if (isRoot) (initState, botState) else {
+    val (state, outTransition) = if (isRoot) (initState, transition) else {
       perfStat.nbsim += 1
-      val pid = botState.playerId
+      val pid = transition.playerId
       bot.simulateCommand(initState, pid, commandOpt) // should be random here
     }
 

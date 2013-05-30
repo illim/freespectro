@@ -11,7 +11,7 @@ class TestMage {
   val Test : House = House("Test", List(
     Creature("Blargl", Attack(3), 12, "choose another card same turn", effects = effects(Direct -> playTwice)),
     Spell("Focus"),
-    Creature("Blargl", Attack(3), 12, effects = effects(Direct -> playTwice)),
+    Creature("Blargl", Attack(3), 12, effects = effects(Direct -> forceSkip)),
     Creature("Blargl", Attack(3), 12),
     Creature("Blargl", Attack(3), 12),
     Creature("Blargl", Attack(3), 12),
@@ -21,6 +21,13 @@ class TestMage {
   Test.initCards(Houses.basicCostFunc)
 
   def playTwice : Effect = { env : Env =>
-    env.player.addTransition(WaitAgain)
+    env.player.addTransition(WaitPlayer(env.playerId))
+  }
+
+  def forceSkip : Effect = { env : Env =>
+    env.otherPlayer.addDescMod(SkipTurn)
+    env.otherPlayer.addEffect(OnEndTurn -> { e =>
+      e.player.removeDescMod(SkipTurn)
+    })
   }
 }

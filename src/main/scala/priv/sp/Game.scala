@@ -67,22 +67,27 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
 
   private def waitPlayer(player: PlayerId) {
+    def autoSkip : Option[Option[Command]] = if (state.players(player).isDisabled) Some(None) else None
+
     if (player == server.playerId) {
-      cardPanels(player).setEnabled(true)
-      gameLock.waitFor[Option[Command]]{ c =>
-        server.waitNextCommand(c, state)
-      }.foreach{ nextCommand =>
-        submit(nextCommand, player)
-      }
+      (autoSkip
+       orElse {
+         cardPanels(player).setEnabled(true)
+         gameLock.waitFor[Option[Command]]{ c =>
+           server.waitNextCommand(c, state)
+         }}).foreach{ nextCommand =>
+           submit(nextCommand, player)
+         }
     } else {
-      gameLock.waitFor[Option[Command]]{ c =>
-        commandRecorder.startWith(c) {
-          cardPanels(player).setEnabled(true)
-        }
-      }.foreach { nextCommand =>
-        server.submitCommand(nextCommand)
-        submit(nextCommand, player)
-      }
+      (autoSkip
+       orElse gameLock.waitFor[Option[Command]]{ c =>
+         commandRecorder.startWith(c) {
+           cardPanels(player).setEnabled(true)
+         }
+       }).foreach { nextCommand =>
+         server.submitCommand(nextCommand)
+         submit(nextCommand, player)
+       }
     }
   }
 
@@ -114,7 +119,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         u.players(player).popTransition.get
       })
       t match {
-        case WaitAgain => waitPlayer(player)
+        case WaitPlayer(p) => waitPlayer(p)
       }
     }
   }
