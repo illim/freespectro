@@ -48,9 +48,11 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   }
 
   def destroy(){
-    val card = get.card
-    remove()
-    slots.onDead(Dead(num, card, player, isEffect = true))
+    if (value.isDefined){ // crap for marine
+      val card = get.card
+      remove()
+      slots.onDead(Dead(num, card, player, isEffect = true))
+    }
   }
 
   def remove(){
