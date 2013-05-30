@@ -42,17 +42,18 @@ class Houses
   import CardSpec._
   import GameCardEffect._
 
-  val zenMage    = new ZenMage
-  val lostChurch = new LostChurch
-  val sower      = new Sower
-  val junkMage   = new JunkMage
-  val trooper    = new Trooper
   val darkPriest = new DarkPriest
   val dudeMancer = new DudeMancer
+  val junkMage   = new JunkMage
+  val lostChurch = new LostChurch
+  val sower      = new Sower
+  val trooper    = new Trooper
+  val vampire    = new Vampire
+  val zenMage    = new ZenMage
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, dudeMancer.Dude, junkMage.Junk, lostChurch.LostChurch, sower.Sower, trooper.Trooper, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, dudeMancer.Dude, junkMage.Junk, lostChurch.LostChurch, sower.Sower, trooper.Trooper, vampire.Vampire, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)

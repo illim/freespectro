@@ -105,6 +105,12 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     foreach{ s => r = f(r, s) }
     r
   }
+  def reduce(f : (SlotUpdate, SlotUpdate) => SlotUpdate) : Option[SlotUpdate] = {
+    foldl(Option.empty[SlotUpdate]){
+      case (None, s) => Some(s)
+      case (Some(s0), s1) => Some(f(s0, s1))
+    }
+  }
   def findCard(card : Card) : Option[SlotUpdate] = {
     slots.find{ s =>
       s.value.isDefined && s.get.card == card

@@ -74,14 +74,21 @@ class CommandRecorder(game: Game) {
         continue(Some(command))
       } else {
         import game._
+        def addInputOrEnable(playerId : PlayerId, slots : List[Int]){
+          if (slots.size == 1){
+            addInput(new SlotInput(slots(0)))
+          } else {
+            slotPanels(playerId).setSlotEnabled(slots)
+          }
+        }
+
         command.card.inputSpec.get match {
           case SelectOwnerSlot =>
-            val slots = state.players(myPlayerId).slots
-            slotPanels(myPlayerId).setSlotEnabled(PlayerState.openSlots(slots))
+            addInputOrEnable(myPlayerId, PlayerState.openSlots(state.players(myPlayerId).slots))
           case SelectOwnerCreature =>
-            slotPanels(myPlayerId).setSlotEnabled(state.players(myPlayerId).slots.keys.toList)
+            addInputOrEnable(myPlayerId, state.players(myPlayerId).slots.keys.toList)
           case SelectTargetCreature =>
-            slotPanels(otherPlayerId).setSlotEnabled(state.players(otherPlayerId).slots.keys.toList)
+            addInputOrEnable(otherPlayerId, state.players(otherPlayerId).slots.keys.toList)
         }
       }
     }
