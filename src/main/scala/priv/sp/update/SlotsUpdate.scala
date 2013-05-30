@@ -34,17 +34,17 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     foreach( _.damageSlot(d))
   }
 
-  // todo move it to slot
-  def summon(num : Int, creature : Creature) {
+  def summon(num : Int, card : Creature) {
     val slot = slots(num)
-    slot.value.foreach{ c =>
-      c.card.reaction.onOverwrite(creature, slot)
-      creature.reaction.onSpawnOver(slot)
+    slot.value.foreach{ s =>
+      s.card.reaction.onOverwrite(card, slot)
+      card.reaction.onSpawnOver(slot)
     }
+    val slotState = buildSlotState(card)
+    updateListener.summon(num, slotState, id) // bit fake for altar
     if (slot.value.isEmpty) {
-      val slotState = slot.add(creature)
-      updateListener.summon(num, slotState, id)
-      val summonEvent = SummonEvent(num, creature, player)
+      slot.add(slotState)
+      val summonEvent = SummonEvent(num, card, player)
       otherPlayer.slots.reactSummon(summonEvent)
       reactSummon(summonEvent)
     }
@@ -57,7 +57,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
       updateListener.move(num, dest, id)
       slot.remove()
       slots(dest).add(
-        SlotState(s.card, s.life, s.status, s.card.attack, slot.getAttack(s.card.attack) , s.data))
+        SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
     }
   }
 
@@ -74,7 +74,16 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
       if (s.num != dead.num) s.get.card.reaction.onDeath(s.num, dead)
     }
   }
-
+  def buildSlotState(card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(card.attack), card.data)
+  def getAttack(attackSources : AttackSources) = {
+    (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>
+      s match {
+        case f : AttackFunc => f(acc)
+        case f : AttackStateFunc => f(acc, player)
+        case _ => acc
+      }
+    }
+  }
   def toggleRun() = foreach(_.toggleRun())
   def healCreatures(amount : Int) = foreach(_.heal(amount))
   def reactSummon(e : SummonEvent) = foreach { s =>

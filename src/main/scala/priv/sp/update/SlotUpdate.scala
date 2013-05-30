@@ -22,29 +22,19 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     value.map{ s =>
       if (attackUpdate.isDirty){
         val attackSources = attackUpdate.value
-        s.copy(attack = getAttack(attackSources), attackSources = attackSources)
+        s.copy(attack = slots.getAttack(attackSources), attackSources = attackSources)
       } else s
     }
   }
 
   def add(card : Creature) : SlotState = {
-    add(SlotState(card, card.life, card.status, card.attack, getAttack(card.attack), card.data))
+    add(slots.buildSlotState(card))
   }
 
   def add(slot : SlotState) : SlotState = {
     write(Some(slot))
     slots.reactAdd(this)
     value.get
-  }
-
-  def getAttack(attackSources : AttackSources) = {
-    (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>
-      s match {
-        case f : AttackFunc => f(acc)
-        case f : AttackStateFunc => f(acc, player)
-        case _ => acc
-      }
-    }
   }
 
   def damageSlot(damage : Damage) = {

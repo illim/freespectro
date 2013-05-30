@@ -198,7 +198,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       val slotButton = slotPanels(playerId).slots(num)
       spawn(slotButton.summon(sourceCoord, slot), blocking = true)
       persistUpdater()
-      refresh(silent = true)
+//      refresh(silent = true)
     }
     def die(num : Int, playerId : PlayerId){
 /**      val slotButton = slotPanels(playerId).slots(num)
