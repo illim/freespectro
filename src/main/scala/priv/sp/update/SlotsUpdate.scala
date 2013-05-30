@@ -37,14 +37,17 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   // todo move it to slot
   def summon(num : Int, creature : Creature) {
     val slot = slots(num)
-    if (slot.value.isDefined){
+    slot.value.foreach{ c =>
+      c.card.reaction.onOverwrite(creature, slot)
       creature.reaction.onSpawnOver(slot)
     }
-    val slotState = slot.add(creature)
-    updateListener.summon(num, slotState, id)
-    val summonEvent = SummonEvent(num, creature, player)
-    otherPlayer.slots.reactSummon(summonEvent)
-    reactSummon(summonEvent)
+    if (slot.value.isEmpty) {
+      val slotState = slot.add(creature)
+      updateListener.summon(num, slotState, id)
+      val summonEvent = SummonEvent(num, creature, player)
+      otherPlayer.slots.reactSummon(summonEvent)
+      reactSummon(summonEvent)
+    }
   }
 
   def move(num : Int, dest : Int){

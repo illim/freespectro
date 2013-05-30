@@ -9,14 +9,14 @@ import CardSpec._
 class TestMage {
 
   val Test : House = House("Test", List(
-    Creature("Blargl", Attack(3), 12, "choose another card same turn", effects = effects(Direct -> playTwice)),
+    Creature("Blargl", Attack(1), 12, "choose another card same turn", effects = effects(Direct -> playTwice)),
     Spell("Focus"),
-    Creature("Blargl", Attack(3), 12, effects = effects(Direct -> forceSkip)),
-    Creature("Blargl", Attack(3), 12),
-    Creature("Blargl", Attack(3), 12),
-    Creature("Blargl", Attack(3), 12),
-    Creature("Blargl", Attack(3), 12),
-    Creature("Blargl", Attack(3), 12)))
+    Creature("Blargl", Attack(2), 12, effects = effects(Direct -> forceSkip)),
+    Creature("Blargl", Attack(3), 12, isAltar = true, reaction = new AltarReaction),
+    Creature("Blargl", Attack(4), 12),
+    Creature("Blargl", Attack(5), 12),
+    Creature("Blargl", Attack(6), 12),
+    Creature("Blargl", Attack(7), 12)))
 
   Test.initCards(Houses.basicCostFunc)
 
@@ -29,5 +29,11 @@ class TestMage {
     env.otherPlayer.addEffect(OnEndTurn -> { e =>
       e.player.removeDescMod(SkipTurn)
     })
+  }
+
+  class AltarReaction extends DefaultReaction {
+    final override def onOverwrite(c : Creature, slot : SlotUpdate) {
+      slot.slots.player.houses.incrMana(c.cost * 2, c.houseIndex)
+    }
   }
 }

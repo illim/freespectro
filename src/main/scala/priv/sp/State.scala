@@ -49,10 +49,12 @@ object PlayerState {
   type HousesType = Vector[HouseState]
   val emptySlots = immutable.TreeMap.empty[Int, SlotState]
   def init(houseState : PlayerState.HousesType, desc : PlayerDesc) = PlayerState(houseState, new DescReader(desc), effects = desc.houses(4).house.effects)
-  def popTransition(state : PlayerState) = {
-    state.transitions match {
-      case Nil => None
-      case head :: tail => Some((head, state.copy(transitions = tail)))
+  def openSlots(slots : SlotsType) : List[Int] = {
+    slotList.filter{ num =>
+      slots.get(num) match {
+        case Some(c) if !c.card.isAltar => false
+        case _ => true
+      }
     }
   }
 }

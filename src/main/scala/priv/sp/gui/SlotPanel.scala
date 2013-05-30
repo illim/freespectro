@@ -99,8 +99,9 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         game.commandRecorder.addInput(new SlotInput(slotButton.num))
     }
   }
-  def setSlotEnabled(empty: Boolean) {
-    slots.foreach { slot => slot.enabled = (slot.isEmpty == empty) }
+  def setSlotEnabled(s : List[Int]) {
+    val nums = s.toSet
+    slots.foreach { slot => slot.enabled = nums.contains(slot.num)  }
   }
   def disable() { slots.foreach(_.enabled = false) }
   def refresh() {

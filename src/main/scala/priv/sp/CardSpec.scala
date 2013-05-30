@@ -51,6 +51,7 @@ case class Creature(
   data        : AnyRef = null, // initialize slot custom data
   runAttack   : RunAttack = SingleTargetAttack,
   immune      : Boolean = false,
+  isAltar     : Boolean = false,
   status      : Int = 0) extends Card {
 
   def this() = this(null, AttackSources(), 0)
@@ -117,7 +118,6 @@ object CardSpec {
     }
   }
   val defaultReaction = new DefaultReaction
-
 }
 
 trait Mod
@@ -142,6 +142,7 @@ trait Reaction {
   def onDeath(selected : Int, dead : Dead)
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent)
   def onSpawnOver(slot : SlotUpdate)
+  def onOverwrite(c : Creature, slot : SlotUpdate)
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
 }
 
@@ -153,6 +154,7 @@ class DefaultReaction extends Reaction {
   def onDeath(selected : Int, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def onSpawnOver(slot : SlotUpdate) {}
+  def onOverwrite(c : Creature, slot : SlotUpdate) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }
 
