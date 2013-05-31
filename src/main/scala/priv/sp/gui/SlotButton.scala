@@ -59,7 +59,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           glUniform1f(fade.fact, alpha)
         }
         tex.draw(cardTex)
-        if (slotState.has(CardSpec.stunFlag)) {
+        if (slotState.has(CardSpec.stunOrBlocked)) {
           tex.drawAt(stunPos, stunTex.id, stunTex.size)
         }
         if (slotState.has(CardSpec.invincibleFlag)) {

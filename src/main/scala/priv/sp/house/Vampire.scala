@@ -115,7 +115,7 @@ private class NoctuleAttack extends RunAttack {
     slot.value match {
       case None =>
         val oldl = otherPlayer.value.life
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
         player.heal(oldl - otherPlayer.value.life)
       case Some(_) =>
         slot.inflict(d)
@@ -129,7 +129,7 @@ private class GhoulAttack extends RunAttack {
     val slot = otherPlayer.slots(num)
     slot.value match {
       case None =>
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
       case Some(slotState) =>
         if (slotState.life < 11){
           slot.destroy
@@ -161,12 +161,12 @@ class AristoAttack extends RunAttack {
     val slot = otherPlayer.slots(num)
     slot.value match {
       case None =>
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
       case Some(_) =>
         val attack = slot.get.attack
         slot.inflict(d)
         if (slot.value.isEmpty) {
-          otherPlayer.inflict(Damage(attack, isAbility = true), Some(SlotSource(player.id, num)))
+          otherPlayer.inflict(Damage(attack, d.context, isAbility = true))
         }
     }
   }

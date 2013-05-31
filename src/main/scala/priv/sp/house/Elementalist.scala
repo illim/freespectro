@@ -3,9 +3,6 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-/**
- * todo archphoenix
- */
 class Elementalist {
   import CardSpec._
   import GameCardEffect._
@@ -16,8 +13,8 @@ class Elementalist {
     Creature("Salamander", Attack(5), 16, "If owner fire power is higher than opponent fire power,\ndeals to opponent 5 damage at the beginning of the turn.", effects = effects(OnTurn -> salamand)),
     Spell("Avalanche", "Deals 2X damage to enemy creatures (X = owner earth power),\nheals 2X life to owner and reduces owner earth power to 0.", effects = effects(Direct -> aval)),
     Spell("Incineration", "Destroys strongest enemy and weakest friendly creatures\n(calculated by health) both on board and in deck.", effects = effects(Direct -> incinerate)),
-    Creature("ArchPhoenix", Attack(5), 16, "Fire cards heal him instead of dealing damage."),
-    Creature("StoneGolem", Attack(7), 30, "Regenerates 4 life when blocked.\nReceives no damage from spells and creatures abilities when unblocked.", effects = effects(OnTurn -> stoneGole)),
+    Creature("ArchPhoenix", Attack(9), 20, "Fire cards heal him instead of dealing damage.", reaction = new ArchPhoenixReaction),
+    Creature("StoneGolem", Attack(7), 30, "Regenerates 4 life when blocked.\nReceives no damage from spells and creatures abilities when unblocked.", reaction = new SGReaction, effects = effects(OnTurn -> stoneGole)),
     Spell("FrostLightning", "Deals X damage to opponent\n(X = difference between his lowest power and owner highest power)\nand permanently blocks target slot.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> frostLight))))
@@ -26,8 +23,11 @@ class Elementalist {
   Elementalist.initCards(Houses.basicCostFunc)
 
   def sylphEffect = { env : Env =>
-    env.player.addDescMod(IncrSylphCostMod)
-    env.player.addTransition(WaitPlayer(env.playerId))
+    import env._
+    player.addDescMod(IncrSylphCostMod)
+    player.addDescMod(HideBasicMod)
+    player.addTransition(WaitPlayer(env.playerId))
+    player.addEffect(OnEndTurn -> UnMod(HideBasicMod))
   }
 
   def freeze = { env : Env =>
@@ -52,14 +52,14 @@ class Elementalist {
     import env._
     if (player.getHouses(0).mana > otherPlayer.getHouses(0).mana){
       focus()
-      otherPlayer.inflict(Damage(5, isAbility = true))
+      otherPlayer.inflict(Damage(5, env, isAbility = true))
     }
   }
 
   def aval = { env : Env =>
     import env._
     val x = player.getHouses(3).mana
-    otherPlayer.slots.inflictCreatures(Damage(2 * x, isSpell = true), env.playerId)
+    otherPlayer.slots.inflictCreatures(Damage(2 * x, env, isSpell = true))
     player.heal(2 * x)
     player.houses.incrMana(-x, 3)
   }
@@ -85,11 +85,11 @@ class Elementalist {
   def frostLight = { env : Env =>
     import env._
     val opp = otherPlayer.getHouses.reduceLeft((h1, h2) => if (h1.mana < h2.mana) h1 else h2 ).mana
-    val own = otherPlayer.getHouses.reduceLeft((h1, h2) => if (h1.mana > h2.mana) h1 else h2 ).mana
+    val own = player.getHouses.reduceLeft((h1, h2) => if (h1.mana > h2.mana) h1 else h2 ).mana
     val x = math.max(0, own - opp)
-    otherPlayer.inflict(Damage(x, isSpell = true))
+    otherPlayer.inflict(Damage(x, env, isSpell = true))
     val slot = otherPlayer.slots(env.selected)
-    slot.toggle(stunFlag)
+    slot.toggle(blockedFlag)
   }
 
   class SylphReaction extends Reaction {
@@ -100,11 +100,24 @@ class Elementalist {
 
   class SGReaction extends Reaction {
     override def selfProtect(d : Damage, slot : SlotUpdate) = {
-      if (slot.slots.player.otherPlayer.getSlots.isDefinedAt(slot.num)){
+      // FiXME: hack watch if unblocked at start of "transaction"!
+      val player = slot.slots.player
+      if (!player.updater.value.players(other(player.id)).slots.isDefinedAt(slot.num)){
         if (d.isEffect){
           d.copy(amount = 0)
         } else d
       } else d
+    }
+  }
+
+  class ArchPhoenixReaction extends Reaction {
+    override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      d.context.card match {
+        case Some(c) if c.houseIndex == 0 =>
+          slot.heal(d.amount)
+          d.copy(amount = 0)
+        case _ => d
+      }
     }
   }
 

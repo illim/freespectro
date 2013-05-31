@@ -43,7 +43,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
 
   def runSlot(numSlot: Int, slot: SlotState) = {
-    val d = Damage(slot.attack)
+    val d = Damage(slot.attack, Context(id, Some(slot.card), numSlot))
     slot.card.runAttack(numSlot, d, this)
     updateListener.runSlot(numSlot, id)
   }
@@ -71,20 +71,18 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
       }
       command.card.effects(CardSpec.Direct) foreach { f =>
         val env = new GameCardEffect.Env(command.player, updater)
+        env.card = Some(command.card)
         command.input foreach { slotInput =>
           env.selected = slotInput.num
-          if (command.card.inputSpec == Some(SelectOwnerSlot)){
-            env.source = Some(SlotSource(command.player, slotInput.num))
-          }
         }
         f(env)
       }
     }
   }
 
-  def inflict(d : Damage, source : Option[SlotSource] = None) = {
+  def inflict(d : Damage) = {
     if (!ended) {
-      val life = pstate.life - guard(mod(d), source).amount
+      val life = pstate.life - guard(mod(d)).amount
       if (life <= 0){
         updater.ended = true
       }
@@ -127,8 +125,8 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         getSlots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
           slot.card.effects(phase).map{ f =>
             val env = new GameCardEffect.Env(id, updater)
-            env.source = Some(SlotSource(id, num))
             env.selected = num
+            env.card = Some(slot.card)
             f(env)
           }
           updateListener.refresh(silent = true)
@@ -147,31 +145,30 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     houses.incrMana()
   }
 
-  def mod(d : Damage, playerId : PlayerId) : Damage = {
-    if (playerId == id) otherPlayer.mod(d) else mod(d)
-  }
-
   def mod(d : Damage) : Damage = {
-    if (d.isSpell) {
-      (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
-        slot.card.mod match {
-          case Some(SpellMod(mod)) => acc.copy(amount = mod(acc.amount))
-          case _ => acc
+    if (d.context.playerId == id) otherPlayer.mod(d)
+    else {
+      if (d.isSpell) {
+        (d /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
+          slot.card.mod match {
+            case Some(SpellMod(mod)) => acc.copy(amount = mod(acc.amount))
+            case _ => acc
+          }
         }
-      }
-    } else d
+      } else d
+    }
   }
 
   def addDescMod(dmods : DescMod*)   { write(pstate.copy(desc = pstate.desc.add(dmods : _*))) }
   def removeDescMod(dmod : DescMod){ write(pstate.copy(desc = pstate.desc.remove(dmod))) }
 
-  private def guard(damage : Damage, source : Option[SlotSource] = None) = {
+  private def guard(damage : Damage) = {
     (damage /: getSlots) { case (acc, (num, slot)) =>
       val a = slot.card.mod match {
         case Some(SpellProtectOwner(mod)) => acc.copy(amount = mod(acc.amount))
         case _ => acc
       }
-      slot.card.reaction.onProtect(num, DamageEvent(a, None, this, source))
+      slot.card.reaction.onProtect(num, DamageEvent(a, None, this))
     }
   }
 

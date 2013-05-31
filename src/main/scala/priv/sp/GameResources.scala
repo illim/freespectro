@@ -20,7 +20,7 @@ class GameResources {
   val clientSocket = multi(new ClosableOne[Socket])
 
 //  var playerChoices = List(sp.houses.sower.Sower, sp.houses.mecanic.Mecanic)
-  var playerChoices = List(sp.houses.vampire.Vampire, sp.houses.dudeMancer.Dude)
+  var playerChoices = List(sp.houses.element.Elementalist, sp.houses.vampire.Vampire)
 
   def release(){
     println("releasing resources")

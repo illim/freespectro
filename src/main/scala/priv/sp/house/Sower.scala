@@ -24,7 +24,7 @@ class Sower {
     Creature("PredatorPlant", Attack(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
     Creature("ForestDrake", Attack(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
     Creature("FieryFlower", Attack(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
-      env.otherPlayer.inflict(Damage(env.player.getHouses(0).mana , isAbility = true))
+      env.otherPlayer.inflict(Damage(env.player.getHouses(0).mana, env, isAbility = true))
     }))))
 
   Sower.initCards(Houses.basicCostFunc)
@@ -32,7 +32,7 @@ class Sower {
   private def tangle = { env : Env =>
     import env._
     val slot = otherPlayer.slots(selected)
-    val damage = Damage(slot.get.attack, isSpell = true)
+    val damage = Damage(slot.get.attack, env, isSpell = true)
     slot.inflict(damage)
     val opp = player.slots(selected)
     if (opp.value.isDefined){
@@ -65,7 +65,7 @@ class Sower {
     import env._
     otherPlayer.slots.filleds.sortBy(_.get.life).lastOption foreach { slot =>
       updater.focus(selected, playerId)
-      slot.inflict(Damage(math.ceil(slot.get.life / 2f).toInt, isAbility = true))
+      slot.inflict(Damage(math.ceil(slot.get.life / 2f).toInt, env, isAbility = true))
     }
     player.houses.incrMana(1, 0)
   }
@@ -75,7 +75,7 @@ class Sower {
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
       } else {
         slot.inflict(d)
         // FIXME maybe not good at all and should add source in damage?
@@ -123,7 +123,7 @@ private class PredatorPlantAttack extends RunAttack {
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
-      case None => otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+      case None => otherPlayer.inflict(d)
       case Some(slotState) =>
         val x = slotState.card.life - slotState.life
         slot.inflict(d.copy(amount = d.amount + x))

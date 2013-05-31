@@ -20,6 +20,7 @@ class ZenMage {
     Creature("SpiralOfLight", Attack(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
     new ZenFighter))
 
+  val eguard = Zen.cards(3)
   Zen.initCards(Houses.basicCostFunc)
 
   private val cocoon = new Creature("Cocoon", Attack(0), 13){
@@ -85,7 +86,7 @@ class ZenMage {
 
     val factor = AttackFactor(0.5f)
     val amount = player.slots.foldl(0)((acc, x) => acc + math.ceil(x.get.attack / 2f).toInt)
-    otherPlayer.slots(env.selected).inflict(Damage(amount, isSpell = true))
+    otherPlayer.slots(env.selected).inflict(Damage(amount, env, isSpell = true))
     player.slots.foreach(_.attack.add(factor))
     player.addEffect(OnEndTurn -> new RemoveAttack(factor))
   }
@@ -103,10 +104,10 @@ class ZenMage {
   private class EGuardReaction extends Reaction {
     final override def onProtect(selected : Int, d : DamageEvent) = {
       import d._
-      if (target.isEmpty){
-        source.foreach{ src =>
+      if (target.isEmpty) {
+        damage.context.selectedOption.foreach{ num =>
           player.updater.focus(selected, player.id, blocking = false)
-          player.updater.players(src.playerId).slots(src.num).inflict(Damage(3, isAbility = true))
+          player.updater.players(damage.context.playerId).slots(num).inflict(Damage(3, Context(player.id, Some(eguard), selected), isAbility = true))
         }
       }
       d.damage

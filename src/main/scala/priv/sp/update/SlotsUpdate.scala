@@ -30,8 +30,8 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   def apply(n : Int) = slots(n)
   def ensureInited() = if (!first.isInited){ slotUpdates.foreach(_.reinit()) }
 
-  def inflictCreatures(damage : Damage, playerId : PlayerId) {
-    val d = mod(damage, playerId)
+  def inflictCreatures(damage : Damage) {
+    val d = mod(damage)
     foreach( _.damageSlot(d))
   }
 

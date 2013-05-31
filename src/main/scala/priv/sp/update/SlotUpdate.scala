@@ -15,7 +15,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   // some crap
   def toggleRun() {
     value.foreach{ x =>
-      if (!x.isRunnable){
+      if (!x.has(CardSpec.runFlag) || x.has(CardSpec.stunFlag)) {
         write(value.map(x => x.copy(status = (x.status | CardSpec.runFlag) & (~ CardSpec.stunFlag))))
       }
     }

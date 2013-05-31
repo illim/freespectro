@@ -31,7 +31,7 @@ case class SlotState(card: Creature, life: Int, status : Int, attackSources: Att
   }
 
   def has(flag : Int)= (status & flag) != 0
-  def isRunnable = has(CardSpec.runFlag) & !has(CardSpec.stunFlag)
+  def isRunnable = has(CardSpec.runFlag) & !has(CardSpec.stunOrBlocked)
 }
 
 // Description (should not change during the game)

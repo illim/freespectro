@@ -43,7 +43,7 @@ class DarkPriest {
     }
     weakest.foreach{ w =>
       val houseIndex = w.get.card.houseIndex
-      w.inflict(Damage(w.get.life / 2, isAbility = true))
+      w.inflict(Damage(w.get.life / 2, env, isAbility = true))
       val weakestOther = otherPlayer.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
         if (s.get.card.houseIndex != houseIndex){
           acc
@@ -57,13 +57,13 @@ class DarkPriest {
           }
         }
       }
-      weakestOther.foreach{ s => s.inflict(Damage(s.get.life / 2, isAbility = true)) }
+      weakestOther.foreach{ s => s.inflict(Damage(s.get.life / 2, env, isAbility = true)) }
     }
   }
   def betray = { env : Env =>
     import env._
     val slot = env.player.slots(selected)
-    val d = Damage(4, isAbility = true)
+    val d = Damage(4, env, isAbility = true)
     focus()
     player.inflict(d)
     slot.inflict(d)
@@ -78,7 +78,7 @@ class DarkPriest {
     import env._
     val slots = otherPlayer.slots.filleds
     val nbElems = slots.map{ s => s.get.card.houseId }.distinct.size
-    otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, isSpell = true), env.playerId)
+    otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, env, isSpell = true))
     player.slots(selected).destroy()
   }
   def occult : Effect = { env : Env =>
@@ -163,7 +163,7 @@ class DarkPriest {
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
       } else {
         slot.inflict(d)
         // FIXME maybe not good at all and should add source in damage?
@@ -190,8 +190,8 @@ class BetrayerReaction extends Reaction {
 class DarkHydraAttack extends RunAttack {
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
-    otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
-    otherPlayer.slots.inflictCreatures(d, player.id)
+    otherPlayer.inflict(d)
+    otherPlayer.slots.inflictCreatures(d)
     player.heal(d.amount)
     val slot = player.slots(num)
     if (slot.value.isDefined){

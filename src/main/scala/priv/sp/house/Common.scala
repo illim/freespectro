@@ -14,6 +14,20 @@ class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
   }
 }
 
+//crap
+case class UnMod(mod : DescMod) extends Function[Env, Unit] {
+  def apply(env : Env){
+    env.player.removeDescMod(mod)
+  }
+}
+
+case object HideBasicMod extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex == 4) cards
+    else cards.map(_.copy(enabled = false))
+  }
+}
+
 case class AttackFactor(fact : Float) extends AttackFunc {
   def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
 }
@@ -62,7 +76,7 @@ trait DamageAttack {
     slot.value match {
       case None =>
         val oldl = otherPlayer.value.life
-        otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+        otherPlayer.inflict(d)
         oldl - otherPlayer.value.life
       case Some(slotState) =>
         val oldl = slotState.life

@@ -110,7 +110,7 @@ class LostChurch {
     val slot = env.otherPlayer.slots(env.selected)
     if (slot.value.isDefined){
       env.focus()
-      slot.inflict(Damage(5, isAbility = true))
+      slot.inflict(Damage(5, env, isAbility = true))
       slot.toggle(stunFlag)
     }
     env.player.addDescMod(scarecrowAbility)
@@ -121,7 +121,7 @@ class LostChurch {
       slotInterval(slot.num - 1, slot.num + 1).foreach{ n =>
         val oppSlot = otherPlayer.slots(n)
         if (oppSlot.value.isDefined){
-          oppSlot.inflict(Damage(5, isAbility = true))
+          oppSlot.inflict(Damage(5, env, isAbility = true))
           oppSlot.toggle(stunFlag)
         }
       }
@@ -149,13 +149,13 @@ class LostChurch {
     import env._
     val bonus = LCAttackBonus(env.player.id)
     player.slots.foreach(_.attack.add(bonus))
-    player.slots.inflictCreatures(Damage(4, isSpell = true), env.player.id)
+    player.slots.inflictCreatures(Damage(4, env, isSpell = true))
   }
   def madden = { env : Env =>
     import env._
     val bonus = AttackAdd(1)
     otherPlayer.slots.foreach{ slot =>
-      val d = Damage(8, isSpell = true)
+      val d = Damage(8, env, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
         slot.attack.add(bonus)
@@ -168,7 +168,7 @@ class LostChurch {
     focus()
     otherPlayer.slots.foreach { slot =>
       if (slot.num != selected){
-        slot.inflict(Damage(math.abs(slot.num - selected), isAbility = true))
+        slot.inflict(Damage(math.abs(slot.num - selected), env, isAbility = true))
       }
     }
   }
@@ -191,7 +191,7 @@ class LostChurch {
   class LiberatorReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.player.slots.findCard(enragedPrisoner).foreach{ slot =>
-        slot.inflict(Damage(15))
+        slot.inflict(Damage(15, Context(dead.player.id)))
       }
     }
 
@@ -222,7 +222,7 @@ class LostChurch {
         player.slots.foldl(damage) { (acc, s) =>
           val sc = s.get.card
           if (sc == astralEscape || sc == liberator){
-            s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
+            s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player))
           } else acc
         }
       } else damage

@@ -75,7 +75,7 @@ class JunkMage {
     val slots = env.player.slots
     if (otherSlots(env.selected).value.isEmpty) {
       otherSlots.slots.collect{ case slot if slots(slot.num).value.isEmpty && slot.value.isDefined => slot }.sortBy(x => math.abs(x.num - env.selected)).headOption.foreach{ dest =>
-        dest.inflict(Damage(5, isAbility = true))
+        dest.inflict(Damage(5, env, isAbility = true))
         slots.move(env.selected, dest.num)
       }
     }
@@ -84,7 +84,7 @@ class JunkMage {
   private def poisonFlower = { env: Env =>
     import env._
 
-    val damage = Damage(5, isSpell = true)
+    val damage = Damage(5, env, isSpell = true)
     val houses = slotInterval(selected-1, selected +1).flatMap{ num =>
       player.slots(num).inflict(damage)
       val oppSlot = otherPlayer.slots(num)
@@ -121,7 +121,7 @@ class JunkMage {
       player.slots.foldl(damage) { (acc, s) =>
         val sc = s.get.card
         if (sc == jf){
-          s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
+          s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player))
         } else acc
       }
     }

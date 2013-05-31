@@ -19,7 +19,7 @@ trait EarthHouse {
     Spell("Fury", "Deals to opponent the sum of the attacks of the 2 strongest owner creatures", effects = effects(Direct -> fury)),
     Creature("HugeSpider", Attack(4), 21, "Spawn 2 forest spiders around him", effects = effects(Direct -> spider)),
     Creature("Troll", Attack(6), 25, "Every turn heals himself by 4", effects = effects(OnTurn -> focus(healCreature(4)))),
-    Spell("StoneShower", "Deals 25 damage to any creature", effects = effects(Direct -> massDamage(Damage(25, isSpell = true)))),
+    Spell("StoneShower", "Deals 25 damage to any creature", effects = effects(Direct -> massDamage(25, isSpell = true))),
     Creature("EarthElemental", AttackSources().add(ManaAttack(3)), 49, effects = effects(OnTurn -> addMana(1, 3))),
     Creature("MasterHealer", Attack(3), 35, "Every turn heals by 3 owner and his creatures",
       effects = effects(OnTurn -> focus(heal(3)), OnTurn -> healCreatures(3))),
@@ -37,7 +37,7 @@ trait EarthHouse {
     import env._
 
     val attack = (player.slots().values.map(_.attack)(breakOut) : Seq[Int]).sorted(math.Ordering.Int.reverse).take(2).sum
-    env.otherPlayer.inflict(Damage(attack, isSpell = true))
+    env.otherPlayer.inflict(Damage(attack, env, isSpell = true))
   }
 
   private def spider = { env: Env =>

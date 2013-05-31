@@ -7,9 +7,9 @@ import priv.sp.update._
 
 object GameCardEffect {
 
-  class Env(val playerId: PlayerId, val updater: GameStateUpdater) {
-    var selected = 0
-    var source = Option.empty[SlotSource]
+  class Env(val playerId: PlayerId, val updater: GameStateUpdater) extends Context {
+    var selected = Context.noSelection // var to be able to reuse env?
+    var card = Option.empty[Card]
 
     def focus() = updater.focus(selected, playerId)
     @inline def player = updater.players(playerId)
@@ -21,19 +21,27 @@ object GameCardEffect {
     env.updater.focus(env.selected, env.playerId)
     f(env)
   }
-  def damage(d : Damage) = { env : Env => env.otherPlayer.inflict(d, env.source) }
-  def damageCreatures(d : Damage) : Effect  = { env : Env => env.otherPlayer.slots.inflictCreatures(d, env.playerId) }
-  def damageCreature(d: Damage) : Effect = { env : Env =>
+  def damage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false) = { env : Env =>
+    val d = Damage(amount, env, isAbility, isSpell)
+    env.otherPlayer.inflict(d)
+  }
+  def damageCreatures(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false) : Effect  = { env : Env =>
+    val d = Damage(amount, env, isAbility, isSpell)
+    env.otherPlayer.slots.inflictCreatures(d)
+  }
+  def damageCreature(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false) : Effect = { env : Env =>
+    val d = Damage(amount, env, isAbility, isSpell)
     env.otherPlayer.slots(env.selected).inflict(d)
   }
-  def massDamage(d : Damage, immuneSelf : Boolean = false) = { env : Env =>
-    env.otherPlayer.slots.inflictCreatures(d, env.playerId)
+  def massDamage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false, immuneSelf : Boolean = false) = { env : Env =>
+    val d = Damage(amount, env, isAbility = isAbility, isSpell = isSpell)
+    env.otherPlayer.slots.inflictCreatures(d)
     if (immuneSelf){
       env.player.slots.value.foreach{ case (num, _) =>
         if (num != env.selected) env.player.slots(num).inflict(d)
       }
     } else {
-      env.player.slots.inflictCreatures(d, env.playerId)
+      env.player.slots.inflictCreatures(d)
     }
   }
 

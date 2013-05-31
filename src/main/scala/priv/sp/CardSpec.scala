@@ -74,7 +74,21 @@ case class Spell(
 }
 trait CommandFlag
 case class Command(player: PlayerId, card: Card, input: Option[SlotInput], cost : Int, flag : Option[CommandFlag] = None)
-case class Damage(amount : Int, isAbility : Boolean = false, isSpell : Boolean = false){
+
+object Context {
+  val noSelection = -1
+  def apply(playerId : PlayerId, card : Option[Card] = None, selected : Int = Context.noSelection) = new ContextImpl(playerId, card, selected)
+}
+trait Context {
+  def playerId : PlayerId
+  def card : Option[Card]
+  def selected : Int
+  def selectedOption = if (selected == Context.noSelection) None else Some(selected)
+}
+// context is mostly for interception, so it's not that important if it's not supplied for self damage for example
+class ContextImpl(val playerId : PlayerId, val card : Option[Card], val selected : Int) extends Context
+
+case class Damage(amount : Int, context : Context, isAbility : Boolean = false, isSpell : Boolean = false){
   def isEffect = isAbility || isSpell
 }
 
@@ -89,6 +103,9 @@ object CardSpec {
   val runFlag = 1
   val stunFlag = 2
   val invincibleFlag = 4
+  val blockedFlag = 8
+
+  val stunOrBlocked = stunFlag + blockedFlag
 
   type Phase = Int
   val Direct = 0
@@ -133,7 +150,7 @@ trait PlayerEvent extends BoardEvent {
 }
 case class Dead(num : Int, card : Creature, player : PlayerUpdate , isEffect : Boolean) extends PlayerEvent
 // need source if no target
-case class DamageEvent(damage : Damage, target : Option[Int], player : PlayerUpdate, source : Option[SlotSource]) extends PlayerEvent
+case class DamageEvent(damage : Damage, target : Option[Int], player : PlayerUpdate) extends PlayerEvent
 case class SummonEvent(num : Int, card : Creature, player : PlayerUpdate) extends PlayerEvent
 
 class Reaction {
@@ -151,8 +168,6 @@ class Reaction {
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }
 
-case class SlotSource(playerId : PlayerId, num : Int)
-
 trait RunAttack {
   def apply(num : Int, d : Damage, player : PlayerUpdate)
 }
@@ -161,7 +176,7 @@ object SingleTargetAttack extends RunAttack {
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     if (slot.value.isEmpty) {
-      otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
+      otherPlayer.inflict(d)
     } else {
       slot.inflict(d)
     }
@@ -170,8 +185,8 @@ object SingleTargetAttack extends RunAttack {
 object MultiTargetAttack extends RunAttack {
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
-    otherPlayer.inflict(d, Some(SlotSource(player.id, num)))
-    otherPlayer.slots.inflictCreatures(d, player.id)
+    otherPlayer.inflict(d)
+    otherPlayer.slots.inflictCreatures(d)
   }
 }
 
