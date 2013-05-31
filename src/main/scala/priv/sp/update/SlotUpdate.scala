@@ -12,8 +12,16 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   lazy val adjacentSlots = adjacents(num).map{ n => slots(n) }
 
   @inline def get = value.get
-  def toggleRun()             { write(value.map(x => x.copy(status = CardSpec.runFlag))) }
+  // some crap
+  def toggleRun() {
+    value.foreach{ x =>
+      if (!x.isRunnable){
+        write(value.map(x => x.copy(status = (x.status | CardSpec.runFlag) & (~ CardSpec.stunFlag))))
+      }
+    }
+  }
   def toggle(flag : Int)      { write(value.map(x => x.copy(status = x.status | flag))) }
+  def toggleOff(flag : Int)   { write(value.map(x => x.copy(status = x.status & (~ flag)))) }
   def setData(data : AnyRef)  { write(value.map(_.copy( data = data))) }
   def heal(amount : Int)      { write(value.map(x => SlotState.addLife(x, amount)))  }
   def inflict(damage : Damage){ if (value.isDefined) damageSlot(player.mod(damage))  }

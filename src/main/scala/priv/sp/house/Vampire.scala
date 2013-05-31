@@ -3,9 +3,6 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-/**
- * TODO darkflock
- */
 class Vampire {
   import CardSpec._
   import GameCardEffect._
@@ -20,12 +17,13 @@ class Vampire {
     Spell("BloodTies", "destroys owner's creature and permanently increases attack of\nits neighbors by its attack\n(doesn't affect creatures with mass attack and creatures of level > 9)",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> bloodTies)),
-    Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2."),
+    Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2.", reaction = new NosferatuReaction),
     Creature("Aristocrat", Attack(5), 34, "At the beginning of turn moves in slot opposite to opponent's creature with\nlowest hp(can switch places with friendly creature).\nWhen kills creature deals opponent damage equal to its attack.", runAttack = new AristoAttack, effects = effects(OnTurn -> aristo)),
-    Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", effects = effects(Direct -> ghoulify))), eventListener = Some(() => new VampireEventListener))
+    Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", reaction = new MansionReaction, effects = effects(Direct -> ghoulify))), eventListener = Some(() => new VampireEventListener))
 
-  val ghoul = Vampire.cards(2).asCreature
-  val acolyte = Vampire.cards(3).asCreature
+  val ghoul      = Vampire.cards(2).asCreature
+  val acolyte    = Vampire.cards(3).asCreature
+  val aristocrat = Vampire.cards(6).asCreature
   Vampire.initCards(Houses.basicCostFunc)
 
   val neophyte = Creature("Neophyte", Attack(5), 14, "Heals himself half of damage dealt to enemies.", runAttack = new NeophyteAttack)
@@ -38,8 +36,16 @@ class Vampire {
       val card = s.get.card
       player.slots.move(s.num, selected)
       if (card.cost < 10){
-        // TODO
+        player.slots(selected).toggle(CardSpec.invincibleFlag)
+        player.addEffect(OnTurn -> RemoveInvincible(selected))
       }
+    }
+  }
+
+  case class RemoveInvincible(num : Int)  extends Function[Env, Unit]{
+    def apply(env : Env){
+      env.player.slots(num).toggleOff(CardSpec.invincibleFlag)
+      env.player.removeEffect(_ == this)
     }
   }
 
@@ -64,7 +70,7 @@ class Vampire {
     val otherSlots = otherPlayer.slots
     val slots      = player.slots
     otherPlayer.slots.reduce(lowestLife).foreach{ s =>
-      if (s.num != selected){
+      if (s.num != selected && !slots(s.num).value.exists(_.card == aristocrat)){
         slots.switch(env.selected, s.num)
       }
     }
@@ -94,9 +100,9 @@ class Vampire {
     override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {
       if (slot.slots.playerId != player.id){
         player.slots.foreach{ s =>
-          val card = s.get.card
-          if (card == acolyte && card.reaction.onDamaged(card, amount, slot)){
-            s.focus()
+          val sc = s.get.card
+          if (sc == acolyte && sc.reaction.onDamaged(card, amount, slot)){
+            s.focus(blocking = false)
           }
         }
       }
@@ -136,9 +142,9 @@ private class GhoulAttack extends RunAttack {
 
 class NosferatuReaction extends Reaction {
   final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
-    import dead._
-    player.slots(selected).heal(2)
-    player.heal(3)
+    val p = dead.player.updater.players(playerId)
+    p.slots(selected).heal(2)
+    p.heal(3)
   }
 }
 

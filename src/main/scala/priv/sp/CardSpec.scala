@@ -88,6 +88,7 @@ class SlotInput(val num: Int) extends AnyVal with Serializable
 object CardSpec {
   val runFlag = 1
   val stunFlag = 2
+  val invincibleFlag = 4
 
   type Phase = Int
   val Direct = 0
