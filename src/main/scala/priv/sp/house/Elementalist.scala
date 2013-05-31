@@ -98,17 +98,13 @@ class Elementalist {
     }
   }
 
-  // bs
   class SGReaction extends Reaction {
-    final override def onProtect(selected : Int, d : DamageEvent) = {
-      import d._
-      if (d.damage.isEffect){
-        d.target match {
-          case Some(n) if n == selected =>
-            d.damage.copy(amount = 0)
-          case None => d.damage
-        }
-      } else d.damage
+    override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      if (slot.slots.player.otherPlayer.getSlots.isDefinedAt(slot.num)){
+        if (d.isEffect){
+          d.copy(amount = 0)
+        } else d
+      } else d
     }
   }
 

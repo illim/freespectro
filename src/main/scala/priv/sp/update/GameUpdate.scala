@@ -63,5 +63,6 @@ class DefaultUpdateListener extends UpdateListener {
 class HouseEventListener {
   var player : PlayerUpdate = null
   def onDeath(dead : Dead) {}
+  def protect(num : Int, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
 }

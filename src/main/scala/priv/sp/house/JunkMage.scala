@@ -21,6 +21,7 @@ class JunkMage {
     Creature("RecyclingBot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg), eventListener = Some(() => new JunkEventListener))
 
+  val jf = Junk.cards(2).asCreature
   Junk.initCards(Houses.basicCostFunc)
 
   private val trash = new Creature("Trash", Attack(2), 11){
@@ -114,6 +115,17 @@ class JunkMage {
       attack + nbScreamers
     }
   }
+
+  class JunkEventListener extends HouseEventListener with OwnerDeathEventListener {
+    override def protect(num : Int, damage : Damage) = {
+      player.slots.foldl(damage) { (acc, s) =>
+        val sc = s.get.card
+        if (sc == jf){
+          s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
+        } else acc
+      }
+    }
+  }
 }
 
 class JFReaction extends Reaction {
@@ -189,5 +201,3 @@ class RecyclingBotReaction extends Reaction {
     }
   }
 }
-
-class JunkEventListener extends HouseEventListener with OwnerDeathEventListener

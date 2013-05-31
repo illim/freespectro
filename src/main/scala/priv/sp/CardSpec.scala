@@ -139,7 +139,9 @@ case class SummonEvent(num : Int, card : Creature, player : PlayerUpdate) extend
 class Reaction {
   def onAdd(selected : Int, slot : SlotUpdate){}
   def onRemove(slot : SlotUpdate){}
+  def selfProtect(d : Damage, slot : SlotUpdate) = d
   def onProtect(selected : Int, d : DamageEvent) = d.damage
+  def onMyDamage(amount : Int, slot : SlotUpdate){}
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
   def onMyDeath(dead : Dead) {}
   def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}

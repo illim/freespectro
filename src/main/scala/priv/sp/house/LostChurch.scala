@@ -26,10 +26,12 @@ class LostChurch {
     Creature("Liberator", Attack(3), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner))),
     Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden))),
-    effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken))
+    effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
+    eventListener = Some(() => new LCEventListener))
 
   val preacher = LostChurch.cards(1)
   val falseProphet = LostChurch.cards(2)
+  val astralEscape = LostChurch.cards(3)
   val scarecrow = LostChurch.cards(4)
   val liberator = LostChurch.cards(5)
   LostChurch.initCards(Houses.basicCostFunc)
@@ -209,6 +211,21 @@ class LostChurch {
       }
       val bonus = LCAttackBonus(dead.player.id)
       dead.player.slots.foreach{_.attack.removeAny(bonus) }
+    }
+  }
+
+  // crap
+  class LCEventListener extends HouseEventListener {
+    override def protect(num : Int, damage : Damage) = {
+      val target = player.slots(num).get.card
+      if (target == prisoner || target == enragedPrisoner){
+        player.slots.foldl(damage) { (acc, s) =>
+          val sc = s.get.card
+          if (sc == astralEscape || sc == liberator){
+            s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
+          } else acc
+        }
+      } else damage
     }
   }
 }

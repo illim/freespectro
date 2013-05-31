@@ -176,16 +176,8 @@ class DarkPriest {
 }
 
 class BlackMonkReaction extends Reaction {
-  final override def onProtect(selected : Int, d : DamageEvent) = {
-    import d._
-    target match { // hack
-      case Some(n) if selected == n =>
-        val life = player.getSlots(selected).life
-        val healAmount = if (damage.amount > life) life else damage.amount
-        player.heal(healAmount)
-      case _ =>
-    }
-    damage
+  override def onMyDamage(amount : Int, slot : SlotUpdate) {
+    slot.slots.player.heal(amount)
   }
 }
 

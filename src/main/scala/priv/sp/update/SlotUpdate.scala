@@ -47,7 +47,8 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
-      val d = slots.protect(num, damage) // /!\ possible side effect
+      val card = get.card
+      val d = player.houseEventListener.protect(num, card.reaction.selfProtect(damage, this)) // /!\ possible side effect (jf can self protect once and toggle a flag)
       val slot = get
       val amount = slot.inflict(d) match {
         case None =>
@@ -57,6 +58,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
           write(Some(newslot))
           slot.life - newslot.life
       }
+      card.reaction.onMyDamage(amount, this)
       slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
     }
   }
