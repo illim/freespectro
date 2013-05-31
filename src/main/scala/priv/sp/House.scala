@@ -45,6 +45,7 @@ class Houses
 
   val darkPriest = new DarkPriest
   val dudeMancer = new DudeMancer
+  val element    = new Elementalist
   val junkMage   = new JunkMage
   val lostChurch = new LostChurch
   val sower      = new Sower

@@ -5,7 +5,7 @@ import priv.sp.update._
 import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
-/**
+
 class TestMage {
 
   val Test : House = House("Test", List(
@@ -37,4 +37,4 @@ class TestMage {
     }
   }
 }
-*/
+
