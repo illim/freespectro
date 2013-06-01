@@ -28,6 +28,13 @@ case object HideBasicMod extends DescMod {
   }
 }
 
+case object HideSpecialMod extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex != 4) cards
+    else cards.map(_.copy(enabled = false))
+  }
+}
+
 case class AttackFactor(fact : Float) extends AttackFunc {
   def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
 }

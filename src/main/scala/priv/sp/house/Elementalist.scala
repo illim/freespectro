@@ -41,6 +41,8 @@ class Elementalist {
       import env._
       player.removeDescMod(SkipTurn)
       player.removeEffect(_.isInstanceOf[Unfreeze])
+      player.addDescMod(HideSpecialMod)
+      player.addEffect(OnEndTurn -> UnMod(HideSpecialMod))
       if (chain){
         otherPlayer.addDescMod(SkipTurn)
         otherPlayer.addEffect(OnEndTurn -> new Unfreeze(false))
