@@ -137,11 +137,7 @@ class Elementalist {
   case class Destroyed(card : Creature) extends DescMod {
     def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
       if (house.houseIndex != card.houseIndex) cards
-      else cards.map{ c =>
-        if (c.card == card){
-          c.copy(enabled = false)
-        } else c
-      }
+      else cards.filter{ c => c.card != card }
     }
   }
 }

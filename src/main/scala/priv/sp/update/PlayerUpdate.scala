@@ -123,13 +123,15 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     getSlots.foreach{ case (num, slot) =>
       if (!ended) {
         getSlots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
-          slot.card.effects(phase).map{ f =>
-            val env = new GameCardEffect.Env(id, updater)
-            env.selected = num
-            env.card = Some(slot.card)
-            f(env)
+          if (!slot.has(CardSpec.blockedFlag)){
+            slot.card.effects(phase).map{ f =>
+              val env = new GameCardEffect.Env(id, updater)
+              env.selected = num
+              env.card = Some(slot.card)
+              f(env)
+            }
+            updateListener.refresh(silent = true)
           }
-          updateListener.refresh(silent = true)
         }
       }
     }

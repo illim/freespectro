@@ -75,12 +75,6 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     }
   }
 
-/**  def protect(num : Int, damage : Damage) = {
-    foldl(damage) { (acc, s) =>
-      s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player, None))
-    }
-  }*/
-
   def onDead(dead : Dead){
     updateListener.die(dead.num, playerId)
     dead.card.reaction.onMyDeath(dead)

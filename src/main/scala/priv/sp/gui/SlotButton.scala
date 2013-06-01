@@ -9,7 +9,7 @@ import priv.GuiElem
 
 // total crap
 class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState], game : Game) extends GuiElem with Damagable {
-  import game.sp.baseTextures.{slotTex, stunTex, shieldTex}
+  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex}
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
@@ -59,11 +59,8 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
           glUniform1f(fade.fact, alpha)
         }
         tex.draw(cardTex)
-        if (slotState.has(CardSpec.stunOrBlocked)) {
-          tex.drawAt(stunPos, stunTex.id, stunTex.size)
-        }
-        if (slotState.has(CardSpec.invincibleFlag)) {
-          tex.draw(shieldTex)
+        if (slotState.status > 1){
+          decorate(slotState)
         }
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
@@ -115,6 +112,16 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glDisable(GL_LINE_STIPPLE)
     glEnable(GL_TEXTURE_2D)
+  }
+
+  def decorate(s : SlotState){
+    if (s.has(CardSpec.blockedFlag)) {
+      tex.drawAt(stunPos, crystalTex.id, crystalTex.size)
+    } else if (s.has(CardSpec.stunFlag)) {
+      tex.drawAt(stunPos, stunTex.id, stunTex.size)
+    } else if (s.has(CardSpec.invincibleFlag)) {
+      tex.draw(shieldTex)
+    }
   }
 
   def summon(start : Coord2i, s : SlotState) = {

@@ -6,7 +6,10 @@ import priv.sp._
 
 class CardPanel(playerId: PlayerId, game: Game) {
   private val houseCardButtons = game.desc.players(playerId).houses.zipWithIndex.map { case (houseDesc, idx) =>
-      def getCard(i : Int) = game.state.players(playerId).desc.get.houses(idx).cards(i)
+      def getCard(i : Int) = {
+        val cards = game.state.players(playerId).desc.get.houses(idx).cards
+        if (i < cards.size) Some(cards(i)) else None
+      }
       def getHouseState = game.state.players(playerId).houses(idx)
       new HouseLabel(new DamagableInt(getHouseState.mana, game), houseDesc.house, game) -> (0 to 3).map { i =>
         new CardButton(getCard(i), getHouseState, game)
@@ -19,13 +22,14 @@ class CardPanel(playerId: PlayerId, game: Game) {
   if (playerId == game.myPlayerId){
     cardButtons.foreach { cardButton =>
       cardButton.on {
-        case MouseClicked(_) if cardButton.holder.isActive =>
-          import cardButton.{holder, card}
-          game.commandRecorder.setCommand(Command(game.myPlayerId, card, None, holder.desc.cost))
-          if (card.inputSpec.isDefined) {
-            lastSelected.foreach(_.selected = false)
-            cardButton.selected = true
-            lastSelected = Some(cardButton)
+        case MouseClicked(_) if cardButton.isActive =>
+          cardButton.holder.foreach{ h =>
+            game.commandRecorder.setCommand(Command(game.myPlayerId, h.desc.card, None, h.desc.cost))
+            if (h.desc.card.inputSpec.isDefined) {
+              lastSelected.foreach(_.selected = false)
+              cardButton.selected = true
+              lastSelected = Some(cardButton)
+            }
           }
       }
     }
@@ -38,7 +42,8 @@ class CardPanel(playerId: PlayerId, game: Game) {
   setEnabled(false)
 
   def getPositionOf(card : Card) = {
-    cardButtons.find(_.card == card).map{ cardButton =>
+    val someCard = Some(card)
+    cardButtons.find(_.card == someCard).map{ cardButton =>
       cardButton.coord + (cardButton.size * 0.5)
     }
   }

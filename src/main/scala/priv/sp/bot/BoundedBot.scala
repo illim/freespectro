@@ -65,9 +65,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
 
   def defaultPolicy(node : Node) = {
     var nbStep = 0
-    var state = node.initState
+    var state = node.state
     var end = state.checkEnded
-    var player = other(node.playerId)
+    var player = node.outTransition.playerId
     perfStat.nbdefpol += 1
     //println("path " + node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
@@ -123,6 +123,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     val (state, outTransition) = if (isRoot) (initState, transition) else {
       perfStat.nbsim += 1
       val pid = transition.playerId
+      //println("bot simulate " + commandOpt + "/" + pid)
       bot.simulateCommand(initState, pid, commandOpt) // should be random here
     }
 
