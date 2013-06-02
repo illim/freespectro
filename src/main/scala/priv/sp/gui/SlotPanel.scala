@@ -7,11 +7,14 @@ import priv.sp.gui.spell._
 class SlotPanel(playerId : PlayerId, val game : Game) {
   val lifeLabel = new LifeLabel(game.names(playerId), new DamagableInt(game.state.players(playerId).life, game), game)
   val slots =
-    slotRange.map(num =>
+    baseSlotRange.map(num =>
       new SlotButton(
         num,
         playerId,
-        game.state.players(playerId).slots.get(num),
+        {
+          val p = game.state.players(playerId)
+          (p.slots.get(num), p.slotList.contains(num))
+        },
         game)).toList
   val elts = lifeLabel :: /**testButton ::: */ slots
 

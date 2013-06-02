@@ -35,14 +35,10 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     }
   }
 
-  def add(card : Creature) : SlotState = {
-    add(slots.buildSlotState(card))
-  }
-
-  def add(slot : SlotState) : SlotState = {
+  def add(card : Creature) {  add(slots.buildSlotState(card)) }
+  def add(slot : SlotState) {
     write(Some(slot))
     slots.reactAdd(this)
-    value.get
   }
 
   def damageSlot(damage : Damage) = {

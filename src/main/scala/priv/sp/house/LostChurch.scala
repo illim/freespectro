@@ -48,9 +48,9 @@ class LostChurch {
   def spawnPrisoner : Effect = { env : Env =>
     import env._
     if (!player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
-      val emptySlots = player.slots.slots.filter(_.value.isEmpty)
-      if (emptySlots.nonEmpty) {
-        val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
+      val openSlots = player.slots.getOpenSlots
+      if (openSlots.nonEmpty) {
+        val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
         slot.add(prisoner)
         if (player.slots.findCard(preacher).isDefined){
           slot.attack.add(PreacherAttackBonus)

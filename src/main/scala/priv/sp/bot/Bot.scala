@@ -94,12 +94,15 @@ trait Bot {
 class Choices(bot : Bot) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
-    val slots = state.players(playerId).slots
-    val openSlots = PlayerState.openSlots(slots)
-    val otherSlots = state.players(other(playerId)).slots
+    val p = state.players(playerId)
+    val slots = p.slots
+    val openSlots = PlayerState.openSlots(p)
+    val otherp = state.players(other(playerId))
+    val otherOpenSlots = PlayerState.openSlots(otherp)
+    val otherSlots = otherp.slots
 
-    state.players(playerId).desc.get.houses.flatMap { houseDesc  =>
-      val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
+    p.desc.get.houses.flatMap { houseDesc  =>
+      val houseState = p.houses(houseDesc.house.houseIndex)
 
       houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { cardDesc =>
         import cardDesc.card
@@ -111,6 +114,10 @@ class Choices(bot : Bot) {
             }
           case Some(SelectOwnerCreature) =>
             slots.keys.map { num =>
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+            }
+          case Some(SelectTargetSlot) =>
+            otherOpenSlots.map { num =>
               Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
           case Some(SelectTargetCreature) =>
@@ -125,12 +132,10 @@ class Choices(bot : Bot) {
   import util.Random
 
   def getRandomMove(state: GameState, playerId: PlayerId): Option[Command] = {
-    val slots = state.players(playerId).slots
-    val slot = Random.shuffle(slots).headOption
-    val openSlot = Random.shuffle(PlayerState.openSlots(slots)).headOption
-    val otherSlot = Random.shuffle(state.players(other(playerId)).slots).headOption
-    val houseDesc = state.players(playerId).desc.get.houses(Random.nextInt(5))
-    val houseState = state.players(playerId).houses(houseDesc.house.houseIndex)
+    val p = state.players(playerId)
+    val otherp = state.players(other(playerId))
+    val houseDesc = p.desc.get.houses(Random.nextInt(5))
+    val houseState = p.houses(houseDesc.house.houseIndex)
     val cards = houseDesc.cards.filter(_.isAvailable(houseState))
     val cardOption = Random.shuffle(cards).headOption
 
@@ -139,15 +144,19 @@ class Choices(bot : Bot) {
       card.inputSpec match {
         case None => Some(Command(playerId, card, None, cardDesc.cost))
         case Some(SelectOwnerSlot) =>
-          openSlot.map { num =>
+          Random.shuffle(PlayerState.openSlots(p)).headOption.map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerCreature) =>
-          slot.map { case (num, _) =>
+          Random.shuffle(state.players(playerId).slots).headOption.map { case (num, _) =>
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+          }
+        case Some(SelectTargetSlot) =>
+          Random.shuffle(PlayerState.openSlots(otherp)).headOption.map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectTargetCreature) =>
-          otherSlot.map { case (num, _) =>
+          Random.shuffle(state.players(other(playerId)).slots).headOption.map { case (num, _) =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
       }

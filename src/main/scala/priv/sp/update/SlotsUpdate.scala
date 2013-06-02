@@ -7,7 +7,7 @@ import priv.util.FieldUpdate
 class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), player.value.slots){
   import player._
   var logs = List.empty[BoardEvent]
-  private val slotUpdates = slotRange.map{ i => new SlotUpdate(i, this) }.toVector
+  private val slotUpdates = baseSlotRange.map{ i => new SlotUpdate(i, this) }.toVector
   private val first = slotUpdates(0)
   val playerId = player.id
 
@@ -26,7 +26,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def slots = { ensureInited(); slotUpdates }
   def filleds = { ensureInited(); slotUpdates.filter(_.value.isDefined) }
-  def getEmptySlots = { ensureInited(); slotUpdates.filter(_.value.isEmpty) }
+  def getOpenSlots = { ensureInited(); slotUpdates.filter(s => s.value.isEmpty && player.value.isInSlotRange(s.num)) }
   def apply(n : Int) = slots(n)
   def ensureInited() = if (!first.isInited){ slotUpdates.foreach(_.reinit()) }
 
@@ -52,26 +52,17 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   def move(num : Int, dest : Int){
-    val slot = slots(num)
-    slot.value.foreach{ s =>
-      // HACK (have to recreate the slot to recalcul attack)
-      updateListener.move(num, dest, id)
-      slot.remove()
-      slots(dest).add(
-        SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
-    }
-  }
-
-  def switch(num : Int, dest : Int){
-    val slot = slots(num)
-    slot.value.foreach{ s =>
-      updateListener.move(num, dest, id)
-      slot.remove()
-      if (slots(dest).value.isDefined){
-        move(dest, num)
+    if (player.value.isInSlotRange(dest)){
+      val slot = slots(num)
+      slot.value.foreach{ s =>
+        updateListener.move(num, dest, id)
+        slot.remove()
+        if (slots(dest).value.isDefined){
+          move(dest, num)
+        }
+        slots(dest).add(
+          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
       }
-      slots(dest).add(
-        SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
     }
   }
 

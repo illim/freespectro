@@ -69,7 +69,7 @@ class Vampire {
     val slots      = player.slots
     otherPlayer.slots.reduce(lowestLife).foreach{ s =>
       if (s.num != selected && !slots(s.num).value.exists(_.card == aristocrat)){
-        slots.switch(env.selected, s.num)
+        slots.move(env.selected, s.num)
       }
     }
   }

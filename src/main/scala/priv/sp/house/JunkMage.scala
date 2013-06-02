@@ -43,13 +43,13 @@ class JunkMage {
         slot.add(trash)
       }
     }
-    slotRange.foreach(spawnTrashAt _)
+    env.player.value.slotList.foreach(spawnTrashAt _)
   }
 
   private def gatherTrash : CardSpec.Effect = { env: Env =>
     val slots = env.player.slots
     // bugged with card moves
-    val trashStates = (List.empty[SlotState] /: slotRange){ (acc, i) =>
+    val trashStates = (List.empty[SlotState] /: baseSlotRange){ (acc, i) =>
       val slot = slots(i)
       if (acc.size < 2 && slot.value.isDefined && slot.get.card == trash){
         val state = slot.get
@@ -150,7 +150,7 @@ trait MirrorSummon extends Reaction {
         && math.abs(step) == 1
         && card.cost < maxCost + 1){
       val pos = selected + step
-      if (inSlotRange(pos)){
+      if (player.value.isInSlotRange(pos)){
         val slot = player.slots(pos)
         if (slot.value.isEmpty){
           player.updater.focus(selected, player.id)
@@ -167,7 +167,7 @@ class ChainControllerReaction extends MirrorSummon {
     val step = num - selected
     if (card.cost < 6 && math.abs(step) == 1){
       def getAt(n : Int) = {
-        if (inSlotRange(n)){
+        if (player.value.isInSlotRange(n)){
           player.slots(n).value match {
             case Some(slot) if slot.card.cost < 6 => Some(n)
             case _ => None

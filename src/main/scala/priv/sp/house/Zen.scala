@@ -155,6 +155,8 @@ class ZenMage {
           env.player.slots().isDefinedAt(c.input.get.num)
         case SelectOwnerCreature =>
           !env.player.slots().isDefinedAt(c.input.get.num)
+        case SelectTargetSlot =>
+          env.otherPlayer.slots().isDefinedAt(c.input.get.num)
         case SelectTargetCreature =>
           !env.otherPlayer.slots().isDefinedAt(c.input.get.num)
       }){

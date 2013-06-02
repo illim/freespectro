@@ -84,9 +84,11 @@ class CommandRecorder(game: Game) {
 
         command.card.inputSpec.get match {
           case SelectOwnerSlot =>
-            addInputOrEnable(myPlayerId, PlayerState.openSlots(state.players(myPlayerId).slots))
+            addInputOrEnable(myPlayerId, PlayerState.openSlots(state.players(myPlayerId)))
           case SelectOwnerCreature =>
             addInputOrEnable(myPlayerId, state.players(myPlayerId).slots.keys.toList)
+          case SelectTargetSlot =>
+            addInputOrEnable(otherPlayerId, PlayerState.openSlots(state.players(otherPlayerId)))
           case SelectTargetCreature =>
             addInputOrEnable(otherPlayerId, state.players(otherPlayerId).slots.keys.toList)
         }

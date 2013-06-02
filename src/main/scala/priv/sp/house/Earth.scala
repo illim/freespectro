@@ -42,7 +42,7 @@ trait EarthHouse {
 
   private def spider = { env: Env =>
     def spawnForestSpiderAt(num : Int){
-      if (inSlotRange(num)){
+      if (env.player.value.isInSlotRange(num)){
         val slot = env.player.slots(num)
         if (slot.value.isEmpty){
           slot.add(forestSpider)

@@ -114,9 +114,9 @@ class DarkPriest {
   }
 
   def spawnRestless(player : PlayerUpdate){
-    val emptySlots = player.slots.getEmptySlots
-    if (emptySlots.nonEmpty) {
-      val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
+    val openSlots = player.slots.getOpenSlots
+    if (openSlots.nonEmpty) {
+      val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
       slot.add(restlessSoul)
       slot.focus(blocking = false)
     }
@@ -131,9 +131,9 @@ class DarkPriest {
   class GhostReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       if (dead.isEffect){
-        val emptySlots = dead.otherPlayer.slots.getEmptySlots
-        if (emptySlots.nonEmpty) {
-          val slot = emptySlots(scala.util.Random.nextInt(emptySlots.size))
+        val openSlots = dead.otherPlayer.slots.getOpenSlots
+        if (openSlots.nonEmpty) {
+          val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
           slot.add(ghost)
           slot.focus(blocking = false)
         }

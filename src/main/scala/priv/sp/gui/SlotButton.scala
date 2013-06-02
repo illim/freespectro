@@ -8,41 +8,43 @@ import priv.World
 import priv.GuiElem
 
 // total crap
-class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState], game : Game) extends GuiElem with Damagable {
+class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotState], Boolean), game : Game) extends GuiElem with Damagable {
   import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex}
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
   enabled = false
-  private var card = getCard(slot)
+  private var content = toContent(getInfo)
   private var moveAnim = Option.empty[MoveAnimTask]
   private var alpha = 1f
   var focusScale = Option.empty[Float]
-  val slotSize = Coord2i(120, 142)
-  val stunPos = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
+  val slotSize   = Coord2i(120, 142)
+  val stunPos    = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
   private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
   private val fade = game.sp.baseShaders.fade
 
   def refresh() {
-    val old = card
-    card = getCard(slot)
+    val old = content
+    content = toContent(getInfo)
     alpha = 1
-    for(before <- old; after <- card ; val d = after._1.life - before._1.life if d != 0){
-      game.world.addTask(DamageAnimTask(d))
-    }
+    for{
+      before <- old._1; after <- content._1 ;
+      val d = after._1.life - before._1.life if d != 0
+    } game.world.addTask(DamageAnimTask(d))
   }
-  def isEmpty = card.isEmpty
+  def isEmpty = content._1.isEmpty
 
-  private def getCard(s : Option[SlotState]) = s.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }
-
+  private def toContent(info : (Option[SlotState], Boolean)) = (info._1.map { c => (c, game.sp.textures.get("Images/Cards/" + c.card.image)) }, info._2)
 
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(1, 1, 1, 1)
-    tex.draw(slotTex.id, slotSize)
+    if (content._2){
+      tex.draw(slotTex.id, slotSize)
+    }
 
-    card.foreach {
+    content._1.foreach {
       case (slotState, cardTex) =>
         glPushMatrix()
         glTranslatef(
@@ -126,7 +128,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
 
   def summon(start : Coord2i, s : SlotState) = {
     location.c = start - coord
-    card = getCard(Some(s))
+    content = toContent((Some(s), true))
     new MoveTo(location, location.init)
   }
 
@@ -171,7 +173,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
       lock.synchronized{lock.notifyAll()}
       moveAnim = None
       if (dest != num){
-        card = None // HACK
+        content = (None, true) // HACK
       }
     }
     def getDelta(time: Long) = (dest - num) * size.x * (time - start) / duration
@@ -179,7 +181,7 @@ class SlotButton(val num: Int, playerId : PlayerId, slot : => Option[SlotState],
 
   on {
     case MouseMoved(_) =>
-      game.descriptionPanel.cardOption = card.map(_._1.card)
+      game.descriptionPanel.cardOption = content._1.map(_._1.card)
     case MouseLeaved(_) =>
       game.descriptionPanel.cardOption = None
   }

@@ -16,7 +16,7 @@ class Elementalist {
     Creature("ArchPhoenix", Attack(9), 20, "Fire cards heal him instead of dealing damage.", reaction = new ArchPhoenixReaction),
     Creature("StoneGolem", Attack(7), 30, "Regenerates 4 life when blocked.\nReceives no damage from spells and creatures abilities when unblocked.", reaction = new SGReaction, effects = effects(OnTurn -> stoneGole)),
     Spell("FrostLightning", "Deals X damage to opponent\n(X = difference between his lowest power and owner highest power)\nand permanently blocks target slot.",
-          inputSpec = Some(SelectTargetCreature),
+          inputSpec = Some(SelectTargetSlot),
           effects = effects(Direct -> frostLight))))
 
   val sylph = Elementalist.cards(0)
@@ -90,8 +90,7 @@ class Elementalist {
     val own = player.getHouses.reduceLeft((h1, h2) => if (h1.mana > h2.mana) h1 else h2 ).mana
     val x = math.max(0, own - opp)
     otherPlayer.inflict(Damage(x, env, isSpell = true))
-    val slot = otherPlayer.slots(env.selected)
-    slot.toggle(blockedFlag)
+    otherPlayer.blockSlot(selected)
   }
 
   class SylphReaction extends Reaction {

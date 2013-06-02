@@ -95,6 +95,7 @@ case class Damage(amount : Int, context : Context, isAbility : Boolean = false, 
 sealed trait CardInputSpec
 case object SelectOwnerSlot extends CardInputSpec
 case object SelectOwnerCreature extends CardInputSpec
+case object SelectTargetSlot extends CardInputSpec
 case object SelectTargetCreature extends CardInputSpec
 
 class SlotInput(val num: Int) extends AnyVal with Serializable

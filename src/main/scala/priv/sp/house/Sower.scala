@@ -98,7 +98,7 @@ class Sower {
       if (selectedPlayerId == player.id && selected != num && card.houseId == Sower.houseId){
         player.updater.focus(selected, player.id)
         val slots = player.slots
-        val dists = slotRange.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
+        val dists = player.value.slotList.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
         dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
           slots(pos).add(card)
         }

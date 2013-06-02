@@ -117,6 +117,10 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
+  def blockSlot(n : Int){
+    write(pstate.copy(slotList = pstate.slotList.filterNot(_ == n)))
+  }
+
   // this is probably bugged due to card moves ...
   // todo identify slot creature?
   def applyEffects(phase : CardSpec.Phase) {
