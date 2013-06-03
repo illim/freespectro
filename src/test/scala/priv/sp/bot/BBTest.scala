@@ -31,7 +31,7 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
   def houseStates(ms : Int*) = ms.to[Vector].map(m => new HouseState(m))
   def toSlotState(h : House, i : Int, x: Int = 0) = {
     val card = h.cards(i -1).asCreature
-    SlotState(card, card.life, card.status, card.attack, card.attack.base.getOrElse(x), card.data)
+    SlotState(card, card.life, 1, card.attack, card.attack.base.getOrElse(x), card.data)
   }
   def slots(ss : (Int, SlotState)*) = PlayerState.emptySlots ++ ss.toList
   def pstate(id: Int, hs : Vector[HouseState], slots : PlayerState.SlotsType, life : Int) = PlayerState(hs, new DescReader(desc.players(id)), slots, life = life)
@@ -48,7 +48,7 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
          (4 -> toSlotState(Earth, 10, 10))),
        life = 15),
      pstate(1,
-       houseStates(10, 10, 10, 10, 10),
+       houseStates(10, 7, 10, 10, 10),
        slots = slots(
          (0 -> toSlotState(Water, 10, 7)),
          (5 -> toSlotState(Earth, 7))),
@@ -76,5 +76,4 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
     val bot = new BoundedBot(1, desc, houses)
     bot.executeAI(state).get.card should equal(Air.cards(3))
   }
-
 }
