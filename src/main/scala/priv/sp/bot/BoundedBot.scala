@@ -9,15 +9,44 @@ import collection._
 // select best reward and not numsim due to boost(leafed node when early win/loss detected)
 // not using flat uct for opponent next move fairness?
 class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses) extends Bot {
+  val heuris = new LifeManaRatioHeuris(botPlayerId)
+
   def executeAI(start: GameState) = {
     val st = k.ripDescReader(start)
-    new BoundedBotAI(botPlayerId, st, this).execute()
+    heuris.init(st)
+    new BoundedBotAI(botPlayerId, st, this, heuris).execute()
   }
 }
 
-class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
+abstract class AIHeuristic[A](botPlayerId : PlayerId){
+  val human = other(botPlayerId)
+  var start = null.asInstanceOf[A]
+  def init(st : GameState){ start = getValue(st)  }
+  def getValue(state : GameState) : A
+  def apply(state : GameState) : Float
+}
+
+class LifeHeuris(botPlayerId : PlayerId) extends AIHeuristic[Int](botPlayerId){
+  def getValue(state : GameState) = state.players(botPlayerId).life - state.players(human).life
+  def apply(state : GameState) = 0.01f * (getValue(state) - start)
+}
+
+class LifeManaRatioHeuris(botPlayerId : PlayerId) extends AIHeuristic[(Int, Int)](botPlayerId){
+  def getMana(p : PlayerState) = p.houses.map(_.mana).sum
+  def getValue(state : GameState) = {
+    (state.players(botPlayerId).life - state.players(human).life,
+     getMana(state.players(botPlayerId)) - getMana(state.players(human)))
+  }
+  def apply(state : GameState) : Float = {
+    val (l, m) = getValue(state)
+    val ratio = if (m >= start._2) 1f else (start._2 - m).toFloat
+    (l - start._1) / ratio
+  }
+}
+
+class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris : AIHeuristic[_]) {
   val duration = 4000
-  val defaultPolicyMaxTurn = 10
+  var defaultPolicyMaxTurn = 10
   val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?
   val boostFactor = 3
 
@@ -25,7 +54,6 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
   val perfStat = new PerfStat()
   val choices = new Choices(bot)
   val human = other(botPlayerId)
-  val deltaStart = start.players(botPlayerId).life - start.players(human).life
 
   def execute() = {
     val startTime = System.currentTimeMillis
@@ -127,6 +155,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
     //workaround if simulation is out of budget, at least update stat if
     state.checkEnded.foreach{ p =>
       leafed = true
+      if (p == other(botPlayerId)){ // decrease sim time if we aim short time survival
+        defaultPolicyMaxTurn = 2
+      }
       updateStatsFrom(state, Some(p), boost = boostFactor * (1 + expansionTreeMaxDepth - depth)) // FIXME not great
     }
 
@@ -135,11 +166,8 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot) {
       numSim += 1
       // stupid heuristic again
       val deltaReward = end.map{ p =>
-        if (p == botPlayerId) 1f else -1f
-      }.getOrElse {
-        val dend = st.players(botPlayerId).life - st.players(human).life
-        0.01f * (dend - deltaStart)
-      }
+        if (p == botPlayerId) 10f else -10f
+      }.getOrElse(heuris(st))
       rewards += boost * deltaReward
       backPropagate(deltaReward)
     }

@@ -35,7 +35,7 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
   }
   def slots(ss : (Int, SlotState)*) = PlayerState.emptySlots ++ ss.toList
   def pstate(id: Int, hs : Vector[HouseState], slots : PlayerState.SlotsType, life : Int) = PlayerState(hs, new DescReader(desc.players(id)), slots, life = life)
-/**
+
   "bot" should "win the game with last move" in {
     val state = GameState(List(
      pstate(0,
@@ -75,6 +75,6 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
 
     val bot = new BoundedBot(1, desc, houses)
     bot.executeAI(state).get.card should equal(Air.cards(3))
-  }*/
+  }
 
 }
