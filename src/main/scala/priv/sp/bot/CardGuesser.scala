@@ -9,11 +9,11 @@ import util.Random
  * he has more cards than the normal player so the ai can try all possible moves. One weak point
  * is that currently there's no difference between a 100%certain and a 50%probable card for the ai.
  */
-class CardGuess(gameDesc : GameDesc, sp : SpWorld) {
+class CardGuess(gameDesc : GameDesc, spHouses : Houses) {
 
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
     val knowledge = new ModelFilter(knownCards, gameDesc.players(botPlayerId))
-    val cardModel = GCardModel.build(sp.houses, gameDesc.players(other(botPlayerId)), knowledge)
+    val cardModel = GCardModel.build(spHouses, gameDesc.players(other(botPlayerId)), knowledge)
     new CardGuesser(cardModel).solve(timeLimit)
     if (cardModel.cp.isFailed) None
     else Some(cardModel.toPlayerHouseDesc)

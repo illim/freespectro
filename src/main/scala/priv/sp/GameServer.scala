@@ -37,7 +37,7 @@ class Local(resources : GameResources) extends GameServer {
   val desc = GameDesc(Vector(p1Desc, p2Desc))
   val playerId = opponent
   val name = "AI"
-  val bot = new BoundedBot(playerId, desc, resources.sp)
+  val bot = new BoundedBot(playerId, desc, resources.sp.houses)
   val seed = System.currentTimeMillis
   def waitNextCommand(c : TVar[Option[Command]], state : GameState) = {
     resources.aiExecutor.submit(

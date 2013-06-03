@@ -19,11 +19,11 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
 
 trait Bot {
   def gameDesc: GameDesc
-  def sp : SpWorld
+  def spHouses : Houses
   def botPlayerId: PlayerId
   def executeAI(state: GameState): Option[Command]
 
-  val guess = new CardGuess(gameDesc, sp)
+  val guess = new CardGuess(gameDesc, spHouses)
   var knownCards = Set.empty[(Card, Int)]
   var k = generateK().get
   var updater : GameStateUpdater = null
