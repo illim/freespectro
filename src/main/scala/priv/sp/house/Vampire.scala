@@ -28,6 +28,9 @@ class Vampire {
 
   val neophyte = Creature("Neophyte", Attack(5), 14, "Heals himself half of damage dealt to enemies.", runAttack = new NeophyteAttack)
 
+  neophyte.houseIndex = Vampire.houseIndex
+  neophyte.houseId = Vampire.houseId
+
   private def darkFlock = { env: Env =>
     import env._
     player.slots.reduce(lowestLife).foreach{ s =>
