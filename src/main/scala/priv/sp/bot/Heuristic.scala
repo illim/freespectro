@@ -1,60 +1,102 @@
 package priv.sp.bot
 
+import scala.collection._
 import priv.sp._
+import priv.sp.update._
 
+/***
+ * A few stupid heuristics trying to "catch" different play styles
+ */
 trait Heuris {
-  def apply(state : GameState) : Float
-}
-
-abstract class AIHeuristic[A](botPlayerId : PlayerId) extends Heuris {
-  val human = other(botPlayerId)
-  var start = null.asInstanceOf[A]
   def name : String
-  def init(st : GameState){ start = getValue(st)  }
-  def getValue(state : GameState) : A
-  def apply(state : GameState) : Float
+  def init(st : GameState)
+  def apply(state : GameState, playerStats : List[PlayerStats]) : Float
 }
 
-class LifeHeuris(botPlayerId : PlayerId) extends AIHeuristic[Int](botPlayerId){
-  val name = "Rushomon"
-  def getValue(state : GameState) = state.players(botPlayerId).life - state.players(human).life
-  def apply(state : GameState) = getValue(state) - start
-}
+trait HeuristicHelper extends Heuris {
+  def botPlayerId : PlayerId
+  val humanId = other(botPlayerId)
+  var start = null.asInstanceOf[HeurisValue]
+  var initState = null.asInstanceOf[GameState]
 
-class LifeManaRatioHeuris(botPlayerId : PlayerId) extends AIHeuristic[(Int, Int)](botPlayerId){
-  val name = "Leonard"
-  def getMana(p : PlayerState) = p.houses.map(_.mana).sum
-  def getValue(state : GameState) = {
-    (state.players(botPlayerId).life - state.players(human).life,
-     getMana(state.players(botPlayerId)) - getMana(state.players(human)))
+  def init(st : GameState){
+    initState = st
+    start = new HeurisValue(st)
   }
-  def apply(state : GameState) : Float = {
-    val (l, m) = getValue(state)
-    val ratio = if (m >= start._2) 1/(1f+ m - start._2) else (1 + (start._2 - m) / 2f)
-    (l - start._1) / ratio
-  }
-}
 
-class BoardLifeManaRatioHeuris(botPlayerId : PlayerId) extends AIHeuristic[(Int, Int, Int)](botPlayerId){
-  val name = "Pierrot"
-  def getMana(p : PlayerState) = p.houses.map(_.mana).sum
-  def getValue(state : GameState) = {
-    val botp = state.players(botPlayerId)
-    val humanp = state.players(human)
-    (botp.life - humanp.life, getMana(botp) - getMana(humanp), botp.slots.values.map(_.attack).toList.sum - humanp.slots.values.map(_.attack).toList.sum) // very stupid board eval
-  }
-  def apply(state : GameState) : Float = {
-    val humanp = state.players(human)
-    val (l, m, b) = getValue(state)
-    // early game
-    if (getMana(humanp) < 30 && m < 10 && humanp.life > 40 && l < 10){
-      val mratio = if (m <= start._2) 1/(1f+ start._2 -m) else (1 + (m - start._2)/2f)
-      val bratio = if (b <= start._3) 1/(1f+ start._2 -b) else (1 + (b - start._3)/2f)
-       mratio * bratio / (1 + (l - start._1) / 2f)
-    } else {
-      val mratio = if (m >= start._2) 1/(1f+ m - start._2) else (1 + (start._2 - m)/2f)
-      val bratio = if (b >= start._3) 1/(1f+ b - start._3) else (1 + (start._3 - b)/2f)
-      (l - start._1) / (mratio * bratio)
+  def getKill(s : PlayerStats) = s.nbKill
+  def getKillCost(s : PlayerStats) = s.nbKill * (math.max(1, s.killCost / 2)).toFloat
+  def fixz[N](x : N)(implicit num : Numeric[N]) = if (x==num.zero) 0.1f else num.toFloat(x)
+
+  class HeurisValue(state : GameState){
+    val bot = state.players(botPlayerId)
+    val human = state.players(humanId)
+
+    // stupid use of lazy
+    lazy val lifeDelta = bot.life - human.life
+    lazy val manaDelta = getMana(bot) - getMana(human)
+    lazy val botMana = getMana(bot)
+
+    def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
+    def getPowMana(p : PlayerState) = p.houses.zipWithIndex.map{ case (x, i) =>
+      if (i == 4) math.pow(x.mana, 3) else math.pow(x.mana, 2)
+    }.sum.toFloat
+    def getCostPowMana(m : Int, houseIndex : Int) = {
+      if (houseIndex == 4) math.pow(m, 3) else math.pow(m, 2)
     }
+  }
+}
+
+// simple life delta
+class LifeHeuris(val botPlayerId : PlayerId) extends HeuristicHelper {
+  val name = "Rushomon" // not a real rusher
+  def apply(state : GameState, playerStats : List[PlayerStats]) = (new HeurisValue(state)).lifeDelta - start.lifeDelta
+}
+
+// temper rush a bit with the cost of the life delta
+class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
+  val name = "Merchant"
+
+  def apply(state : GameState, playerStats : List[PlayerStats]) : Float = {
+    val h = new HeurisValue(state)
+    val ratio = h.botMana / start.botMana.toFloat
+
+    (h.lifeDelta - start.lifeDelta) * ratio
+  }
+}
+
+// a soup of shitty indicators
+class MultiRatioHeuris(
+  val botPlayerId : PlayerId,
+  val name : String,
+  useKillRatio : Boolean = false,
+  useKillCostRatio : Boolean = false,
+  useManaRatio : Boolean = true,
+  lifeThreshold : Float = 0.4f,
+  manaThreshold : Float = 0.3f
+) extends HeuristicHelper {
+
+  def apply(state : GameState, playerStats : List[PlayerStats]) : Float = {
+    val h = new HeurisValue(state)
+    val humanLifeRatio = lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
+    var res = humanLifeRatio
+
+    if (useKillRatio){
+      val botKill = getKill(playerStats(botPlayerId))
+      val allKill = botKill + getKill(playerStats(humanId))
+      res *= (if (allKill == 0) 1f else (0.5f + (botKill / allKill)))
+    }
+
+    if (useKillCostRatio){
+      val botKill = getKillCost(playerStats(botPlayerId))
+      val allKill = botKill + getKillCost(playerStats(humanId))
+      res *= (if (allKill == 0) 1f else (0.5f + (botKill / allKill)))
+    }
+
+    if (useManaRatio){
+      res *= manaThreshold + (h.botMana / fixz(math.max(h.botMana, start.botMana)))
+    }
+
+    res
   }
 }

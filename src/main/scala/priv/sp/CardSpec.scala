@@ -164,7 +164,7 @@ class Reaction {
   def onMyDeath(dead : Dead) {}
   def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
-  def onSpawnOver(slot : SlotUpdate) {}
+  def onSpawnOver(slot : SlotUpdate) { slot.destroy() }
   def onOverwrite(c : Creature, slot : SlotUpdate) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }

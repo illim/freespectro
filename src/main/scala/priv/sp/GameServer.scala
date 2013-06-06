@@ -29,6 +29,7 @@ trait GameServer {
 }
 
 class Local(resources : GameResources) extends GameServer {
+  Random.setSeed(System.currentTimeMillis)
   private val shuffle = new CardShuffle(resources.sp.houses)
   val startingPlayer = playerIds(scala.util.Random.nextInt(2))
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.playerChoices, startingPlayer)

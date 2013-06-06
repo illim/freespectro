@@ -13,6 +13,8 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   private var houseFieldUpdate = new HouseFieldUpdate
   val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.map(_()).getOrElse(new HouseEventListener)
   houseEventListener.player = this
+  val stats = PlayerStats()
+  protected lazy val otherPlayerStats = updater.playerFieldUpdates(other(id)).stats
 
   def otherPlayer = updater.players(other(id)) // not great
   def getHouses   = if (houseFieldUpdate.isDirty) houseFieldUpdate.value else pstate.houses
@@ -24,7 +26,10 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def flush() = {
     if (slotsUpdate.isDirty){
       slotsUpdate.logs.reverseIterator.foreach{
-        case dead : Dead => slots.onDead(dead)
+        case dead : Dead =>
+          stats.nbDead += 1
+          otherPlayerStats.addKill(dead.card)
+          slots.onDead(dead)
         case _ =>
       }
       slots.logs = Nil
@@ -49,14 +54,12 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
 
   def submit(c : Command){
-    val (test, newComand) = ((false, Option.empty[Command]) /: getSlots){ case (acc, (_, s)) =>
-      if (acc._1) acc else s.card.reaction.interceptSubmit(c, updater)
-    }
+    val (test, newComand) = houseEventListener.interceptSubmit(c)
     (if (!test) Some(c) else newComand).foreach{ command =>
       if (command.card.isSpell){
         updateListener.spellPlayed(command)
       }
-      houses.incrMana(- command.cost, command.card.houseIndex)
+      houses.incrMana(- command.cost, command.card.houseIndex) // could be after but it's ugly(-> hack for fury)
       updateListener.refresh(silent = true)
       if (!command.card.isSpell) {
         command.input.foreach{ slotInput =>
@@ -66,6 +69,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
             case _ =>
               slots
           }
+          stats.nbSummon += 1
           targetSlots.summon(slotInput.num, command.card.asCreature)
         }
       }
@@ -77,6 +81,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         }
         f(env)
       }
+      updateListener.refresh()
     }
   }
 

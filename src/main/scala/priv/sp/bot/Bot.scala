@@ -51,7 +51,7 @@ trait Bot {
     k = generateK().get
   }
 
-  private def initGameUpdate(state : GameState){
+  protected def initGameUpdater(state : GameState){
     if (updater == null){
       updater = new GameStateUpdater(state, gameDesc)
     }
@@ -62,7 +62,6 @@ trait Bot {
   }
 
   def simulateCommand(state: GameState, playerId : PlayerId, commandOption: Option[Command]) : (GameState, Transition)  = {
-    initGameUpdate(state)
     try {
       updater.lift{ u =>
         val p = u.players(playerId)
@@ -104,7 +103,10 @@ class Choices(bot : Bot) {
     p.desc.get.houses.flatMap { houseDesc  =>
       val houseState = p.houses(houseDesc.house.houseIndex)
 
-      houseDesc.cards.withFilter(_.isAvailable(houseState)).flatMap { cardDesc =>
+      val cardDescs = houseDesc.cards.filter(_.isAvailable(houseState)).sortBy{ c =>
+        (!c.card.isSpell, - c.cost)
+      } // try spell first(direct effects + may be less slot dependent)
+      cardDescs.flatMap { cardDesc =>
         import cardDesc.card
         card.inputSpec match {
           case None => List(Command(playerId, card, None, cardDesc.cost))

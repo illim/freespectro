@@ -2,6 +2,7 @@ package priv.sp.bot
 
 import scala.util.Random
 import priv.sp._
+import priv.sp.update._
 import priv.util._
 import scalaz._
 import collection._
@@ -13,12 +14,14 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouse
   val heuris = Random.nextInt(3) match {
     case 0 => new LifeManaRatioHeuris(botPlayerId)
     case 1 => new LifeHeuris(botPlayerId)
-    case 2 => new BoardLifeManaRatioHeuris(botPlayerId)
+    case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillCostRatio = true)
+//    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 
   def executeAI(start: GameState) = {
     val st = k.ripDescReader(start)
     heuris.init(st)
+    initGameUpdater(start)
     new BoundedBotAI(botPlayerId, st, this, heuris).execute()
   }
 }
@@ -76,6 +79,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     var end = state.checkEnded
     var player = node.outTransition.playerId
     perfStat.nbdefpol += 1
+    bot.updater.resetStats()
     //println("path " + node.path+ "/" + state.players.map(_.life))
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
@@ -87,7 +91,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       end = state.checkEnded
     }
     //println("end " +nbStep+","+ end)
-    node.updateStatsFrom(state, end)
+    node.updateStatsFrom(state, end, playerStats = Some(bot.updater.stats))
   }
 
   class Selector extends SelectExpandLoop[Node] {
@@ -126,10 +130,12 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
 
+    bot.updater.resetStats()
     val (state, outTransition) = if (isRoot) (initState, transition) else {
       perfStat.nbsim += 1
       bot.simulateCommand(initState, playerId, commandOpt) // should be random here
     }
+    val nodePlayerStats = bot.updater.stats.map(_.copy())
 
     //workaround if simulation is out of budget, at least update stat if
     state.checkEnded.foreach{ p =>
@@ -141,11 +147,15 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     }
 
     def commandChoices: Stream[Command] = choices.getNexts(state, outTransition.playerId)
-    def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1){
+    def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1, playerStats : Option[List[PlayerStats]] = None){
       numSim += 1
+      val stats = playerIds.map{ i =>
+        val s = nodePlayerStats(i)
+        playerStats.map(_(i) + s).getOrElse(s)
+      }
       val deltaReward = end.map{ p =>
         if (p == botPlayerId) 1f else -1f
-      }.getOrElse(0.01f * heuris(st))
+      }.getOrElse(0.01f * heuris(st, stats))
       rewards += boost * deltaReward
       backPropagate(deltaReward)
     }

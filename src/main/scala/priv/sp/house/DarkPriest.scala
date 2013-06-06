@@ -18,7 +18,7 @@ class DarkPriest {
     Spell("BlackMass", "Sacrifices target creature and deals 4X damage to all enemy creatures\n(X - number of different elements to which enemy creatures belong).", inputSpec = Some(SelectOwnerCreature), effects = effects(Direct -> blackMass)),
     Creature("EnergyVampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
     Creature("BlackMonk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
-    Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), reaction = new BetrayerReaction, effects = effects(OnTurn -> betray)),
+    Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), effects = effects(OnTurn -> betray)),
     Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
     Creature("Missionary", Attack(3), 36, "When enters the game, weakest friendly creature and\nweakest enemy creature of the same element lose half of current health.\nWhen owner summons elemental creature, turns it into heretic\nWhen owner summons special creature, turns itself into black angel", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
     effects = List(OnStart -> initRestless))
@@ -178,12 +178,6 @@ class DarkPriest {
 class BlackMonkReaction extends Reaction {
   override def onMyDamage(amount : Int, slot : SlotUpdate) {
     slot.slots.player.heal(amount)
-  }
-}
-
-class BetrayerReaction extends Reaction {
-  final override def onSpawnOver(slot : SlotUpdate) {
-    slot.destroy()
   }
 }
 

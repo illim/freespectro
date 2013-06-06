@@ -7,10 +7,11 @@ import priv.util.FieldUpdate
 
 // desc is only used to get house specific listener
 class GameStateUpdater(initState : GameState, val desc : GameDesc) extends FieldUpdate(None, initState) { self =>
-  private val playerFieldUpdates = playerIds.map(id => new PlayerUpdate(id, self))
+  val playerFieldUpdates = playerIds.map(id => new PlayerUpdate(id, self))
   var ended = false
   var updateListener : UpdateListener = new DefaultUpdateListener
   val houseEventListeners = playerFieldUpdates.map(_.houseEventListener)
+  val stats = playerFieldUpdates.map(_.stats)
 
   def state = value
 
@@ -28,6 +29,8 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
   def focus(num : Int, playerId : PlayerId, blocking : Boolean = true) = updateListener.focus(num, playerId, blocking)
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
+
+  def resetStats(){ playerFieldUpdates.foreach(_.stats.reset()) }
 
   def result = {
     playerFieldUpdates.foreach(_.flush())
@@ -65,4 +68,7 @@ class HouseEventListener {
   def onDeath(dead : Dead) {}
   def protect(num : Int, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
+
+  private val isResult = (false, None)
+  def interceptSubmit(c : Command) : (Boolean, Option[Command]) = isResult
 }
