@@ -10,11 +10,11 @@ class Warp {
   val Warp = House("Warp", List(
     Creature("Errant", Attack(4), 19, "Hide from the world after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to their mana", effects = effects(Direct -> quake)),
-    Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
+    Creature("Cloak", Attack(4), 18, "When die restore the creature.(Can't cloak himself)", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
     Creature("Photographer", Attack(3), 18, "If there's already a photograph, owner slots is reverted to the state\nwhen last one was spawned", effects = effects(Direct -> photo)),
-    Creature("WatchMaker", Attack(6), 25, "When summoned, opposite opposite creature lose his abilities until watchmaker die.", reaction = new WMReaction, effects = effects(Direct -> watch)),
+    Creature("WatchMaker", Attack(6), 25, "When summoned, opposite opposite creature lose his abilities until watchmaker die.", reaction = new WMReaction),
     Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
-    Creature("Stranger", AttackSources().add(new StrangerAttack), 35, "Attack is highest opponent mana. Take effects of opposite slots.", effects = effects(Direct -> merge)),
+    Creature("Stranger", AttackSources().add(new StrangerAttack), 35, "Attack is highest opponent mana. When summoned, take effects of opposite slot.", effects = effects(Direct -> merge)),
     Creature("WarpQueen", Attack(6), 35, "Opponent creatures lose their ability until end of next turn.\nDeals 5 damage to each of them", effects = effects(Direct -> warp))))
 
   val photographer = Warp.cards(3)
@@ -58,13 +58,6 @@ class Warp {
       otherPlayer.houses.incrMana(math.max(0, s.card.cost - 2), s.card.houseIndex)
     }
   }
-  def watch = { env : Env =>
-    val slot = env.otherPlayer.slots(env.selected)
-    slot.value.foreach{ s =>
-      slot.remove()
-      bridle(s, slot)
-    }
-  }
   def warp = { env : Env =>
     import env._
     otherPlayer.slots.slots.collect{ case slot if slot.value.isDefined =>
@@ -91,9 +84,17 @@ class Warp {
     }
   }
   class WMReaction extends Reaction {
-    override def onMyDeath(dead : Dead) {
-      import dead._
-      unbridle(player.otherPlayer.slots(num)) // FIXME bugged between wm and wq
+    override def onAdd(selected : Int, slot : SlotUpdate) {
+      if (selected == slot.num){
+        val oppSlot = slot.slots.player.otherPlayer.slots(selected)
+        oppSlot.value.foreach{ s =>
+          oppSlot.remove()
+          bridle(s, oppSlot)
+        }
+      }
+    }
+    override def onRemove(slot : SlotUpdate) {
+      unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between wm and wq
     }
   }
 }
@@ -133,16 +134,18 @@ class StrangerAttack extends AttackStateFunc {
 class CloakReaction extends Reaction {
   override def onSpawnOver(slot : SlotUpdate) = {
     val s = slot.get
-    slot.destroy()
+    slot.remove()
     Some(new CloakSlotMod(s))
   }
 
   override def onMyDeath(dead : Dead){
     import dead._
     val cloaked = dead.slot.data.asInstanceOf[SlotState]
-    val slot = player.slots(num)
-    slot.add(cloaked.card)
-    slot.update(_.copy(life = cloaked.life))
+    if (cloaked != null){
+      val slot = player.slots(num)
+      slot.add(cloaked.card)
+      slot.update(_.copy(life = cloaked.life))
+    }
   }
 }
 
