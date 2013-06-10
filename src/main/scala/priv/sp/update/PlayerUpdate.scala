@@ -109,6 +109,10 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     write(pstate.copy(effects = pstate.effects.filter(e => !cond(e._2))))
   }
 
+  def mapEffect(f : CardSpec.Effect => CardSpec.Effect){
+    write(pstate.copy(effects = pstate.effects.map( x => (x._1, f(x._2)))))
+  }
+
   def addTransition(t : Transition){
     write(pstate.copy(transitions = t :: pstate.transitions))
   }

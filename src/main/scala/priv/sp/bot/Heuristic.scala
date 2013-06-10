@@ -10,7 +10,7 @@ import priv.sp.update._
 trait Heuris {
   def name : String
   def init(st : GameState)
-  def apply(state : GameState, playerStats : List[PlayerStats]) : Float
+  def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float
 }
 
 trait HeuristicHelper extends Heuris {
@@ -27,6 +27,7 @@ trait HeuristicHelper extends Heuris {
   def getKill(s : PlayerStats) = s.nbKill
   def getKillCost(s : PlayerStats) = s.nbKill * (math.max(1, s.killCost / 2)).toFloat
   def fixz[N](x : N)(implicit num : Numeric[N]) = if (x==num.zero) 0.1f else num.toFloat(x)
+  def temper(x : Float, ratio : Float) = if (x < 0) x / fixz(ratio) else x * ratio
 
   class HeurisValue(state : GameState){
     val bot = state.players(botPlayerId)
@@ -36,6 +37,7 @@ trait HeuristicHelper extends Heuris {
     lazy val lifeDelta = bot.life - human.life
     lazy val manaDelta = getMana(bot) - getMana(human)
     lazy val botMana = getMana(bot)
+    lazy val botPowMana = getPowMana(bot)
 
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
     def getPowMana(p : PlayerState) = p.houses.zipWithIndex.map{ case (x, i) =>
@@ -50,18 +52,17 @@ trait HeuristicHelper extends Heuris {
 // simple life delta
 class LifeHeuris(val botPlayerId : PlayerId) extends HeuristicHelper {
   val name = "Rushomon" // not a real rusher
-  def apply(state : GameState, playerStats : List[PlayerStats]) = (new HeurisValue(state)).lifeDelta - start.lifeDelta
+  def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) = (new HeurisValue(state)).lifeDelta - start.lifeDelta
 }
 
 // temper rush a bit with the cost of the life delta
 class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
   val name = "Merchant"
 
-  def apply(state : GameState, playerStats : List[PlayerStats]) : Float = {
+  def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
-    val ratio = h.botMana / start.botMana.toFloat
-
-    (h.lifeDelta - start.lifeDelta) * ratio
+    val ratio = h.botMana / (5 * turns + start.botMana).toFloat
+    temper(h.lifeDelta - start.lifeDelta, ratio)
   }
 }
 
@@ -76,7 +77,7 @@ class MultiRatioHeuris(
   manaThreshold : Float = 0.3f
 ) extends HeuristicHelper {
 
-  def apply(state : GameState, playerStats : List[PlayerStats]) : Float = {
+  def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
     val humanLifeRatio = lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
     var res = humanLifeRatio
@@ -84,17 +85,17 @@ class MultiRatioHeuris(
     if (useKillRatio){
       val botKill = getKill(playerStats(botPlayerId))
       val allKill = botKill + getKill(playerStats(humanId))
-      res *= (if (allKill == 0) 1f else (0.5f + (botKill / allKill)))
+      res = temper(res, (if (allKill == 0) 1f else (0.5f + (botKill / allKill))))
     }
 
     if (useKillCostRatio){
       val botKill = getKillCost(playerStats(botPlayerId))
       val allKill = botKill + getKillCost(playerStats(humanId))
-      res *= (if (allKill == 0) 1f else (0.5f + (botKill / allKill)))
+      res = temper(res, (if (allKill == 0) 1f else (0.5f + (botKill / allKill))))
     }
 
     if (useManaRatio){
-      res *= manaThreshold + (h.botMana / fixz(math.max(h.botMana, start.botMana)))
+      res = temper(res, h.botPowMana / (turns * fixz(start.botPowMana)))
     }
 
     res

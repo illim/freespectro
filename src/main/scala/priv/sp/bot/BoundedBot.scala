@@ -155,7 +155,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       }
       val deltaReward = end.map{ p =>
         if (p == botPlayerId) 1f else -1f
-      }.getOrElse(0.01f * heuris(st, stats))
+      }.getOrElse(0.01f * heuris(st, stats, depth))
       rewards += boost * deltaReward
       backPropagate(deltaReward)
     }

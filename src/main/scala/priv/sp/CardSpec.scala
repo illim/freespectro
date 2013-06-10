@@ -105,8 +105,9 @@ object CardSpec {
   val stunFlag = 2
   val invincibleFlag = 4
   val blockedFlag = 8
+  val pausedFlag = 16
 
-  val stunOrBlocked = stunFlag + blockedFlag
+  val onHold = stunFlag + blockedFlag + pausedFlag
 
   type Phase = Int
   val Direct = 0
@@ -149,10 +150,16 @@ trait PlayerEvent extends BoardEvent {
   def player : PlayerUpdate
   def otherPlayer = player.otherPlayer
 }
-case class Dead(num : Int, card : Creature, player : PlayerUpdate , isEffect : Boolean) extends PlayerEvent
+case class Dead(num : Int, slot : SlotState, player : PlayerUpdate , isEffect : Boolean) extends PlayerEvent {
+  def card= slot.card
+}
 // need source if no target
 case class DamageEvent(damage : Damage, target : Option[Int], player : PlayerUpdate) extends PlayerEvent
 case class SummonEvent(num : Int, card : Creature, player : PlayerUpdate) extends PlayerEvent
+
+trait SlotMod {
+  def apply(slotState : SlotState) : SlotState
+}
 
 class Reaction {
   def onAdd(selected : Int, slot : SlotUpdate){}
@@ -164,7 +171,7 @@ class Reaction {
   def onMyDeath(dead : Dead) {}
   def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
-  def onSpawnOver(slot : SlotUpdate) { slot.destroy() }
+  def onSpawnOver(slot : SlotUpdate) : Option[SlotMod] = { slot.destroy(); None }
   def onOverwrite(c : Creature, slot : SlotUpdate) {}
   def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
 }

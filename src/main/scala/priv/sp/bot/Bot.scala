@@ -139,29 +139,37 @@ class Choices(bot : Bot) {
     val houseDesc = p.desc.get.houses(Random.nextInt(5))
     val houseState = p.houses(houseDesc.house.houseIndex)
     val cards = houseDesc.cards.filter(_.isAvailable(houseState))
-    val cardOption = Random.shuffle(cards).headOption
+    val cardOption = randHeadOption(cards)
 
     cardOption.flatMap { cardDesc =>
       import cardDesc.card
       card.inputSpec match {
         case None => Some(Command(playerId, card, None, cardDesc.cost))
         case Some(SelectOwnerSlot) =>
-          Random.shuffle(PlayerState.openSlots(p)).headOption.map { num =>
+          val opens = PlayerState.openSlots(p)
+          val (blockeds, unBlockeds) = opens.partition(otherp.slots.isDefinedAt _)
+          // todo use macro?
+          (if (Random.nextBoolean) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerCreature) =>
-          Random.shuffle(state.players(playerId).slots).headOption.map { case (num, _) =>
+          randHeadOption(state.players(playerId).slots.keys.toSeq).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectTargetSlot) =>
-          Random.shuffle(PlayerState.openSlots(otherp)).headOption.map { num =>
+          randHeadOption(PlayerState.openSlots(otherp)).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectTargetCreature) =>
-          Random.shuffle(state.players(other(playerId)).slots).headOption.map { case (num, _) =>
+          randHeadOption(state.players(other(playerId)).slots.keys.toSeq).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
       }
     }
   }
+
+  def randHeadOption[A](s : Seq[A]): Option[A] = {
+    if (s.isEmpty) None else Some(s(Random.nextInt(s.size)))
+  }
+
 }

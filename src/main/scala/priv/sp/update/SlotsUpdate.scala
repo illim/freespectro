@@ -37,11 +37,13 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def summon(num : Int, card : Creature) {
     val slot = slots(num)
+    var slotState = buildSlotState(card)
     slot.value.foreach{ s =>
       s.card.reaction.onOverwrite(card, slot)
-      card.reaction.onSpawnOver(slot)
+      card.reaction.onSpawnOver(slot).foreach{ m =>
+        slotState = m(slotState)
+      }
     }
-    val slotState = buildSlotState(card)
     updateListener.summon(num, slotState, id) // bit fake for altar
     if (slot.value.isEmpty) {
       slot.add(slotState)

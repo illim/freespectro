@@ -61,9 +61,9 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 
   def destroy(){
     if (value.isDefined){ // crap for marine
-      val card = get.card
+      val s = get
       remove()
-      slots.onDead(Dead(num, card, player, isEffect = true))
+      slots.onDead(Dead(num, s, player, isEffect = true))
     }
   }
 
@@ -78,10 +78,14 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slots.updateListener.focus(num, id, blocking)
   }
 
+  def update(f : SlotState => SlotState){
+    write(value.map(f))
+  }
+
   private def delayedDestroy(d : Damage){
-    val card = get.card
+    val s = get
     remove()
-    slots.log(Dead(num, card, player, isEffect = d.isEffect))
+    slots.log(Dead(num, s, player, isEffect = d.isEffect))
   }
 }
 

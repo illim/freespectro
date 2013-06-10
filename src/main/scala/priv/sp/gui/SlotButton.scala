@@ -27,7 +27,9 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
   def refresh() {
     val old = content
     content = toContent(getInfo)
-    alpha = 1
+    content._1.foreach{ c =>
+      alpha = if (c._1.has(CardSpec.pausedFlag)) 0.5f else 1f
+    }
     for{
       before <- old._1; after <- content._1 ;
       val d = after._1.life - before._1.life if d != 0
@@ -39,6 +41,7 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
 
   def render() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
     glColor4f(1, 1, 1, 1)
     if (content._2){
       tex.draw(slotTex.id, slotSize)

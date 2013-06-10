@@ -93,3 +93,29 @@ trait DamageAttack {
     }
   }
 }
+
+object PlayerTask {
+  val currentId = new java.util.concurrent.atomic.AtomicInteger
+}
+class CountDown(val count : Int, f : Env => Unit, val id : Int = PlayerTask.currentId.incrementAndGet) extends Function[Env, Unit]{
+  def apply(env : Env){
+    val c = count - 1
+    if (c == 0){
+      f(env)
+      env.player.removeEffect(_ == this)
+    } else {
+      env.player.mapEffect{ e =>
+        if (e == this){
+          new CountDown(count - 1, f, id)
+        } else e
+      }
+    }
+  }
+  override def equals(o : Any) = {
+    o match {
+      case c : CountDown => c.id == id
+      case _ => false
+    }
+  }
+  override def hashCode() = id
+}

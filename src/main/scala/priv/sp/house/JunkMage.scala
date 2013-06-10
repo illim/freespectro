@@ -17,7 +17,7 @@ class JunkMage {
     Creature("JunkyardFortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
     Creature("ChainController", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     Creature("RoamingAssassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)", reaction = new FactoryReaction),
+    Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\nIf mirror position is blocked, heal factory by 5", reaction = new FactoryReaction),
     Creature("RecyclingBot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg), eventListener = Some(() => new JunkEventListener))
 
@@ -143,6 +143,7 @@ class JFReaction extends Reaction {
 
 trait MirrorSummon extends Reaction {
   def maxCost : Int
+  var healIfNoMirror = 0
   final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
     import summoned._
     val step = selected - num
@@ -155,6 +156,8 @@ trait MirrorSummon extends Reaction {
         if (slot.value.isEmpty){
           player.updater.focus(selected, player.id)
           slot.add(card)
+        } else if (healIfNoMirror != 0){
+          player.slots(selected).heal(healIfNoMirror)
         }
       }
     }
@@ -185,6 +188,7 @@ class ChainControllerReaction extends MirrorSummon {
 
 class FactoryReaction extends MirrorSummon {
   val maxCost = 5
+  healIfNoMirror = 5
 }
 
 class RecyclingBotReaction extends Reaction {

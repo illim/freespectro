@@ -104,7 +104,7 @@ class Elementalist {
       // FiXME: hack watch if unblocked at start of "transaction"! for mass damage and now for titan
       val player = slot.slots.player
       if (!player.updater.value.players(other(player.id)).slots.isDefinedAt(slot.num)
-          && player.otherPlayer.slots(slot.num).value.isDefined ){
+          && !player.otherPlayer.slots(slot.num).value.isDefined ){
         if (d.isEffect){
           d.copy(amount = 0)
         } else d

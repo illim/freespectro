@@ -1,4 +1,4 @@
-Toy program around world of Spectromancer, a turn based card game based in a fantasy world.
+Toy program in the world of Spectromancer, a turn based card game based in a fantasy world.
 
 More info about game status <a href="https://github.com/illim/freespectro/wiki">here</a>.
 
