@@ -84,6 +84,7 @@ class Warp {
     }
   }
   class WMReaction extends Reaction {
+    // bugged when bridled, unbridle shouldn't bridle opposite slot?
     override def onAdd(selected : Int, slot : SlotUpdate) {
       if (selected == slot.num){
         val oppSlot = slot.slots.player.otherPlayer.slots(selected)

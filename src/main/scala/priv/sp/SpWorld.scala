@@ -27,14 +27,15 @@ class Textures extends ResourceCache[String, Texture] {
   }
 }
 class BaseTextures(textures: Textures) {
-  val borderTex :: borderTexSpell :: cardGlow :: slotTex :: stunTex :: shieldTex :: crystalTex :: _ = textures.gets(
+  val borderTex :: borderTexSpell :: cardGlow :: slotTex :: stunTex :: shieldTex :: crystalTex :: mortalTex :: _ = textures.gets(
     "Images/Combat/raka.tga",
     "Images/Combat/rakaSpell.tga",
     "Images/Combat/glow.tga",
     "Images/Combat/slot.tga",
     "sand.png",
     "shield.png",
-    "crystalize.png") // "blank.png")
+    "crystalize.png",
+    "mortal.png") // "blank.png")
 
   val parts = loadSamples("Images/Combat/parts.tga", (0 to 5).map( i => (i * 32, 0)).toList, 32, 32).map{ t =>
     textures.resources += ("part" + t.id -> t)

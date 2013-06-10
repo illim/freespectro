@@ -4,12 +4,13 @@ import priv._
 import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL20._
 import priv.sp._
+import priv.sp.house._
 import priv.World
 import priv.GuiElem
 
 // total crap
 class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotState], Boolean), game : Game) extends GuiElem with Damagable {
-  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex}
+  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex, mortalTex}
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
@@ -17,6 +18,7 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
   private var content = toContent(getInfo)
   private var moveAnim = Option.empty[MoveAnimTask]
   private var alpha = 1f
+  private var isMereMortal = false
   var focusScale = Option.empty[Float]
   val slotSize   = Coord2i(120, 142)
   val stunPos    = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
@@ -28,7 +30,9 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
     val old = content
     content = toContent(getInfo)
     content._1.foreach{ c =>
-      alpha = if (c._1.has(CardSpec.pausedFlag)) 0.5f else 1f
+      val slotState = c._1
+      alpha = if (slotState.has(CardSpec.pausedFlag)) 0.5f else 1f
+      isMereMortal = slotState.card.isInstanceOf[MereMortal]
     }
     for{
       before <- old._1; after <- content._1 ;
@@ -66,6 +70,9 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
         tex.draw(cardTex)
         if (slotState.status > 1){
           decorate(slotState)
+        }
+        if (isMereMortal){
+          tex.draw(mortalTex)
         }
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
