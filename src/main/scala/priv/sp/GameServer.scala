@@ -32,7 +32,7 @@ class Local(resources : GameResources) extends GameServer {
   Random.setSeed(System.currentTimeMillis)
   private val shuffle = new CardShuffle(resources.sp.houses)
   val startingPlayer = playerIds(scala.util.Random.nextInt(2))
-  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.playerChoices, startingPlayer)
+  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.resolveChoices, startingPlayer)
 
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
   val desc = GameDesc(Vector(p1Desc, p2Desc))
@@ -95,7 +95,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 
 class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp.houses)
-  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.playerChoices)
+  private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.resolveChoices)
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
   def startingPlayer = owner
   val desc = GameDesc(Vector(p1Desc, p2Desc))

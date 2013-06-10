@@ -58,6 +58,7 @@ class Houses
   val base = List(Fire, Water, Air, Earth)
   val special = List(darkPriest.DarkPriest, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
+  val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special
   private val allCards = allHouses.flatMap(_.cards)
 

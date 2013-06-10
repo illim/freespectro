@@ -19,8 +19,10 @@ class GameResources {
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
 
-//  var playerChoices = List(sp.houses.sower.Sower, sp.houses.mecanic.Mecanic)
-  var playerChoices = List(sp.houses.element.Elementalist, sp.houses.vampire.Vampire)
+  var playerChoices : List[Option[House]] = List(Some(sp.houses.element.Elementalist), None)
+  def resolveChoices = playerChoices.map{ o =>
+    o.getOrElse(sp.houses.special(scala.util.Random.nextInt(sp.houses.special.size)))
+  }
 
   def release(){
     println("releasing resources")

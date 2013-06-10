@@ -6,11 +6,14 @@ import java.awt.event._
 class GameSettings(resources : GameResources) extends JPanel  {
 
   class PlayerChoice(id : PlayerId) extends ActionListener {
-    val combo = new JComboBox(resources.sp.houses.special.toArray)
-    combo.setSelectedItem(resources.playerChoices(id))
+    val specials = resources.sp.houses.special
+    val choices = ("" :: specials.map(_.name)).toArray
+    val combo = new JComboBox(choices)
+    combo.setSelectedItem(resources.playerChoices(id).map(_.name).getOrElse(""))
     combo.addActionListener(this)
     def actionPerformed(e : ActionEvent){
-      resources.playerChoices = resources.playerChoices.updated(id, combo.getSelectedItem().asInstanceOf[House])
+      val choice = specials.find(_.name == combo.getSelectedItem())
+      resources.playerChoices = resources.playerChoices.updated(id, choice)
     }
   }
 
