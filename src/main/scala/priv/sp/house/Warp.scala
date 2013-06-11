@@ -177,7 +177,7 @@ extends Creature(
   c.mod,
   c.reaction,
   c.data,
-  if (c.runAttack == MultiTargetAttack) s.runAttack else c.runAttack,
+  if (c.runAttack.isMultiTarget) s.runAttack else c.runAttack,
   c.immune,
   c.isAltar,
   c.status){

@@ -177,6 +177,7 @@ class Reaction {
 }
 
 trait RunAttack {
+  var isMultiTarget = false
   def apply(num : Int, d : Damage, player : PlayerUpdate)
 }
 object SingleTargetAttack extends RunAttack {
@@ -191,6 +192,7 @@ object SingleTargetAttack extends RunAttack {
   }
 }
 object MultiTargetAttack extends RunAttack {
+  isMultiTarget = true
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)

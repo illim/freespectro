@@ -182,6 +182,7 @@ class BlackMonkReaction extends Reaction {
 }
 
 class DarkHydraAttack extends RunAttack {
+  isMultiTarget = true
   def apply(num : Int, d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)
