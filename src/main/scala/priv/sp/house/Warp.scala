@@ -17,7 +17,7 @@ class Warp {
     Creature("Schizo", Attack(6), 25, "When summoned, opposite opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     Creature("Stranger", AttackSources().add(new StrangerAttack), 35, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.\n(not working with all special class)", effects = effects(Direct -> merge)),
-    Creature("WarpQueen", Attack(6), 35, "Opponent creatures lose their ability until end of next turn.\nDeals 5 damage to each of them", effects = effects(Direct -> warp))))
+    Creature("WarpQueen", Attack(6), 35, "Opponent creatures lose their ability until end of next turn.\nDeals 5 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener))
 
   val photographer = Warp.cards(3)
   Warp.initCards(Houses.basicCostFunc)
@@ -171,8 +171,8 @@ extends Creature(
   s.name,
   s.attack,
   s.life,
-  s.description,
-  s.inputSpec,
+  c.description,
+  s.inputSpec, // don't care
   c.effects,
   c.mod,
   c.reaction,
@@ -184,7 +184,7 @@ extends Creature(
   houseId = s.houseId
   houseIndex = s.houseIndex
   cost = s.cost
-  id = s.id
+  id = c.id // !!!!
 
   final override def inflict(damage : Damage, life : Int) = c.inflict(damage, life)
 }

@@ -27,7 +27,7 @@ class LostChurch {
     Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
-    eventListener = Some(() => new LCEventListener))
+    eventListener = Some(new CustomListener(new LCEventListener)))
 
   val preacher = LostChurch.cards(1)
   val falseProphet = LostChurch.cards(2)

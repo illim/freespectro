@@ -11,7 +11,13 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def ended = updater.ended
   private var slotsUpdate = new SlotsUpdate(this)
   private var houseFieldUpdate = new HouseFieldUpdate
-  val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.map(_()).getOrElse(new HouseEventListener)
+  val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.flatMap{
+    case OpponentListener =>
+      updater.desc.players(other(id)).houses(4).house.eventListener.collect{
+        case c : CustomListener => c()
+      }
+    case c : CustomListener => Some(c())
+  }.getOrElse(new HouseEventListener)
   houseEventListener.player = this
   val stats = PlayerStats()
   protected lazy val otherPlayerStats = updater.playerFieldUpdates(other(id)).stats

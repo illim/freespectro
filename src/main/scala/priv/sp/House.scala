@@ -2,12 +2,13 @@ package priv.sp
 
 import house._
 import priv.sp.update._
+import scala.reflect._
 
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 // eventListener is only used for special houses
-case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[() => HouseEventListener] = None){
+case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None){
   val houseId = House.currentId.incrementAndGet()
 
   def costs = cards.map(_.cost)
@@ -29,6 +30,10 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
     }
   }
 }
+
+sealed trait ListenerBuilder
+class CustomListener(f: => HouseEventListener) extends ListenerBuilder { def apply() : HouseEventListener = f  }
+case object OpponentListener extends ListenerBuilder
 
 object Houses {
   val basicCostFunc = { i: Int => i + 1 }

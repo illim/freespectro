@@ -19,7 +19,7 @@ class Vampire {
           effects = effects(Direct -> bloodTies)),
     Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2.", reaction = new NosferatuReaction),
     Creature("Aristocrat", Attack(7), 36, "At the beginning of turn moves in slot opposite to opponent's creature with\nlowest hp(can switch places with friendly creature).\nWhen kills creature deals opponent damage equal to its attack.", runAttack = new AristoAttack, effects = effects(OnTurn -> aristo)),
-    Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", reaction = new MansionReaction, effects = effects(Direct -> ghoulify))), eventListener = Some(() => new VampireEventListener))
+    Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", reaction = new MansionReaction, effects = effects(Direct -> ghoulify))), eventListener = Some(new CustomListener(new VampireEventListener)))
 
   val ghoul      = Vampire.cards(2).asCreature
   val acolyte    = Vampire.cards(3).asCreature

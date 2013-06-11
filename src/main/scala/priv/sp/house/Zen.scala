@@ -18,7 +18,7 @@ class ZenMage {
     Creature("Dreamer", Attack(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
     Creature("Mimic", Attack(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
     Creature("SpiralOfLight", Attack(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
-    new ZenFighter), eventListener = Some(() => new ZenEventListener))
+    new ZenFighter), eventListener = Some(new CustomListener(new ZenEventListener)))
 
   val eguard = Zen.cards(3)
   Zen.initCards(Houses.basicCostFunc)

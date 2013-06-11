@@ -19,7 +19,7 @@ class JunkMage {
     Creature("RoamingAssassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
     Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\nIf mirror position is blocked, heal factory by 5", reaction = new FactoryReaction),
     Creature("RecyclingBot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
-    trashCyborg), eventListener = Some(() => new JunkEventListener))
+    trashCyborg), eventListener = Some(new CustomListener(new JunkEventListener)))
 
   val jf = Junk.cards(2).asCreature
   Junk.initCards(Houses.basicCostFunc)
