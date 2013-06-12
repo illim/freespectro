@@ -38,6 +38,7 @@ trait HeuristicHelper extends Heuris {
     lazy val manaDelta = getMana(bot) - getMana(human)
     lazy val botMana = getMana(bot)
     lazy val botPowMana = getPowMana(bot)
+    lazy val powMana = getPowMana(human)
 
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
     def getPowMana(p : PlayerState) = p.houses.zipWithIndex.map{ case (x, i) =>
@@ -57,7 +58,7 @@ class LifeHeuris(val botPlayerId : PlayerId) extends HeuristicHelper {
 
 // temper rush a bit with the cost of the life delta
 class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
-  val name = "Merchant"
+  val name = "Dealer"
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
@@ -73,6 +74,7 @@ class MultiRatioHeuris(
   useKillRatio : Boolean = false,
   useKillCostRatio : Boolean = false,
   useManaRatio : Boolean = true,
+  useOppManaRatio : Boolean = false,
   lifeThreshold : Float = 0.4f,
   manaThreshold : Float = 0.3f
 ) extends HeuristicHelper {
@@ -96,6 +98,10 @@ class MultiRatioHeuris(
 
     if (useManaRatio){
       res = temper(res, h.botPowMana / (turns * fixz(start.botPowMana)))
+    }
+
+    if (useOppManaRatio){
+      res = temper(res, (turns * start.powMana) / fixz(h.powMana))
     }
 
     res

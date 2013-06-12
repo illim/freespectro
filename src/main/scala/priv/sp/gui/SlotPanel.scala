@@ -79,6 +79,10 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
           isRelative = false,
           blocking = true,
           entity = new BlackMass(absTargetSlotCoord.get, otherPanel)))
+    } else if (card == warp.Warp.cards(1)){
+      panel.addTask(new SpellAnim(lock,
+          blocking = true,
+          entity = new EarthQuake(game)))
     } else if (card == Air.cards(5)) {
       panel.addTask(
         new SpellAnim(lock, isRelative = false,

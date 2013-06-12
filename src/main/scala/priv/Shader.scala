@@ -28,7 +28,7 @@ trait Shader {
   }
 
   def end() {
-    assert(started)
+    require(started)
     glUseProgram(0)
     started = false
   }
@@ -36,7 +36,7 @@ trait Shader {
   def getUniformLocations(names : String*) : List[Int] = names.map(getUniformLocation(_))(breakOut)
   def getUniformLocation(name: String) = {
     val res = glGetUniformLocation(program, name)
-    assert(res != -1, name + " doesn't exists")
+    require(res != -1, name + " doesn't exists")
     res
   }
 }

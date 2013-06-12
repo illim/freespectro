@@ -73,7 +73,9 @@ case class Spell(
   def image = name + ".tga"
 }
 trait CommandFlag
-case class Command(player: PlayerId, card: Card, input: Option[SlotInput], cost : Int, flag : Option[CommandFlag] = None)
+case class Command(player: PlayerId, card: Card, input: Option[SlotInput], cost : Int, flag : Option[CommandFlag] = None){
+  final override def toString() = player + "> " + card.name + input.map(i => " at " + i.num).getOrElse("")
+}
 
 object Context {
   val noSelection = -1

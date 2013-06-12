@@ -11,10 +11,11 @@ import collection._
 // select best reward and not numsim due to boost(leafed node when early win/loss detected)
 // not using flat uct for opponent next move fairness?
 class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses) extends Bot {
-  val heuris = Random.nextInt(3) match {
+  val heuris = Random.nextInt(4) match {
     case 0 => new LifeManaRatioHeuris(botPlayerId)
     case 1 => new LifeHeuris(botPlayerId)
     case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillCostRatio = true)
+    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppManaRatio = true, useKillCostRatio = true)
 //    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 
@@ -57,11 +58,11 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     }
     val result = last.tree.subForest.foldLeft(Option.empty[Node]) {
       case (None, childTree) =>
-        println(childTree.rootLabel)
+        println(childTree.rootLabel.statString)
         Some(childTree.rootLabel)
       case (acc @ Some(node), childTree) =>
         val child = childTree.rootLabel
-        println(child)
+        println(child.statString)
         if (node.getAvgReward < child.getAvgReward)
           Some(childTree.rootLabel)
         else acc
@@ -153,20 +154,21 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         val s = nodePlayerStats(i)
         playerStats.map(_(i) + s).getOrElse(s)
       }
-      val deltaReward = end.map{ p =>
+      val reward = end.map{ p =>
         if (p == botPlayerId) 1f else -1f
       }.getOrElse(0.01f * heuris(st, stats, depth))
-      rewards += boost * deltaReward
-      backPropagate(deltaReward)
+      rewards += boost * reward
+      backPropagate(reward)
     }
-    private def backPropagate(deltaReward : Float){
+    private def backPropagate(reward : Float){
       path.foreach{ node =>
         node.numSim += 1
-        node.rewards += deltaReward
+        node.rewards += reward
       }
     }
     def stringPath = path.collect{ case p if p.commandOpt.isDefined=> p.commandOpt.get.card.name}
-    override def toString() = s"Node($commandOpt : $getUct , numSim=$numSim, avgreward=$getAvgReward, $stringPath, ${state.players.map(_.life)})"
+    final override def toString() = s"Node($commandOpt : $getUct, avgRwd=$getAvgReward, nSim=$numSim, $stringPath, ${state.players.map(_.life)})"
+    def statString = s"Node($commandOpt : $getUct, avgRwd=$getAvgReward, nSim=$numSim)"
   }
 
   case class PerfStat( var nbsim : Int = 0, var nbdefpol : Int = 0)

@@ -2,7 +2,6 @@ package priv.sp
 
 import house._
 import priv.sp.update._
-import scala.reflect._
 
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger

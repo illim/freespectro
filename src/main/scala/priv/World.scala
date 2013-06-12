@@ -24,21 +24,34 @@ class World(displayConf : DisplayConf) extends Attachable {
 trait Attachable extends Entity {
   private val entities = new ConcurrentLinkedQueue[Entity]
   private val tasks = new ConcurrentLinkedQueue[Task[_]]
+  private var shaderOpt = Option.empty[ShaderEntity]
 
   def spawn(entity: Entity) {
     entity.setWorld(world)
-    entities.add(entity)
+    entity match {
+      case s : ShaderEntity => shaderOpt = Some(s)
+      case _ => entities.add(entity)
+    }
   }
 
   def unspawn(entity: Entity) {
-    entities.remove(entity)
+    entity match {
+      case s : ShaderEntity => shaderOpt = None
+      case _ => entities.remove(entity)
+    }
   }
   override def setWorld(w : World){
     super.setWorld(w)
     iterate(entities.iterator)(_.setWorld(w))
+    shaderOpt.foreach(_.setWorld(w))
   }
 
   def render() {
+    val shader = shaderOpt.map{ s =>
+      s.shader.begin()
+      s.render()
+      s.shader
+    }
     iterate(tasks.iterator()) { task =>
       if (world.time - task.start > task.duration) {
         tasks.remove(task)
@@ -46,6 +59,7 @@ trait Attachable extends Entity {
       }
     }
     iterate(entities.iterator)(_.render())
+    shader.foreach(_.end())
   }
 
   def forEntity[A : reflect.ClassTag](f : A => Unit){
@@ -60,6 +74,8 @@ trait Attachable extends Entity {
   def clear(){
     entities.clear()
     tasks.clear()
+    shaderOpt.foreach(_.shader.end())
+    shaderOpt = None
   }
 
   def addTask(task: Task[_]) {
@@ -97,6 +113,11 @@ class SimpleEntity(f : => Unit) extends Entity {
 trait TimedEntity extends Entity {
   def duration : Long
   def onEnd(){}
+}
+
+trait ShaderEntity extends Entity {
+  type S <: Shader
+  def shader : S
 }
 
 trait Task[A] {

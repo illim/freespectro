@@ -95,15 +95,16 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends Attachable with GuiCon
     last.copy(y = if (elts.isEmpty) 0 else elts.maxBy(_.size.y).size.y)
   }
 
-  override def render() {
-    glPushMatrix()
-    elts.foreach { elt =>
-      elt.render()
-      glTranslatef(dirx * elt.size.x, diry * elt.size.y, 0)
+  spawn(new Entity{
+    def render() {
+      glPushMatrix()
+      elts.foreach { elt =>
+        elt.render()
+        glTranslatef(dirx * elt.size.x, diry * elt.size.y, 0)
+      }
+      glPopMatrix()
     }
-    glPopMatrix()
-    super.render()
-  }
+  })
 
   override def updateCoord(c : Coord2i){
     super.updateCoord(c)

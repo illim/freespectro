@@ -69,6 +69,7 @@ class BaseShaders(shaders: Shaders, sp: SpWorld) {
 
   val hoverGlow = shaders.getOrElseUpdate("hoverglow", _ => new HoverShader("nz", sp.baseTextures.cardGlow))
   val fade = shaders.getOrElseUpdate("fade", _ => new FadeShader("fade"))
+  val ripple = shaders.getOrElseUpdate("ripple", _ => new RippleShader)
   def selectedGlow(name : String, s : Int) = shaders.getOrElseUpdate("sel"+name, _ => new SelectedShader("sel", s))
 }
 
@@ -119,4 +120,10 @@ class SelectedShader(name: String, s : Int) extends Shader {
 class FadeShader(name: String) extends Shader {
   val (program, _, _) = GShader.createProgram(name, name)
   val fact = getUniformLocation("fact")
+}
+
+class RippleShader extends Shader {
+  val name = "ripple"
+  val (program, _, _) = GShader.createProgram(name, name)
+  val cursor = getUniformLocation("cursor")
 }
