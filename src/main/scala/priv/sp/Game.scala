@@ -76,6 +76,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
          gameLock.waitFor[Option[Command]]{ c =>
            server.waitNextCommand(c, state)
          }}).foreach{ nextCommand =>
+           for{
+             c <- nextCommand
+             b <- cardPanels(player).cardButtons.find(_.card == Some(c.card))
+           } b.visible = true
            submit(nextCommand, player)
          }
     } else {

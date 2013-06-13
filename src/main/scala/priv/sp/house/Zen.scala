@@ -10,10 +10,10 @@ class ZenMage {
 
   val Zen : House = House("Zen", List(
     Creature("Elementesist", Attack(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
+    Creature("RedlightBringer", Attack(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
     Spell("Focus", "Every owner card dedicate 50% of their attack to the focused creature.",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focus)),
-    Creature("RedlightBringer", Attack(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
     Creature("ElectricGuard", Attack(3), 21, "deals 3 damage to creatures damaging owner.", reaction = new EGuardReaction),
     Creature("Dreamer", Attack(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
     Creature("Mimic", Attack(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),

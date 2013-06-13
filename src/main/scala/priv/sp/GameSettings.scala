@@ -2,6 +2,7 @@ package priv.sp
 
 import javax.swing._
 import java.awt.event._
+import priv.util.Utils._
 
 class GameSettings(resources : GameResources) extends JPanel  {
 
@@ -21,6 +22,17 @@ class GameSettings(resources : GameResources) extends JPanel  {
     val c = new PlayerChoice(id)
     add(c.combo)
     c
+  }
+}
+
+class GameDebug(game : => Game) extends JPanel with ActionListener {
+  val showCards = addBtn("showCards", this)
+
+  def actionPerformed(e : ActionEvent){
+    e.getActionCommand() match {
+      case "showCards" =>
+        game.cardPanels(game.otherPlayerId).cardButtons.foreach(_.visible = true)
+    }
   }
 }
 

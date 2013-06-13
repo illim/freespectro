@@ -29,15 +29,19 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
   def refresh() {
     val old = content
     content = toContent(getInfo)
-    content._1.foreach{ c =>
-      val slotState = c._1
-      alpha = if (slotState.has(CardSpec.pausedFlag)) 0.5f else 1f
-      isMereMortal = slotState.card.isInstanceOf[MereMortal]
+    content._1 match {
+      case Some(c) =>
+        val slotState = c._1
+        alpha = if (slotState.has(CardSpec.pausedFlag)) 0.5f else 1f
+        isMereMortal = slotState.card.isInstanceOf[MereMortal]
+        for{
+          before <- old._1
+          val d = slotState.life - before._1.life if d != 0
+        } game.world.addTask(DamageAnimTask(d))
+      case None =>
+        alpha = 1f
+        isMereMortal = false
     }
-    for{
-      before <- old._1; after <- content._1 ;
-      val d = after._1.life - before._1.life if d != 0
-    } game.world.addTask(DamageAnimTask(d))
   }
   def isEmpty = content._1.isEmpty
 

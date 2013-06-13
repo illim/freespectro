@@ -40,6 +40,7 @@ object Main extends JFrame with App {
       settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { gameServer =>
         r.currentGame = r.createGame(gameServer)
       }))
+      settingsPanel.tabs.addTab("debug", new GameDebug(r.currentGame))
     }
     r.mainLoop()
     dispose()

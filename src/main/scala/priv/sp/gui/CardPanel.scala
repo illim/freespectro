@@ -21,6 +21,7 @@ class CardPanel(playerId: PlayerId, game: Game) {
 
   if (playerId == game.myPlayerId){
     cardButtons.foreach { cardButton =>
+      cardButton.visible = true
       cardButton.on {
         case MouseClicked(_) if cardButton.isActive =>
           cardButton.holder.foreach{ h =>
