@@ -23,11 +23,14 @@ class Dreamweaver {
 
   def aurora = { env : Env =>
     import env._
-    player.slots.foreach{ s =>
+    def aur(p : PlayerUpdate) = p.slots.foreach{ s =>
       val card = s.get.card
       s.heal(12)
-      player.houses.incrMana(1, card.houseIndex)
+      p.houses.incrMana(1, card.houseIndex)
     }
+
+    aur(player)
+    aur(otherPlayer)
   }
 
   def guide = { env : Env =>
