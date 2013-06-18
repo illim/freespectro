@@ -68,12 +68,12 @@ private abstract class AttackBonusReaction extends Reaction {
   def cond(selected : Int, num : Int) : Boolean
   val bonus : AttackSource
 
-  final override def onAdd(selected : Int, slot : SlotUpdate) = {
-    if (selected == slot.num){
+  final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    if (selected.num == slot.num){
       slot.slots.foreach{ s =>
         if (cond(s.num, slot.num)) s.attack.add(bonus)
       }
-    } else if (cond(selected, slot.num)) {
+    } else if (cond(selected.num, slot.num)) {
       slot.attack.add(bonus)
     }
   }

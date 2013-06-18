@@ -30,12 +30,12 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     value.map{ s =>
       if (attackUpdate.isDirty){
         val attackSources = attackUpdate.value
-        s.copy(attack = slots.getAttack(attackSources), attackSources = attackSources)
+        s.copy(attack = slots.getAttack(this, attackSources), attackSources = attackSources)
       } else s
     }
   }
 
-  def add(card : Creature) {  add(slots.buildSlotState(card)) }
+  def add(card : Creature) {  add(slots.buildSlotState(this, card)) }
   def add(slot : SlotState) {
     write(Some(slot))
     slots.reactAdd(this)

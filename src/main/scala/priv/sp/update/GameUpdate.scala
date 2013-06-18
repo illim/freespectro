@@ -31,9 +31,10 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
   def resetStats(){ playerFieldUpdates.foreach(_.stats.reset()) }
+  def flush() {  playerFieldUpdates.foreach(_.flush()) }
 
   def result = {
-    playerFieldUpdates.foreach(_.flush())
+    flush()
     state.copy(players = playerIds.map{ id =>
       val fp = playerFieldUpdates(id)
       if (fp.isDirty) fp.result else state.players(id)
@@ -64,11 +65,27 @@ class DefaultUpdateListener extends UpdateListener {
 
 // broadcast crap
 class HouseEventListener {
-  var player : PlayerUpdate = null
+  protected var playerField : PlayerUpdate = null
+  def player = playerField.reinit()
   def onDeath(dead : Dead) {}
   def protect(num : Int, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
+  def refreshOnOppUpdate() {} // bullcrap, and should not affect opp(looping is not managed)
 
   private val isResult = (false, None)
   def interceptSubmit(c : Command) : (Boolean, Option[Command]) = isResult
+  def setPlayer(p : PlayerUpdate){ playerField = p  }
+}
+
+// bs for warp class
+class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener {
+  override def onDeath(dead : Dead) { inner.onDeath(dead) }
+  override def protect(num : Int, damage : Damage) = inner.protect(num, damage)
+  override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) { inner.onDamaged(card, amount, slot) }
+  override def refreshOnOppUpdate() { inner.refreshOnOppUpdate() }
+  override def interceptSubmit(c : Command) : (Boolean, Option[Command]) = inner.interceptSubmit(c)
+  override def setPlayer(p : PlayerUpdate){
+    playerField = p
+    inner.setPlayer(p)
+  }
 }

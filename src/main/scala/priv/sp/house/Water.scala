@@ -34,8 +34,8 @@ class GiantTurtle extends Creature ("HugeTurtle", Attack(5), 17, "Absorb 5 damag
 }
 
 private class OverlordSlotReaction extends Reaction {
-  final override def onAdd(selected : Int, slot : SlotUpdate) = {
-    if (math.abs(selected - slot.num) == 1){
+  final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    if (math.abs(selected.num - slot.num) == 1){
       slot.toggle(runFlag)
     }
   }

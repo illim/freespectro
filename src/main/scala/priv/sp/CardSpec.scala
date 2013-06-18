@@ -164,7 +164,7 @@ trait SlotMod {
 }
 
 class Reaction {
-  def onAdd(selected : Int, slot : SlotUpdate){}
+  def onAdd(selected : SlotUpdate, slot : SlotUpdate){}
   def onRemove(slot : SlotUpdate){}
   def selfProtect(d : Damage, slot : SlotUpdate) = d
   def onProtect(selected : Int, d : DamageEvent) = d.damage
@@ -223,6 +223,9 @@ trait AttackFunc extends AttackSource {
 }
 trait AttackStateFunc extends AttackSource {
   def apply(attack : Int, player : PlayerUpdate) : Int
+}
+trait AttackSlotStateFunc extends AttackSource {
+  def apply(attack : Int, slot : SlotUpdate) : Int
 }
 case class ManaAttack(houseIndex : Int) extends AttackStateFunc {
   def apply(attack : Int, player : PlayerUpdate) : Int = attack + player.getHouses(houseIndex).mana

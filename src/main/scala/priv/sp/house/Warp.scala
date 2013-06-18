@@ -11,14 +11,15 @@ class Warp {
   val Warp = House("Warp", List(
     Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to their mana", effects = effects(Direct -> quake)),
-    Creature("Cloak", Attack(4), 18, "When die restore the creature.(Can't cloak himself)", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    Creature("Photographer", Attack(3), 20, "If there's already a photographer, owner slots is reverted to the state\nwhen last one was spawned", effects = effects(Direct -> photo)),
+    Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
+    Creature("Photographer", Attack(3), 20, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
     Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
-    Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.", effects = effects(Direct -> merge)),
-    Creature("WarpQueen", Attack(6), 32, "Opponent creatures lose their ability until end of next owner turn.\nDeals 5 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener))
+    Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.\n(immediate effects are not applied)", effects = effects(Direct -> merge)),
+    Creature("WarpQueen", Attack(6), 32, "Opponent creatures lose their ability until end of next owner turn.\nDeals 4 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener(new WarpEventListener(_))))
 
   val photographer = Warp.cards(3)
+  val stranger = Warp.cards(6)
   Warp.initCards(Houses.basicCostFunc)
 
   def quake = { env : Env =>
@@ -35,21 +36,26 @@ class Warp {
       val slot = player.slots(selected)
       val s = slot.get
       slot.destroy()
-      slot.add(SlotState(new MergeStranger(s.card , opp.card), s.life, s.status, s.attackSources, player.slots.getAttack(s.attackSources), s.data))
+      slot.add(SlotState(new MergeStranger(s.card , opp.card), s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.data))
     }
   }
   def photo : Effect = { env : Env =>
     import env._
-    player.slots.findCard(photographer) match {
-      case Some(s) if s.get.data != null =>
+    player.slots.filleds
+      .find(s => s.get.card == photographer && s.num != selected && s.get.data != null)
+      .foreach { s =>
         val backup = s.get.data.asInstanceOf[PlayerState.SlotsType]
+        s.destroy()
         player.slots.slots.foreach{ s =>
-          s.write(backup.get(s.num))
+          if (s.value.isEmpty){
+            backup.get(s.num).foreach{ b =>
+              s.add(SlotState(b.card, b.life, b.status, b.card.attack, player.slots.getAttack(s, b.card.attack), b.data))
+            }
+          }
         }
-      case _ =>
-        val slot = player.slots(selected)
-        slot.setData(player.getSlots - selected)
-    }
+      }
+    val slot = player.slots(selected)
+    slot.setData(player.getSlots - selected)
   }
   def ram = { env : Env =>
     import env._
@@ -66,29 +72,34 @@ class Warp {
       slot.remove()
       (s, slot)
     }.foreach{ case (s, slot) => bridle(s, slot) }
-    otherPlayer.slots.inflictCreatures(Damage(5, env, isAbility = true))
+    otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
     player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
       env.otherPlayer.slots.foreach(unbridle)
     }))
   }
+
+  private val cache = collection.mutable.Map.empty[Card, MereMortal]
+
   def bridle(s : SlotState, slot : SlotUpdate){
-    slot.write(Some(SlotState(new MereMortal(s.card), s.life, s.status, s.attackSources, slot.slots.getAttack(s.attackSources), s.data)))
+    slot.write(Some(SlotState(cache.getOrElseUpdate(s.card, new MereMortal(s.card)), s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.data)))
   }
   def unbridle(slot : SlotUpdate) {
     slot.value.foreach{ s =>
       s.card match {
         case m : MereMortal =>
           slot.remove()
-          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(s.attackSources), s.data))
+
+          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, m.c.attack), s.data))
         case _ =>
       }
     }
   }
+
   class SchizoReaction extends Reaction {
 
-    override def onAdd(selected : Int, slot : SlotUpdate) {
-      if (selected == slot.num){
-        val oppSlot = slot.slots.player.otherPlayer.slots(selected)
+    override def onAdd(selected : SlotUpdate, slot : SlotUpdate) {
+      if (selected.num == slot.num){
+        val oppSlot = slot.slots.player.otherPlayer.slots(selected.num)
         oppSlot.value.foreach{ s =>
           oppSlot.remove()
           bridle(s, oppSlot)
@@ -96,7 +107,22 @@ class Warp {
       }
     }
     override def onRemove(slot : SlotUpdate) {
-      unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between wm and wq
+      unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between schizo and wq
+    }
+  }
+
+  // code horror
+  class WarpEventListener(inner : HouseEventListener) extends ProxyEventListener(inner) {
+    private def isStranger(card : Card) = {
+      card == stranger || card.isInstanceOf[MergeStranger]
+    }
+    override def refreshOnOppUpdate() {
+      super.refreshOnOppUpdate()
+      if (player.otherPlayer.housesUpdate.isDirty && player.getSlots.values.exists(s => isStranger(s.card))){
+        player.slots.filleds.withFilter(s => isStranger(s.get.card)).foreach{ s =>
+          s.attack.setDirty()
+        }
+      }
     }
   }
 }
@@ -145,8 +171,8 @@ class CloakReaction extends Reaction {
     val cloaked = dead.slot.data.asInstanceOf[SlotState]
     if (cloaked != null){
       val slot = player.slots(num)
-      slot.add(cloaked.card)
-      slot.update(_.copy(life = cloaked.life))
+      val card = cloaked.card
+      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), card.data))
     }
   }
 }

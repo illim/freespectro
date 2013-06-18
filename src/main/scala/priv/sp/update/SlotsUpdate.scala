@@ -8,6 +8,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   import player._
   var logs = List.empty[BoardEvent]
   private val slotUpdates = baseSlotRange.map{ i => new SlotUpdate(i, this) }.toVector
+  private val filledSlots = slotUpdates.withFilter(_.value.isDefined)
   private val first = slotUpdates(0)
   val playerId = player.id
 
@@ -25,7 +26,8 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   def slots = { ensureInited(); slotUpdates }
-  def filleds = { ensureInited(); slotUpdates.filter(_.value.isDefined) }
+  def filledsM = { ensureInited(); filledSlots}
+  def filleds = slots.filter(_.value.isDefined)
   def getOpenSlots = { ensureInited(); slotUpdates.filter(s => s.value.isEmpty && player.value.isInSlotRange(s.num)) }
   def apply(n : Int) = slots(n)
   def ensureInited() = if (!first.isInited){ slotUpdates.foreach(_.reinit()) }
@@ -37,7 +39,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def summon(num : Int, card : Creature) {
     val slot = slots(num)
-    var slotState = buildSlotState(card)
+    var slotState = buildSlotState(slot, card)
     slot.value.foreach{ s =>
       s.card.reaction.onOverwrite(card, slot)
       card.reaction.onSpawnOver(slot).foreach{ m =>
@@ -62,8 +64,9 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
         if (slots(dest).value.isDefined){
           move(dest, num)
         }
-        slots(dest).add(
-          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(s.card.attack) , s.data))
+        val slotDest = slots(dest)
+        slotDest.add(
+          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(slotDest, s.card.attack) , s.data))
       }
     }
   }
@@ -73,12 +76,13 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     dead.card.reaction.onMyDeath(dead)
     player.updater.houseEventListeners.map(_.onDeath(dead))
   }
-  def buildSlotState(card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(card.attack), card.data)
-  def getAttack(attackSources : AttackSources) = {
+  def buildSlotState(slot : SlotUpdate, card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), card.data)
+  def getAttack(slot : SlotUpdate, attackSources : AttackSources) = {
     (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>
       s match {
         case f : AttackFunc => f(acc)
         case f : AttackStateFunc => f(acc, player)
+        case f : AttackSlotStateFunc => f(acc, slot)
         case _ => acc
       }
     }
@@ -91,7 +95,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     }
   }
   def reactAdd(slot : SlotUpdate) = foreach { s =>
-    s.get.card.reaction.onAdd(s.num, slot)
+    s.get.card.reaction.onAdd(s, slot)
   }
   def log(evt : BoardEvent){ logs = evt :: logs }
   def foreach(f : SlotUpdate => Unit) = slots.foreach{ s =>
@@ -111,8 +115,6 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     }
   }
   def findCard(card : Card) : Option[SlotUpdate] = {
-    slots.find{ s =>
-      s.value.isDefined && s.get.card == card
-    }
+    slots.find(s => s.value.isDefined && s.get.card == card)
   }
 }

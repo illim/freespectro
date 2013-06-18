@@ -32,7 +32,7 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
 
 sealed trait ListenerBuilder
 class CustomListener(f: => HouseEventListener) extends ListenerBuilder { def apply() : HouseEventListener = f  }
-case object OpponentListener extends ListenerBuilder
+case class OpponentListener(f: HouseEventListener => HouseEventListener) extends ListenerBuilder
 
 object Houses {
   val basicCostFunc = { i: Int => i + 1 }
@@ -49,6 +49,7 @@ class Houses
 
   val darkPriest = new DarkPriest
   val dudeMancer = new DudeMancer
+  val dreamweaver = new Dreamweaver
   val element    = new Elementalist
   val junkMage   = new JunkMage
   val lostChurch = new LostChurch
@@ -60,7 +61,7 @@ class Houses
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special

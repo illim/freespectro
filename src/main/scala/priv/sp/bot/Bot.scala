@@ -68,6 +68,7 @@ trait Bot {
 
         commandOption foreach { command =>
           p.submit(command)
+          u.flush()
         }
         p.popTransition getOrElse {
           p.runSlots()

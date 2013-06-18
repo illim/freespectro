@@ -9,36 +9,39 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def pstate = value
   def updateListener = updater.updateListener
   def ended = updater.ended
-  private var slotsUpdate = new SlotsUpdate(this)
-  private var houseFieldUpdate = new HouseFieldUpdate
-  val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.flatMap{
-    case OpponentListener =>
+  val slotsUpdate = new SlotsUpdate(this)
+  val housesUpdate = new HousesUpdate
+  val houseEventListener = updater.desc.players(id).houses(4).house.eventListener.map{
+    case OpponentListener(f) =>
       updater.desc.players(other(id)).houses(4).house.eventListener.collect{
-        case c : CustomListener => c()
-      }
-    case c : CustomListener => Some(c())
+        case c : CustomListener => f(c())
+      }.getOrElse(f(new HouseEventListener))
+    case c : CustomListener => c()
   }.getOrElse(new HouseEventListener)
-  houseEventListener.player = this
+  houseEventListener.setPlayer(this)
   val stats = PlayerStats()
   protected lazy val otherPlayerStats = updater.playerFieldUpdates(other(id)).stats
 
   def otherPlayer = updater.players(other(id)) // not great
-  def getHouses   = if (houseFieldUpdate.isDirty) houseFieldUpdate.value else pstate.houses
+  def getHouses   = if (housesUpdate.isDirty) housesUpdate.value else pstate.houses
   def getSlots    = if (slotsUpdate.isDirty) slotsUpdate() else pstate.slots // horrible perf probably
   def slots       = slotsUpdate.reinit()
-  def houses      = houseFieldUpdate.reinit()
+  def houses      = housesUpdate.reinit()
   // hack? for example avoid case of card moving during mass damage
   // not great on dead effect happens maybe too late
   def flush() = {
-    if (slotsUpdate.isDirty){
-      slotsUpdate.logs.reverseIterator.foreach{
-        case dead : Dead =>
-          stats.nbDead += 1
-          otherPlayerStats.addKill(dead.card)
-          slots.onDead(dead)
-        case _ =>
+    if (isDirty) {
+      if (slotsUpdate.isDirty){
+        slotsUpdate.logs.reverseIterator.foreach {
+          case dead : Dead =>
+            stats.nbDead += 1
+            otherPlayerStats.addKill(dead.card)
+            slots.onDead(dead)
+          case _ =>
+        }
+        slots.logs = Nil
       }
-      slots.logs = Nil
+      updater.houseEventListeners(other(id)).refreshOnOppUpdate()
     }
   }
   def result = pstate.copy(slots = getSlots, houses = getHouses)
@@ -193,7 +196,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  class HouseFieldUpdate extends FieldUpdate(Some(playerFieldUpdate), pstate.houses) {
+  class HousesUpdate extends FieldUpdate(Some(playerFieldUpdate), pstate.houses) {
     def houses = value
 
     def incrMana(incr : Int = 1){
