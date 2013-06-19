@@ -44,7 +44,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
       val card = get.card
-      val d = player.houseEventListener.protect(num, card.reaction.selfProtect(damage, this)) // /!\ possible side effect (jf can self protect once and toggle a flag)
+      val d = player.houseEventListener.protect(num, card.reaction.selfProtect(damage, this)) // /!\ possible side effect (jf can protect herself once and toggle a flag)
       val slot = get
       val amount = slot.inflict(d) match {
         case None =>
@@ -71,7 +71,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val slotState = get
     attackUpdate.invalidate() // FIXME hack?
     write(None)
-    slotState.card.reaction.onRemove(this)
+    slotState.card.reaction.onMyRemove(this)
   }
 
   def focus(blocking : Boolean = true){

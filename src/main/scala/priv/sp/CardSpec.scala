@@ -163,19 +163,31 @@ trait SlotMod {
   def apply(slotState : SlotState) : SlotState
 }
 
+object Reaction {
+  val falseNone = (false, None)
+}
 class Reaction {
   def onAdd(selected : SlotUpdate, slot : SlotUpdate){}
-  def onRemove(slot : SlotUpdate){}
+
+  // used by stone golem and archphoenix where overriding inflict doesn't suffice, because needs to know the context => TODO remove overrided inflict
   def selfProtect(d : Damage, slot : SlotUpdate) = d
-  def onProtect(selected : Int, d : DamageEvent) = d.damage
+  // used by black monk to heal by the amount even when dying, and by errant to wakeup
   def onMyDamage(amount : Int, slot : SlotUpdate){}
-  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
+  def onMyRemove(slot : SlotUpdate){}
   def onMyDeath(dead : Dead) {}
-  def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
+  // TODO call this from house listener?
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def onSpawnOver(slot : SlotUpdate) : Option[SlotMod] = { slot.destroy(); None }
   def onOverwrite(c : Creature, slot : SlotUpdate) {}
-  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = (false, None)
+
+  /**
+   * Events that needs to be broadcasted manually in a house listener
+   */
+  def onProtect(selected : Int, d : DamageEvent) = d.damage
+  // playerId allow to specify which player is notified, in case we need death event from both players.
+  def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
+  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
+  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = Reaction.falseNone
 }
 
 trait RunAttack {

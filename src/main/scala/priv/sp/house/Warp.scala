@@ -106,7 +106,7 @@ class Warp {
         }
       }
     }
-    override def onRemove(slot : SlotUpdate) {
+    override def onMyRemove(slot : SlotUpdate) {
       unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between schizo and wq
     }
   }

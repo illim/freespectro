@@ -62,6 +62,11 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     updateListener.runSlot(numSlot, id)
   }
 
+  /**
+   * Note : direct effects are applieds after add and their callbacks which is different
+   * from Spectromancer. Example : trooper damages a summoned creature
+   * before being killed by his effect.
+   */
   def submit(c : Command){
     val (test, newComand) = houseEventListener.interceptSubmit(c)
     (if (!test) Some(c) else newComand).foreach{ command =>

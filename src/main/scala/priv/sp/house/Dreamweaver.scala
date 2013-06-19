@@ -151,6 +151,8 @@ class SwordAttack extends RunAttack {
 
 class CastleReaction extends Reaction {
   final override def onProtect(selected : Int, d : DamageEvent) = {
-    d.damage.copy(amount = math.max(0, d.damage.amount - 2))
+    if (d.target.isDefined){
+      d.damage.copy(amount = math.max(0, d.damage.amount - 2))
+    } else d.damage
   }
 }

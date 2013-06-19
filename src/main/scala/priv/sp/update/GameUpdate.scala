@@ -67,13 +67,13 @@ class DefaultUpdateListener extends UpdateListener {
 class HouseEventListener {
   protected var playerField : PlayerUpdate = null
   def player = playerField.reinit()
+
+  // Because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
   def onDeath(dead : Dead) {}
   def protect(num : Int, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
+  def interceptSubmit(c : Command) : (Boolean, Option[Command]) = Reaction.falseNone
   def refreshOnOppUpdate() {} // bullcrap, and should not affect opp(looping is not managed)
-
-  private val isResult = (false, None)
-  def interceptSubmit(c : Command) : (Boolean, Option[Command]) = isResult
   def setPlayer(p : PlayerUpdate){ playerField = p  }
 }
 

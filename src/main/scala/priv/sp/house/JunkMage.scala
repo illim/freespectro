@@ -97,8 +97,8 @@ class JunkMage {
   }
 
   private class ScreamerReaction extends Reaction {
-    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = onRemove(slot)
-    final override def onRemove(slot : SlotUpdate) = {
+    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = onMyRemove(slot)
+    final override def onMyRemove(slot : SlotUpdate) = {
       slot.slots.foreach{ s =>
         if (s.get.card == screamer){
           s.attack.setDirty()
