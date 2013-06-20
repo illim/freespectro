@@ -61,7 +61,7 @@ case class Creature(
     if (damage.isEffect && immune) life else life - damage.amount
   }
 
-  def image = name + ".JPG"
+  def image = name + ".jpg"
 }
 
 case class Spell(

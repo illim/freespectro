@@ -7,7 +7,7 @@ class Sower {
   import CardSpec._
   import GameCardEffect._
 
-  val monsterPlant = Creature("MonsterPlant", Attack(6), 21, "when kills creature, heals completely all monster plants on the board.", runAttack = new MonsterPlantAttack)
+  val monsterPlant = Creature("Monster plant", Attack(6), 21, "when kills creature, heals completely all monster plants on the board.", runAttack = new MonsterPlantAttack)
 
   val Sower = House("Sower", List(
     Spell("Tangling", "Transfers X health from target creature to opposite creature\n(X = attack of target creature)",
@@ -20,10 +20,10 @@ class Sower {
     Spell("Pollination", "turns target creature of X level into special creature of (X minus 3) level\nwith full hp and heals X life to owner.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> pollinate)),
-    Creature("BloodSundew", Attack(6), 24, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
-    Creature("PredatorPlant", Attack(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
-    Creature("ForestDrake", Attack(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
-    Creature("FieryFlower", Attack(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
+    Creature("Blood sundew", Attack(6), 24, "when deals damage, regenerates the same amount of hp.", runAttack = new BloodSundewAttack),
+    Creature("Predator plant", Attack(6), 33, "when attacks creature, deals X additional damage to it\n(X = difference between its current and max hp).", runAttack = new PredatorPlantAttack),
+    Creature("Forest drake", Attack(5), 55, "when owner summons special creature,\ncreates its copy in nearest empty slot.", reaction = new ForestDrakeReaction),
+    Creature("Fiery flower", Attack(0), 35, "Every turn halves health of enemy creature with highest hp and\n gives 1 fire power to owner.\nWhen enters the game, deals to opponent X damage (X = his fire power)", effects = effects(OnTurn -> fieryFlower, Direct -> { env : Env =>
       env.otherPlayer.inflict(Damage(env.player.getHouses(0).mana, env, isAbility = true))
     }))))
 

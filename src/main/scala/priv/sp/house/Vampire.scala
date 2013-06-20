@@ -8,13 +8,13 @@ class Vampire {
   import GameCardEffect._
 
   val Vampire : House = House("Vampires", List(
-    Spell("DarkFlock", "Moves owner's creature with lowest hp in target slot\nand makes it invulnerable for 1 turn if its level is not higher than 9.",
+    Spell("Dark flock", "Moves owner's creature with lowest hp in target slot\nand makes it invulnerable for 1 turn if its level is not higher than 9.",
           inputSpec = Some(SelectOwnerSlot),
           effects = effects(Direct -> darkFlock)),
     Creature("Noctule", Attack(5), 17, "When deals damage to opponent, heals owner the same amount of life.", runAttack = new NoctuleAttack),
     Creature("Ghoul", Attack(4), 20, "If opposite creature has less than 11 life, kills it at one blow.", runAttack = new GhoulAttack),
     Creature("Acolyte", Attack(3), 21, "When enemy creature receives more than 8 damage,\ngives owner 1 mana of the same element.", reaction = new AcolyteReaction),
-    Spell("BloodTies", "destroys owner's creature and permanently increases attack of\nits neighbors by its attack\n(doesn't affect creatures with mass attack and creatures of level > 9)",
+    Spell("Blood ties", "destroys owner's creature and permanently increases attack of\nits neighbors by its attack\n(doesn't affect creatures with mass attack and creatures of level > 9)",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> bloodTies)),
     Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2.", reaction = new NosferatuReaction),

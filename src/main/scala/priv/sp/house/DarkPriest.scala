@@ -7,19 +7,19 @@ class DarkPriest {
   import CardSpec._
   import GameCardEffect._
 
-  val restlessSoul = Creature("RestlessSoul", Attack(3), 11, "If dies, reborns at the end of opponent turn and\ngives 2 special mana to dark priest.", reaction = new RestlessReaction)
-  val shadowPriest = Creature("ShadowOfPriest", Attack(3), 11, "Every turn heals 1 life to dark priest and all his creatures.", effects = effects(OnTurn -> shadowHeal))
-  val heretic = Creature("Heretic", Attack(6), 20, "")
-  val blackAngel = Creature("BlackAngel", Attack(8), 25, "When kills creature, completely heals itself", runAttack = new BlackAngelAttack)
+  val restlessSoul = Creature("restless soul", Attack(3), 11, "If dies, reborns at the end of opponent turn and\ngives 2 special mana to dark priest.", reaction = new RestlessReaction)
+  val shadowPriest = Creature("shadow of priest", Attack(3), 11, "Every turn heals 1 life to dark priest and all his creatures.", effects = effects(OnTurn -> shadowHeal))
+  val heretic = Creature("heretic", Attack(6), 20, "")
+  val blackAngel = Creature("black angel", Attack(8), 25, "When kills creature, completely heals itself", runAttack = new BlackAngelAttack)
 
   val DarkPriest : House = House("DarkPriest", List(
     Creature("Ghost", Attack(5), 16, "If killed with spell or creature ability, reborns and switches sides.\nWhen enters the game, heals to owner 1 life for each his creature on the board.", reaction = new GhostReaction, effects = effects(Direct -> ghostHeal)),
     Creature("Occultist", Attack(4), 20, "When enters the game, summons shadow of priest in opposite slot.", effects = effects(Direct -> occult)),
-    Spell("BlackMass", "Sacrifices target creature and deals 4X damage to all enemy creatures\n(X - number of different elements to which enemy creatures belong).", inputSpec = Some(SelectOwnerCreature), effects = effects(Direct -> blackMass)),
-    Creature("EnergyVampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
-    Creature("BlackMonk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
+    Spell("Black Mass", "Sacrifices target creature and deals 4X damage to all enemy creatures\n(X - number of different elements to which enemy creatures belong).", inputSpec = Some(SelectOwnerCreature), effects = effects(Direct -> blackMass)),
+    Creature("Energy vampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
+    Creature("Black monk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
     Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), effects = effects(OnTurn -> betray)),
-    Creature("DarkHydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
+    Creature("Dark hydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
     Creature("Missionary", Attack(3), 36, "When enters the game, weakest friendly creature and\nweakest enemy creature of the same element lose half of current health.\nWhen owner summons elemental creature, turns it into heretic\nWhen owner summons special creature, turns itself into black angel", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
     effects = List(OnStart -> initRestless))
 

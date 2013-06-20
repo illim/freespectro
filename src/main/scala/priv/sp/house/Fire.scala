@@ -9,15 +9,15 @@ trait Fire {
 
   val Fire = House("fire", List(
     Creature("Goblin", Attack(4), 16, "Every turn deals 2 damage to owner adjacent cards", effects = effects(OnTurn -> goblinBerserker)),
-    Creature("WallofFlame", Attack(0), 5, "Deals 5 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(5, isAbility = true))),
-    Creature("FireMonk", Attack(3), 13, "Every turn increase fire mana growth by 1", effects = effects(OnTurn -> addMana(1, 0))),
+    Creature("Wall of flame", Attack(0), 5, "Deals 5 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(5, isAbility = true))),
+    Creature("Fire monk", Attack(3), 13, "Every turn increase fire mana growth by 1", effects = effects(OnTurn -> addMana(1, 0))),
     Creature("Drake", Attack(4), 18, "Attack the turn he is summoned", status = runFlag),
-    Creature("OrcChieftain", Attack(3), 16, "Increase attack of adjacent card by 2", reaction = new OrcSlotReaction),
-    Spell("FlameWave", "Deals 9 damage to opponent creatures", effects = effects(Direct -> damageCreatures(9, isSpell = true))),
-    Creature("BullCommander", Attack(6), 20, "Increase attack of owner card by 1", reaction = new BullSlotReaction),
+    Creature("Orc chieftain", Attack(3), 16, "Increase attack of adjacent card by 2", reaction = new OrcSlotReaction),
+    Spell("Flame wave", "Deals 9 damage to opponent creatures", effects = effects(Direct -> damageCreatures(9, isSpell = true))),
+    Creature("Bull Commander", Attack(6), 20, "Increase attack of owner card by 1", reaction = new BullSlotReaction),
     Creature("Blargl", Attack(8), 25, "Deals 4 damage to every creature when summoned", effects = effects(Direct -> massDamage(4, isAbility = true, immuneSelf = true))),
     Spell("Inferno", "Deals 18 damage to target and 10 to other opponent creatures", inputSpec = Some(SelectTargetCreature), effects = effects(Direct -> inferno)),
-    Creature("FireElemental", AttackSources().add(ManaAttack(0)), 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(3, isAbility = true), Direct -> focus(damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
+    Creature("Fire Elemental", AttackSources().add(ManaAttack(0)), 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(3, isAbility = true), Direct -> focus(damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
     Spell("Apocalypse", "Damage any creature and opponent by 8 + fire mana", effects = effects(Direct -> armageddon)),
     Creature("Dragon", Attack(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue))))
     , houseIndex = 0)
