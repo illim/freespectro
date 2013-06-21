@@ -203,13 +203,10 @@ extends Creature(
   c.reaction,
   c.data,
   if (c.runAttack.isMultiTarget) s.runAttack else c.runAttack,
-  c.immune,
   c.isAltar,
   c.status){
   houseId = s.houseId
   houseIndex = s.houseIndex
   cost = s.cost
   id = c.id // !!!!
-
-  final override def inflict(damage : Damage, life : Int) = c.inflict(damage, life)
 }

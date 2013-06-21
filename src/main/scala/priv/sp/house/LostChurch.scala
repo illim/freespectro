@@ -174,13 +174,13 @@ class LostChurch {
   }
 
   class AstralEscapeReaction extends Reaction {
-    final override def onProtect(selected : Int, d : DamageEvent) = {
+    final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
       import d._
       var res = d.damage
       if (target.isDefined){
         val slot = player.slots(d.target.get)
         if (slot.get.card == prisoner){
-          player.slots(selected).inflict(d.damage)
+          selected.inflict(d.damage)
           res = d.damage.copy(amount = 0)
         }
       }
@@ -195,9 +195,9 @@ class LostChurch {
       }
     }
 
-    final override def onProtect(selected : Int, d : DamageEvent) = {
+    final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
       d.target match { // hack
-        case Some(n) if selected != n && d.player.slots(n).get.card == enragedPrisoner && d.damage.isEffect =>
+        case Some(n) if selected.num != n && d.player.slots(n).get.card == enragedPrisoner && d.damage.isEffect =>
           d.damage.copy(amount = 0)
         case _ => d.damage
       }
@@ -216,13 +216,13 @@ class LostChurch {
 
   // crap
   class LCEventListener extends HouseEventListener {
-    override def protect(num : Int, damage : Damage) = {
-      val target = player.slots(num).get.card
+    override def protect(slot : SlotUpdate, damage : Damage) = {
+      val target = slot.get.card
       if (target == prisoner || target == enragedPrisoner){
         player.slots.foldl(damage) { (acc, s) =>
           val sc = s.get.card
           if (sc == astralEscape || sc == liberator){
-            s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player))
+            s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
           } else acc
         }
       } else damage

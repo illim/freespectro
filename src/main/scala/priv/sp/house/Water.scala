@@ -14,10 +14,10 @@ trait Water {
         env.focus()
         env.player.inflict(Damage(2, env, isAbility = true)) })),
     Creature("Merfolk Apostate", Attack(3), 10, "Give 2 fire mana when summoned", effects = effects(Direct -> focus(addMana(2, 0)))),
-    Creature("Ice Golem", Attack(4), 12, "Immune to spell & ability", immune = true),
+    Creature("Ice Golem", Attack(4), 12, "Immune to spell & ability", reaction = new GolemReaction),
     Creature("Merfolk Elder", Attack(3), 16, "Increase air mana growth by 1", effects = effects(OnTurn -> addMana(1, 2))),
-    Creature("Ice guard", Attack(3), 20, "Halve damage dealt to owner", mod = Some(new SpellProtectOwner(x => math.ceil(x / 2.0).intValue))),
-    new GiantTurtle,
+    Creature("Ice guard", Attack(3), 20, "Halve damage dealt to owner", reaction = new IceguardReaction),
+    Creature ("HugeTurtle", Attack(5), 17, "Absorb 5 damage", reaction = new TurtleReaction),
     Spell("Acidic shower", "Damage all creature by 15 and decrease mana of opponent by 1", effects = effects(Direct -> massDamage(15, isSpell = true), Direct -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
     })),
@@ -27,10 +27,18 @@ trait Water {
     Creature("Astral guard", Attack(1), 17, "Decrease mana growth by 1", effects = effects(OnEndTurn -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
     }))), houseIndex = 1)
-}
 
-class GiantTurtle extends Creature ("HugeTurtle", Attack(5), 17, "Absorb 5 damage"){
-  override def inflict(damage : Damage, life : Int) = life - math.max(0, damage.amount - 5)
+  class GolemReaction extends Reaction {
+    override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      if (d.isEffect) d.copy(amount = 0) else d
+    }
+  }
+
+  class TurtleReaction extends Reaction {
+    override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      d.copy(amount = math.max(0, d.amount - 5))
+    }
+  }
 }
 
 private class OverlordSlotReaction extends Reaction {
@@ -38,5 +46,13 @@ private class OverlordSlotReaction extends Reaction {
     if (math.abs(selected.num - slot.num) == 1){
       slot.toggle(runFlag)
     }
+  }
+}
+
+private class IceguardReaction extends Reaction {
+  override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
+    if (d.target.isEmpty){
+      d.damage.copy(amount = math.ceil(d.damage.amount / 2.0).intValue)
+    } else d.damage
   }
 }

@@ -49,17 +49,18 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def runSlots(){
     getSlots.foreach { case (num, _) =>
       getSlots.get(num).foreach{ slot =>
-        if (slot.attack > 0 && slot.isRunnable && !ended){
-          runSlot(num, slot)
-        }
+        runSlot(num, slot)
       }
     }
   }
 
   def runSlot(numSlot: Int, slot: SlotState) = {
-    val d = Damage(slot.attack, Context(id, Some(slot.card), numSlot))
-    slot.card.runAttack(numSlot, d, this)
-    updateListener.runSlot(numSlot, id)
+    if (slot.attack > 0 && slot.isRunnable && !ended){
+      val d = Damage(slot.attack, Context(id, Some(slot.card), numSlot))
+      updateListener.runSlot(numSlot, id)
+      slot.card.runAttack(numSlot, d, this)
+      updateListener.refresh()
+    }
   }
 
   /**
@@ -191,13 +192,10 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def addDescMod(dmods : DescMod*)   { write(pstate.copy(desc = pstate.desc.add(dmods : _*))) }
   def removeDescMod(dmod : DescMod){ write(pstate.copy(desc = pstate.desc.remove(dmod))) }
 
+  // sub optimal?
   private def guard(damage : Damage) = {
-    (damage /: getSlots) { case (acc, (num, slot)) =>
-      val a = slot.card.mod match {
-        case Some(SpellProtectOwner(mod)) => acc.copy(amount = mod(acc.amount))
-        case _ => acc
-      }
-      slot.card.reaction.onProtect(num, DamageEvent(a, None, this))
+    slots.foldl(damage) { case (acc, slot) =>
+      slot.get.card.reaction.onProtect(slot, DamageEvent(acc, None, this))
     }
   }
 

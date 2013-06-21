@@ -13,12 +13,12 @@ class ZenMage {
     Creature("Redlight bringer", Attack(3), 15, "deals x additional damage to creatures on opposite and adjacent slots,\nwhere x is the number of owner adjacent creatures.", runAttack = new RedlightAttack),
     Spell("Focus", "Every owner card dedicate 50% of their attack to the focused creature.",
       inputSpec = Some(SelectTargetCreature),
-      effects = effects(Direct -> focus)),
+      effects = effects(Direct -> focusSpell)),
     Creature("Electric guard", Attack(3), 21, "deals 3 damage to creatures damaging owner.", reaction = new EGuardReaction),
     Creature("Dreamer", Attack(5), 24, "When in play spell are summoned with one turn late butwith cost -2.", reaction = new DreamerReaction),
     Creature("Mimic", Attack(6), 26, "When in play, creature are summoned with one turn late with cost -2,\n giving 3 life to owner.", reaction = new MimicReaction),
     Creature("Spiral of light", Attack(3), 19, "each turn, heals 1,2,3,2,1 to self and 4 adjacent cards\ndeals 1,2,3,2,1 to 5 opposite creatures", effects = effects(OnTurn -> spiral), runAttack = new SpiralAttack),
-    new ZenFighter), eventListener = Some(new CustomListener(new ZenEventListener)))
+    Creature ("Zen Fighter", Attack(7), 31, "When summoned gives 3 water mana.\nZen Fighter receives 30% damage from spells and abilities", reaction = new ZFReaction, effects = effects(Direct -> focus(addMana(3, 1))))), eventListener = Some(new CustomListener(new ZenEventListener)))
 
   val eguard = Zen.cards(3)
   Zen.initCards(Houses.basicCostFunc)
@@ -81,7 +81,7 @@ class ZenMage {
     }
   }
 
-  private def focus = { env: Env =>
+  private def focusSpell = { env: Env =>
     import env._
 
     val factor = AttackFactor(0.5f)
@@ -102,12 +102,12 @@ class ZenMage {
   }
 
   private class EGuardReaction extends Reaction {
-    final override def onProtect(selected : Int, d : DamageEvent) = {
+    final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
       import d._
       if (target.isEmpty) {
         damage.context.selectedOption.foreach{ num =>
-          player.updater.focus(selected, player.id, blocking = false)
-          player.updater.players(damage.context.playerId).slots(num).inflict(Damage(3, Context(player.id, Some(eguard), selected), isAbility = true))
+          player.updater.focus(selected.num, player.id, blocking = false)
+          player.updater.players(damage.context.playerId).slots(num).inflict(Damage(3, Context(player.id, Some(eguard), selected.num), isAbility = true))
         }
       }
       d.damage
@@ -166,20 +166,20 @@ class ZenMage {
     }
   }
 
+
+  class ZFReaction extends Reaction {
+      override def selfProtect(d : Damage, slot : SlotUpdate) = {
+        if (d.isEffect) d.copy(amount = math.ceil(0.3 * (d.amount)).intValue)
+        else d
+      }
+  }
+
   class ZenEventListener extends HouseEventListener {
     override def interceptSubmit(c : Command) : (Boolean, Option[Command]) = {
       player.slots.foldl((false, Option.empty[Command])) { (acc, s) =>
         if (acc._1) acc else s.get.card.reaction.interceptSubmit(c, player.updater)
       }
     }
-  }
-}
-
-class ZenFighter extends Creature ("Zen Fighter", Attack(7), 31, "When summoned gives 3 water mana.\nZen Fighter receives 30% damage from spells and abilities", effects = effects(Direct -> focus(addMana(3, 1)))) {
-
-  override def inflict(damage : Damage, life : Int) = {
-    if (damage.isEffect) (life - math.ceil(0.3 * (damage.amount))).toInt
-    else life - damage.amount
   }
 }
 

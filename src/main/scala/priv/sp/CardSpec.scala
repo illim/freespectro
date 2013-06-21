@@ -51,15 +51,12 @@ case class Creature(
   var reaction: Reaction = CardSpec.defaultReaction,
   data        : AnyRef = null, // initialize slot custom data
   runAttack   : RunAttack = SingleTargetAttack,
-  immune      : Boolean = false,
   isAltar     : Boolean = false,
   status      : Int = 0) extends Card {
 
   def this() = this(null, AttackSources(), 0)
 
-  def inflict(damage : Damage, life : Int) = {
-    if (damage.isEffect && immune) life else life - damage.amount
-  }
+  final def inflict(damage : Damage, life : Int) = life - damage.amount
 
   def image = name + ".jpg"
 }
@@ -145,7 +142,6 @@ object CardSpec {
 
 trait Mod
 case class SpellMod(modify : Int => Int) extends Mod
-case class SpellProtectOwner(modify : Int => Int) extends Mod
 
 sealed trait BoardEvent
 trait PlayerEvent extends BoardEvent {
@@ -173,6 +169,7 @@ class Reaction {
   def selfProtect(d : Damage, slot : SlotUpdate) = d
   // used by black monk to heal by the amount even when dying, and by errant to wakeup
   def onMyDamage(amount : Int, slot : SlotUpdate){}
+  // /!\ the slot is not yet empty but is about to (used for f5, f7, schizo, crossbow)
   def onMyRemove(slot : SlotUpdate){}
   def onMyDeath(dead : Dead) {}
   // TODO call this from house listener?
@@ -183,7 +180,8 @@ class Reaction {
   /**
    * Events that needs to be broadcasted manually in a house listener
    */
-  def onProtect(selected : Int, d : DamageEvent) = d.damage
+  // broadcast is already done for player target (for ice guard)
+  def onProtect(selected : SlotUpdate, d : DamageEvent) = d.damage
   // playerId allow to specify which player is notified, in case we need death event from both players.
   def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false

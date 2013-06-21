@@ -1,6 +1,7 @@
 package priv.sp.house
 
 import priv.sp._
+import priv.sp.update._
 
 class Trooper {
   import CardSpec._
@@ -11,7 +12,7 @@ class Trooper {
     Creature("Marine", Attack(4), 17, "Deals 4 damage to summoned opponent creatures", reaction = new MarineReaction),
     Creature("Barracks", Attack(2), 17, "Increase troopers mana growth by 1", effects = effects(OnTurn -> addMana(1, 4))),
     Creature("Wraith", Attack(4), 24, "Every turn deals 2 damage to opponent creatures", effects = effects(OnTurn -> focus(damageCreatures(2, isAbility = true)))),
-    new Goliath,
+    Creature("Goliath", Attack(6), 20, "Immune to spell and absorb 1 damage", reaction = new GoliathReaction),
     Creature("SiegeTank", Attack(8), 29, "Every turn deals 8 damage to opponent creature with most life", effects = effects(OnTurn -> focus(siege))),
     Spell("NuclearMissile", "Deals 19 damage to opponent creatures", effects = effects(Direct -> damageCreatures(19, isSpell = true))),
     Creature("ScienceVessel", Attack(6), 60, "When summoned deals 12 damage to opponent creatures", effects = effects(Direct -> damageCreatures(12, isAbility = true)))))
@@ -27,6 +28,12 @@ class Trooper {
     }
   }
 
+  class GoliathReaction extends Reaction {
+    override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      if (d.isEffect) d.copy(amount = 0) else d.copy(amount = math.max(0, d.amount - 1))
+    }
+  }
+
   class MarineReaction extends Reaction {
 
       final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
@@ -38,8 +45,4 @@ class Trooper {
         }
       }
   }
-}
-
-class Goliath extends Creature("Goliath", Attack(6), 20, "Immune to spell and absorb 1 damage", immune = true){
-  override def inflict(damage : Damage, life : Int) = if (damage.isEffect) life else (life - math.max(0, damage.amount - 1))
 }

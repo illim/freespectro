@@ -97,9 +97,14 @@ class JunkMage {
   }
 
   private class ScreamerReaction extends Reaction {
-    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = onMyRemove(slot)
-    final override def onMyRemove(slot : SlotUpdate) = {
-      slot.slots.foreach{ s =>
+    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+      if (slot.get.card == screamer){
+        setScreamerDirty(slot.slots)
+      }
+    }
+    final override def onMyDeath(dead : Dead) = setScreamerDirty(dead.player.slots)
+    def setScreamerDirty(slots : SlotsUpdate){
+      slots.foreach{ s =>
         if (s.get.card == screamer){
           s.attack.setDirty()
         }
@@ -117,11 +122,11 @@ class JunkMage {
   }
 
   class JunkEventListener extends HouseEventListener with OwnerDeathEventListener {
-    override def protect(num : Int, damage : Damage) = {
+    override def protect(slot : SlotUpdate, damage : Damage) = {
       player.slots.foldl(damage) { (acc, s) =>
         val sc = s.get.card
         if (sc == jf){
-          s.get.card.reaction.onProtect(s.num, DamageEvent(acc, Some(num), player))
+          s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
         } else acc
       }
     }
@@ -129,13 +134,12 @@ class JunkMage {
 }
 
 class JFReaction extends Reaction {
-  final override def onProtect(selected : Int, d : DamageEvent) = {
+  final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
     import d._
-    val slot = player.slots(selected)
-    if (!slot.get.data.asInstanceOf[Boolean]
+    if (!selected.get.data.asInstanceOf[Boolean]
         && (d.target.isEmpty || player.slots(d.target.get).get.card.cost < 4)){
-        player.updater.focus(selected, player.id, blocking = false)
-        slot.setData(Boolean.box(true))
+        player.updater.focus(selected.num, player.id, blocking = false)
+        selected.setData(Boolean.box(true))
         d.damage.copy(amount = math.max(0, d.damage.amount - 2))
     } else d.damage
   }

@@ -10,7 +10,7 @@ import priv.GuiElem
 
 // total crap
 class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotState], Boolean), game : Game) extends GuiElem with Damagable {
-  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex, mortalTex}
+  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex, hirdTex, mortalTex}
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
@@ -18,29 +18,34 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
   private var content = toContent(getInfo)
   private var moveAnim = Option.empty[MoveAnimTask]
   private var alpha = 1f
-  private var isMereMortal = false
   var focusScale = Option.empty[Float]
   val slotSize   = Coord2i(120, 142)
   val stunPos    = Coord2i.recenter(Coord2i(40, 40), stunTex.size)
   private val dashOffset = Coord2i(slotSize.x/2 - 40, slotSize.y/2-44)
   val location = Location(Coord2i(19, 33))
   private val fade = game.sp.baseShaders.fade
+  private var decorate = Option.empty[() => Unit]
 
   def refresh() {
     val old = content
     content = toContent(getInfo)
-    content._1 match {
-      case Some(c) =>
-        val slotState = c._1
-        alpha = if (slotState.has(CardSpec.pausedFlag)) 0.5f else 1f
-        isMereMortal = slotState.card.isInstanceOf[MereMortal]
-        for{
-          before <- old._1
-          val d = slotState.life - before._1.life if d != 0
-        } game.world.addTask(DamageAnimTask(d))
-      case None =>
-        alpha = 1f
-        isMereMortal = false
+    decorate = None
+    alpha = 1f
+    content._1 foreach { c =>
+      val slotState = c._1
+      val card = slotState.card
+      if (slotState.has(CardSpec.pausedFlag)) alpha = 0.5f
+      if (slotState.status > 1){
+        decorate = Some(() => decorateStatus(slotState))
+      } else if (card.isInstanceOf[MereMortal]){
+        decorate = Some(() => tex.draw(mortalTex))
+      } else if (card.houseId == game.sp.houses.moutainKing.MoutainKing.houseId && slotState.data == Hird) {
+        decorate = Some(() => tex.draw(hirdTex))
+      }
+      for{
+        before <- old._1
+        val d = slotState.life - before._1.life if d != 0
+      } game.world.addTask(DamageAnimTask(d))
     }
   }
   def isEmpty = content._1.isEmpty
@@ -72,12 +77,7 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
           glUniform1f(fade.fact, alpha)
         }
         tex.draw(cardTex)
-        if (slotState.status > 1){
-          decorate(slotState)
-        }
-        if (isMereMortal){
-          tex.draw(mortalTex)
-        }
+        decorate.foreach(_())
         glTranslatef(-3, -8, 0)
         tex.draw(game.sp.baseTextures.borderTex)
         Fonts.font.draw(72, 1, slotState.card.cost, 'blue)
@@ -130,7 +130,7 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
     glEnable(GL_TEXTURE_2D)
   }
 
-  def decorate(s : SlotState){
+  def decorateStatus(s : SlotState){
     if (s.has(CardSpec.blockedFlag)) {
       tex.drawAt(stunPos, crystalTex.id, crystalTex.size)
     } else if (s.has(CardSpec.stunFlag)) {

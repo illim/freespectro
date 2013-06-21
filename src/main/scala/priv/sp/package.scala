@@ -15,5 +15,5 @@ package object sp {
 
   def other(id: PlayerId) = if (id == owner) opponent else owner
 
-  private def inSlotRange(n : Int) = n > -1 && n < 6
+  def inSlotRange(n : Int) = n > -1 && n < 6
 }

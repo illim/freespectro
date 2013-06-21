@@ -70,7 +70,9 @@ class HouseEventListener {
 
   // Because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
   def onDeath(dead : Dead) {}
-  def protect(num : Int, damage : Damage) = damage
+  def onAdd(slot : SlotUpdate){ }
+  def protect(slot : SlotUpdate, damage : Damage) = damage
+  def protectOpp(slot : SlotUpdate, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
   def interceptSubmit(c : Command) : (Boolean, Option[Command]) = Reaction.falseNone
   def refreshOnOppUpdate() {} // bullcrap, and should not affect opp(looping is not managed)
@@ -80,7 +82,9 @@ class HouseEventListener {
 // bs for warp class
 class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener {
   override def onDeath(dead : Dead) { inner.onDeath(dead) }
-  override def protect(num : Int, damage : Damage) = inner.protect(num, damage)
+  override def onAdd(slot : SlotUpdate){ super.onAdd(slot)  }
+  override def protect(slot : SlotUpdate, damage : Damage) = inner.protect(slot, damage)
+  override def protectOpp(slot : SlotUpdate, damage : Damage) = inner.protectOpp(slot, damage)
   override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) { inner.onDamaged(card, amount, slot) }
   override def refreshOnOppUpdate() { inner.refreshOnOppUpdate() }
   override def interceptSubmit(c : Command) : (Boolean, Option[Command]) = inner.interceptSubmit(c)

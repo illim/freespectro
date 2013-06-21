@@ -15,6 +15,7 @@ object GameCardEffect {
     @inline def player = updater.players(playerId)
     @inline def otherPlayer = updater.players(other(playerId))
     @inline def getMana(houseIndex : Int) : Int = updater.state.players(playerId).houses(houseIndex).mana
+    def getSelectedSlot() = player.slots(selected)
   }
 
   def focus(f : Env => Unit) = { env : Env =>

@@ -193,9 +193,6 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def runSlot(num : Int, playerId : PlayerId){
       val slotButton = slotPanels(playerId).slots(num)
       spawn(Running(slotButton.location, slotButton.direction), blocking = true)
-      persistUpdater()
-      refresh()
-      state.checkEnded.foreach(endGame _)
     }
     def summon(num : Int, slot : SlotState, playerId : PlayerId){
       val sourceCoord = (cardPanels(playerId).getPositionOf(slot.card) orElse cardPanels(other(playerId)).getPositionOf(slot.card)).getOrElse(Coord2i(0, 0))
@@ -211,6 +208,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     def refresh(silent : Boolean) = {
       persistUpdater()
       game.refresh(silent)
+      state.checkEnded.foreach(endGame _)
     }
     def spellPlayed(c : Command){
       spawn(new SpellNotif(sp, c.card))

@@ -7,9 +7,12 @@ import priv.util.FieldUpdate
 // crap most functions suppose value is tested if well defined
 class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Some(slots), slots.value.get(num)){
   import slots.{player, updater}
-  import player.id
+  val playerId = player.id
   private lazy val attackUpdate = new AttackUpdate(this)
   lazy val adjacentSlots = adjacents(num).map{ n => slots(n) }
+  lazy val otherHouseListener = updater.houseEventListeners(other(playerId))
+
+  def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
 
   @inline def get = value.get
   // some crap
@@ -39,12 +42,17 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def add(slot : SlotState) {
     write(Some(slot))
     slots.reactAdd(this)
+    updater.houseEventListeners.foreach(_.onAdd(this))
   }
 
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
       val card = get.card
-      val d = player.houseEventListener.protect(num, card.reaction.selfProtect(damage, this)) // /!\ possible side effect (jf can protect herself once and toggle a flag)
+      val d = otherHouseListener.protectOpp(
+        this,
+        player.houseEventListener.protect(
+          this,
+          card.reaction.selfProtect(damage, this))) // /!\ possible side effect (jf can protect herself once and toggle a flag)
       val slot = get
       val amount = slot.inflict(d) match {
         case None =>
@@ -70,12 +78,12 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def remove(){
     val slotState = get
     attackUpdate.invalidate() // FIXME hack?
-    write(None)
     slotState.card.reaction.onMyRemove(this)
+    write(None)
   }
 
   def focus(blocking : Boolean = true){
-    slots.updateListener.focus(num, id, blocking)
+    slots.updateListener.focus(num, playerId, blocking)
   }
 
   def update(f : SlotState => SlotState){
