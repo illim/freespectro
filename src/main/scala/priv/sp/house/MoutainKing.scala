@@ -177,7 +177,7 @@ class MoutainKing {
   class MKEventListener extends HouseEventListener {
     val moutainHouseId = MoutainKing.houseId
     override def protect(slot : SlotUpdate, damage : Damage) = {
-      if (slot.get.card == runesmith && damage.context.selected != slot.num){
+      if (slot.get.card == runesmith && (damage.context.selected != slot.num || !damage.context.card.exists(!_.isSpell))){
         damage.copy(amount = 0)
       } else {
         player.slots.foldl(damage) { (acc, s) =>
@@ -189,7 +189,7 @@ class MoutainKing {
       }
     }
     override def protectOpp(slot : SlotUpdate, damage : Damage) = {
-      if (player.getSlots.get(slot.num).exists(_.card == runesmith) && damage.context.selected != slot.num){
+      if (player.getSlots.get(slot.num).exists(_.card == runesmith) && (damage.context.selected != slot.num || damage.context.card != Some(runesmith))){
         damage.copy(amount = 0)
       } else damage
     }
