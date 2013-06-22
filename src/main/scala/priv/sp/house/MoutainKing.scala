@@ -315,9 +315,9 @@ class ArmourReaction extends Reaction {
 
   def protectFromOpp(d : Damage, slot : SlotUpdate) = {
     val oppSlot = slot.slots.player.otherPlayer.getSlots.get(slot.num)
-    val levelDiff = oppSlot.map(s => math.max(0, s.card.cost - 4)) getOrElse 0
+    val levelDiff = oppSlot.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
     if (!d.isEffect && levelDiff != 0){
-      d.copy(amount = d.amount - levelDiff)
+      d.copy(amount = math.max(0, d.amount - levelDiff))
     } else d
   }
 }
