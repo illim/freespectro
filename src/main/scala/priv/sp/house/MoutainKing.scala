@@ -5,13 +5,11 @@ import priv.sp.update._
 import CardSpec._
 import GameCardEffect._
 
-// HORROR code
-// berserker may be bugged
 class MoutainKing {
 
-  val soldier = Creature("Dwarven soldier", Attack(3), 12, "On entering the game increases attack of neighbors by 3 for 1 turn.\nHird: decreases attack of opposite creature by 1 for each\ndwarven soldier on the board.", effects = effects(Direct -> soldierEffect))
+  val soldier = Creature("Dwarven soldier", Attack(3), 12, "On entering the game increases attack of neighbors by 3 for 1 turn.\nHird: decreases attack of opposite creature by 1 for each\ndwarven soldier on the board.", effects = effects(Direct -> soldierEffect), reaction = new SoldierReaction)
   val shieldman = Creature("Dwarven shieldman", Attack(3), 15, "Redirects to himself half of the damage dealt to neighbors.\nHird: cannot be killed with magic (at least 1 hp will be left).", reaction = new ShieldmanReaction)
-  val runesmith = Creature("Runesmith", AttackSources(Some(7), Vector(RuneAttackSource)), 23, "Runesmith and opposite creature can be harmed only by\neach other's attacks.\nHird: +1 attack for each dwarf in the game (including himself).")
+  val runesmith = Creature("Runesmith", AttackSources(Some(7), Vector(RuneAttackSource)), 23, "Runesmith and opposite creature can be harmed only by\neach other's attacks.\nHird: +1 attack for each dwarf in the game (including himself).", reaction = new RuneReaction)
   val ballista = Creature("Ballista", Attack(6), 34, "When enemy creature enters the game, halves its health and\nloses 10 health itself.\nHird: loses only 7 health on activating ability.", reaction = new BallistaReaction)
   val berserker = Creature("Berserker", AttackSources(Some(6), Vector(BerserkerAttackSource)), 40, "When owner receives more than 5 damage attacks out-of-turn opposite slot.\nHird: +3 attack and damage dealt to berserker.", reaction = new BerserkerReaction)
   val moutainKing = Creature("Moutain king", Attack(5), 45, "When allied dwarf enters the game, heals himself by 6 and\npermanently increases his attack by 2.\nWhen enters the game stuns strongest opponent creature.\nHird: reduces cost of dwarven cards by 1.", effects = effects(Direct -> moutain), reaction = new MountainReaction)
@@ -47,28 +45,42 @@ class MoutainKing {
   }
 
   class SoldierReaction extends Reaction {
-    override def onMyDeath(dead : Dead) {
-      import dead._
-      if (slot.data == Hird){
-        val otherPlayer = player.otherPlayer
-        otherPlayer.getSlots.get(num) match {
-          case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) =>
-            otherPlayer.slots(num).attack.removeFirst(SoldierLowerAttack)
-          case _ =>
+    override def onMyRemove(slot : SlotUpdate) {
+      val otherPlayer = slot.slots.player.otherPlayer
+      otherPlayer.getSlots.get(slot.num) match {
+        case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) =>
+          otherPlayer.slots(slot.num).attack.removeFirst(SoldierLowerAttack)
+        case _ =>
+      }
+      setSoldierOppAttackDirty(otherPlayer)
+    }
+
+    def setHird(s : SlotUpdate, b : Boolean, otherPlayer : PlayerUpdate){
+      val oppSlot = otherPlayer.slots(s.num)
+      if (oppSlot.value.isDefined){
+        if (b) {
+          if (!oppSlot.attack.has[SoldierLowerAttack.type]){
+            oppSlot.attack.add(SoldierLowerAttack)
+          }
+        }
+      }
+      setSoldierOppAttackDirty(otherPlayer)
+    }
+
+    def setSoldierOppAttackDirty(otherPlayer : PlayerUpdate){
+      otherPlayer.slots.foreach{ s =>
+        if (s.attack.has[SoldierLowerAttack.type]){
+          s.attack.setDirty()
         }
       }
     }
   }
 
   class RuneReaction extends Reaction {
-    override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
-      selected.attack.setDirty()
-    }
-    override def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {
-      import dead._
-      if (dead.card.houseId == MoutainKing.houseId){
-        player.slots(selected).attack.setDirty()
-      }
+    final override def selfProtect(d : Damage, slot : SlotUpdate) = {
+      if (d.context.selected != slot.num || ! d.context.card.exists(!_.isSpell)) {
+        d.copy(amount = 0)
+      } else d
     }
   }
 
@@ -156,10 +168,9 @@ class MoutainKing {
   }
 
   class MountainReaction extends Reaction {
-    final override def onMyDeath(dead : Dead) {
-      import dead._
-      if (slot.data == Hird){
-        player.removeDescMod(LowerSpecialCostMod)
+    final override def onMyRemove(slot : SlotUpdate) {
+      if (slot.get.data == Hird){
+        setHird(false, slot.slots.player)
       }
     }
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
@@ -170,34 +181,33 @@ class MoutainKing {
         slot.attack.add(AttackAdd(2))
       }
     }
+    def setHird(b : Boolean, player : PlayerUpdate){
+      if (b) player.addDescMod(LowerSpecialCostMod)
+      else player.removeDescMod(LowerSpecialCostMod)
+    }
   }
 
   // crap
   class MKEventListener extends HouseEventListener {
     val moutainHouseId = MoutainKing.houseId
     override def protect(slot : SlotUpdate, damage : Damage) = {
-      if (slot.get.card == runesmith && (damage.context.selected != slot.num || !damage.context.card.exists(!_.isSpell))){
-        damage.copy(amount = 0)
-      } else {
-        player.slots.foldl(damage) { (acc, s) =>
-          val sc = s.get.card
-          if (sc.houseIndex == 4){
-            s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
-          } else acc
-        }
+      player.slots.foldl(damage) { (acc, s) =>
+        val sc = s.get.card
+        if (sc.houseIndex == 4){
+          s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
+        } else acc
       }
     }
+
     override def protectOpp(slot : SlotUpdate, damage : Damage) = {
-      if (player.getSlots.get(slot.num).exists(_.card == runesmith) && (damage.context.selected != slot.num || damage.context.card != Some(runesmith))){
-        damage.copy(amount = 0)
-      } else damage
+      player.getSlots.get(slot.num) match {
+        case Some(s) if s.card == runesmith => s.card.reaction.selfProtect(damage, slot)
+        case _ => damage
+      }
     }
     override def onDeath(dead : Dead) {
       val c = dead.card
       if (dead.player.id == player.id && c.houseId == moutainHouseId) {
-        if (c == soldier){
-          setSoldierOppAttackDirty()
-        }
         player.slots.foreach{ s =>
           if (s.num != dead.num) {
             val c = s.get.card
@@ -249,32 +259,16 @@ class MoutainKing {
       }
     }
 
-    private def setSoldierOppAttackDirty(){
-      player.otherPlayer.slots.foreach{ s =>
-        if (s.attack.has[SoldierLowerAttack.type]){
-          s.attack.setDirty()
-        }
-      }
-    }
-
     private def setHird(s : SlotUpdate, b : Boolean){
       val c = s.get.card
       s.setData(if (b) Hird else null)
-      if (c == soldier){
-        val oppSlot = player.otherPlayer.slots(s.num)
-        if (oppSlot.value.isDefined){
-          if (b) {
-            if (!oppSlot.attack.has[SoldierLowerAttack.type]){
-              oppSlot.attack.add(SoldierLowerAttack)
-            }
-          }
-        }
-        setSoldierOppAttackDirty()
-      } else if (c == runesmith || c == berserker){
+      c.reaction match {
+        case sr : SoldierReaction => sr.setHird(s, b, player.otherPlayer)
+        case mr : MountainReaction => mr.setHird(b, player)
+        case _ =>
+      }
+      if (c == runesmith || c == berserker){
         s.attack.setDirty()
-      } else if (c == moutainKing){
-        if (b) player.addDescMod(LowerSpecialCostMod)
-        else player.removeDescMod(LowerSpecialCostMod)
       }
     }
 
