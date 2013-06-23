@@ -102,7 +102,9 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
 
   def inflict(d : Damage) = {
     if (!ended) {
-      val life = pstate.life - guard(mod(d)).amount
+      val amount = guard(mod(d)).amount
+      houseEventListener.onPlayerDamage(amount)
+      val life = pstate.life - amount
       if (life <= 0){
         updater.ended = true
       }

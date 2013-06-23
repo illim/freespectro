@@ -29,6 +29,7 @@ class MoutainKing {
 
   MoutainKing.initCards(Houses.basicCostFunc)
 
+
   def soldierEffect = { env : Env =>
     import env._
     val bonus = AttackAdd(3)
@@ -76,14 +77,6 @@ class MoutainKing {
       if (slot.value.exists(_.data == Hird)){
         val nbDwarf = slot.slots.filleds.count(_.get.card.houseId == MoutainKing.houseId)
         attack + nbDwarf
-      } else attack
-    }
-  }
-
-  case object BerserkerAttackSource extends AttackSlotStateFunc {
-    def apply(attack : Int, slot : SlotUpdate) = {
-      if (slot.value.exists(_.data == Hird)){
-        attack + 3
       } else attack
     }
   }
@@ -142,17 +135,23 @@ class MoutainKing {
 
   class BerserkerReaction extends Reaction {
     // bs if iceguard is on the right of berserker
-    override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
-      import d._
-      if (target.isEmpty && damage.amount > 5){
-        player.runSlot(selected.num, selected.get)
+    def onPlayerDamage(amount : Int, slot : SlotUpdate) = {
+      if (amount > 5){
+        slot.slots.player.runSlot(slot.num, slot.get)
       }
-      damage
     }
     override def selfProtect(d : Damage, slot : SlotUpdate) = {
       if (slot.get.data == Hird){
         d.copy(amount = d.amount + 3)
       } else d
+    }
+  }
+
+  case object BerserkerAttackSource extends AttackSlotStateFunc {
+    def apply(attack : Int, slot : SlotUpdate) = {
+      if (slot.value.exists(_.data == Hird)){
+        attack + 3
+      } else attack
     }
   }
 
@@ -238,6 +237,17 @@ class MoutainKing {
         }
       }
     }
+    override def onPlayerDamage(amount : Int){
+      player.slots.foreach{ s =>
+        val c = s.get.card
+        if (c.houseIndex == 4){
+          c.reaction match {
+            case br : BerserkerReaction => br.onPlayerDamage(amount, s)
+            case _ =>
+          }
+        }
+      }
+    }
 
     private def setSoldierOppAttackDirty(){
       player.otherPlayer.slots.foreach{ s =>
@@ -267,6 +277,7 @@ class MoutainKing {
         else player.removeDescMod(LowerSpecialCostMod)
       }
     }
+
   }
 }
 
