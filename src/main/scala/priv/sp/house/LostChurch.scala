@@ -41,6 +41,8 @@ class LostChurch {
   }
   windOfOppression.cost = 3
   darkMonk.cost = 3
+  prisoner.cost = 1
+  enragedPrisoner.cost = 4
 
   val falseProphetAbility = Ability(falseProphet, darkMonk)
   val scarecrowAbility    = Ability(scarecrow, windOfOppression)

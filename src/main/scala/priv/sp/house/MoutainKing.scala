@@ -125,7 +125,7 @@ class MoutainKing {
 
     override def selfProtect(d : Damage, slot : SlotUpdate) = {
       val life = slot.get.life
-      if (slot.get.data == Hird && d.isEffect && d.amount >= life){
+      if (slot.get.data == Hird && d.isSpell && d.amount >= life){
         d.copy(amount = life - 1)
       } else d
     }
@@ -266,9 +266,9 @@ class MoutainKing {
         case sr : SoldierReaction => sr.setHird(s, b, player.otherPlayer)
         case mr : MountainReaction => mr.setHird(b, player)
         case _ =>
-      }
-      if (c == runesmith || c == berserker){
-        s.attack.setDirty()
+          if (c == runesmith || c == berserker){
+            s.attack.setDirty()
+          }
       }
     }
 
