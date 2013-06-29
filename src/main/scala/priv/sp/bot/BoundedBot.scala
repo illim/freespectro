@@ -10,12 +10,12 @@ import collection._
 // another stupid bot, faster because bounded in time, trying to use uct.
 // select best reward and not numsim due to boost(leafed node when early win/loss detected)
 // not using flat uct for opponent next move fairness?
-class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses) extends Bot {
-  val heuris = Random.nextInt(4) match {
+class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, heurisChoice : Int = 3) extends Bot {
+  val heuris = heurisChoice match {
     case 0 => new LifeManaRatioHeuris(botPlayerId)
     case 1 => new LifeHeuris(botPlayerId)
-    case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillCostRatio = true)
-    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppManaRatio = true, useKillCostRatio = true)
+    case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillValueRatio = true)
+    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppManaRatio = true, useKillValueRatio = true, useBoardRatio = true)
 //    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 

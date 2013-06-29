@@ -6,13 +6,10 @@ import scalaz._
 import org.scalatest._
 import org.scalatest.matchers._
 
-class BBBotSpec extends FlatSpec with ShouldMatchers {
-  val houses = HouseSingleton
+class BBBotSpec extends BotTestHelper {
   import houses._
 
-  val desc = {
-    def get(h : House, is : Int*) = PlayerHouseDesc(h, is.to[Vector].map(i => h.cards(i -1)).map(c => CardDesc(c, c.cost, true)))
-
+  val desc =
     GameDesc(Vector(
       PlayerDesc(Vector(
         get(Fire, 3, 6, 8, 10),
@@ -26,15 +23,6 @@ class BBBotSpec extends FlatSpec with ShouldMatchers {
         get(Air, 1, 4, 8, 12),
         get(Earth, 2, 6, 7, 11),
         get(dudeMancer.Dude, 2, 4, 5, 8)))))
-  }
-
-  def houseStates(ms : Int*) = ms.to[Vector].map(m => new HouseState(m))
-  def toSlotState(h : House, i : Int, x: Int = 0) = {
-    val card = h.cards(i -1).asCreature
-    SlotState(card, card.life, 1, card.attack, card.attack.base.getOrElse(x), card.data)
-  }
-  def slots(ss : (Int, SlotState)*) = PlayerState.emptySlots ++ ss.toList
-  def pstate(id: Int, hs : Vector[HouseState], slots : PlayerState.SlotsType, life : Int) = PlayerState(hs, new DescReader(desc.players(id)), slots, life = life)
 
   "bot" should "win the game with last move" in {
     val state = GameState(List(

@@ -26,6 +26,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
     world.spawn(Repere)
     gm.surrenderButton.on{ case MouseClicked(c) =>
       gm.gameLock.release()
+      gm.server.surrender()
       currentGame = createGame()
     }
     gm.settingsButton.on{ case MouseClicked(c) =>

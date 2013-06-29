@@ -22,10 +22,12 @@ trait GameServer {
   def seed : Long
   resetSeed()
 
-  def waitNextCommand(c : TVar[Option[Command]], state : GameState)
+  // None implies surrender
+  def waitNextCommand(c : TVar[Option[Option[Command]]], state : GameState)
   def submitCommand(commandOption : Option[Command])
   def resetSeed(){  Random.setSeed(seed) }
   def reset(){ }
+  def surrender(){ }
 }
 
 class Local(resources : GameResources) extends GameServer {
@@ -37,12 +39,12 @@ class Local(resources : GameResources) extends GameServer {
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
   val desc = GameDesc(Vector(p1Desc, p2Desc))
   val playerId = opponent
-  val bot = new BoundedBot(playerId, desc, resources.sp.houses)
+  val bot = new BoundedBot(playerId, desc, resources.sp.houses, resources.heurisChoice)
   val name = "AI-" + bot.heuris.name
   val seed = System.currentTimeMillis
-  def waitNextCommand(c : TVar[Option[Command]], state : GameState) = {
+  def waitNextCommand(c : TVar[Option[Option[Command]]], state : GameState) = {
     resources.aiExecutor.submit(
-      runnable(c.set(bot.executeAI(state))))
+      runnable(c.set(Some(bot.executeAI(state)))))
   }
 
   def submitCommand(commandOption : Option[Command]) = {
@@ -69,14 +71,19 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   peer.updateImpl(this)
 
   val currentTurnId = new AtomicInteger
-  var cont = Option.empty[TVar[Option[Command]]]
+  var cont = Option.empty[TVar[Option[Option[Command]]]]
 
-  def waitNextCommand(c : TVar[Option[Command]], state : GameState) {
+  def waitNextCommand(c : TVar[Option[Option[Command]]], state : GameState) {
     cont = Some(c)
     currentTurnId.incrementAndGet
   }
   def submitCommand(commandOption : Option[Command]){
     remoteSubmit(currentTurnId.incrementAndGet, commandOption)
+  }
+
+  def end(){
+    peer.release()
+    cont.get.set(None)
   }
 
   // out
@@ -87,9 +94,10 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   // in
   def submit(turnId : Int, commandOption : Option[Command]) {
     require(turnId == currentTurnId.get, turnId + "!=" + currentTurnId.get)
-    cont.get.set(commandOption)
+    cont.get.set(Some(commandOption))
     cont = None
   }
+  override def surrender(){ peer.proxy.end() }
 }
 
 
@@ -127,6 +135,7 @@ class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameRe
 
 trait CommonInterface {
   def submit(turnId : Int, c: Option[Command])
+  def end()
 }
 
 trait SlaveInterface extends CommonInterface {

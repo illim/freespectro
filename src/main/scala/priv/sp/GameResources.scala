@@ -19,6 +19,7 @@ class GameResources {
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
 
+  var heurisChoice = 3
   var playerChoices : List[Option[House]] = List(None, None)
   def resolveChoices = playerChoices.map{ o =>
     o.getOrElse(sp.houses.special(scala.util.Random.nextInt(sp.houses.special.size)))

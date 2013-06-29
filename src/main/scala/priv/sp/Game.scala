@@ -27,7 +27,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val topCardPanel     = new TopCardPanel(playerIds(otherPlayerId), this)
   val board            = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, sp)
 
-  val surrenderButton = new GuiButton("Surrender")
+  val surrenderButton = new GuiButton("New game")
   val skipButton      = new GuiButton("Skip turn")
   val settingsButton  = new GuiButton("Settings")
   val restartButton   = new GuiButton("Restart")
@@ -67,23 +67,27 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
 
   private def waitPlayer(player: PlayerId) {
-    def autoSkip : Option[Option[Command]] = if (state.players(player).isDisabled) Some(None) else None
+    def autoSkip[A] : Option[Option[A]] = if (state.players(player).isDisabled) Some(None) else None
 
     if (player == server.playerId) {
-      (autoSkip
+      (autoSkip[Option[Command]]
        orElse {
          cardPanels(player).setEnabled(true)
-         gameLock.waitFor[Option[Command]]{ c =>
+         gameLock.waitFor[Option[Option[Command]]]{ c =>
            server.waitNextCommand(c, state)
-         }}).foreach{ nextCommand =>
-           for{
-             c <- nextCommand
-             b <- cardPanels(player).cardButtons.find(_.card == Some(c.card))
-           } b.visible = true
-           submit(nextCommand, player)
+         }}).foreach{ nextCommandOpt : Option[Option[Command]] =>
+           nextCommandOpt match {
+             case None => endGame(myPlayerId)
+             case Some(nextCommand) =>
+               for{
+                 c <- nextCommand
+                 b <- cardPanels(player).cardButtons.find(_.card == Some(c.card))
+               } b.visible = true
+               submit(nextCommand, player)
+           }
          }
     } else {
-      (autoSkip
+      (autoSkip[Command]
        orElse gameLock.waitFor[Option[Command]]{ c =>
          commandRecorder.startWith(c) {
            cardPanels(player).setEnabled(true)

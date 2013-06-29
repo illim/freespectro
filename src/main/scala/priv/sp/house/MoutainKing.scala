@@ -146,7 +146,6 @@ class MoutainKing {
   }
 
   class BerserkerReaction extends Reaction {
-    // bs if iceguard is on the right of berserker
     def onPlayerDamage(amount : Int, slot : SlotUpdate) = {
       if (amount > 5){
         slot.slots.player.runSlot(slot.num, slot.get)

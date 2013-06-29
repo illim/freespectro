@@ -23,6 +23,18 @@ class GameSettings(resources : GameResources) extends JPanel  {
     add(c.combo)
     c
   }
+
+  class HeurisChoice extends ActionListener {
+    val combo = new JComboBox((0 to 3).map(_.toString).toArray)
+    combo.addActionListener(this)
+    combo.setSelectedItem("3")
+    def actionPerformed(e : ActionEvent){
+      resources.heurisChoice = combo.getSelectedItem().toString.toInt
+    }
+  }
+
+  val hc = new HeurisChoice
+  add(hc.combo)
 }
 
 class GameDebug(game : => Game) extends JPanel with ActionListener {

@@ -35,7 +35,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         slotsUpdate.logs.reverseIterator.foreach {
           case dead : Dead =>
             stats.nbDead += 1
-            otherPlayerStats.addKill(dead.card)
+            otherPlayerStats.addKill(dead.slot)
             slots.onDead(dead)
           case _ =>
         }

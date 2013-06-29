@@ -2,13 +2,16 @@ package priv.sp
 
 import house._
 import priv.sp.update._
+import java.io._
 
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 // eventListener is only used for special houses
-case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None){
-  val houseId = House.currentId.incrementAndGet()
+case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None) extends Externalizable {
+  def this() = this(null, Nil)
+
+  var houseId = House.currentId.incrementAndGet()
 
   def costs = cards.map(_.cost)
 
@@ -28,6 +31,9 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
       case _ => false
     }
   }
+  def writeExternal(out : ObjectOutput ){  out.writeInt(houseId) }
+  def readExternal(in : ObjectInput  ){  houseId = in.readInt() }
+  protected def readResolve() : Object = HouseSingleton.getHouseById(houseId)
 }
 
 sealed trait ListenerBuilder
@@ -69,6 +75,7 @@ class Houses
   private val allCards = allHouses.flatMap(_.cards)
 
   val getHouseById = allHouses.map(h => h.houseId -> h).toMap
+  println(getHouseById)
   def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
 
   def isSpecial(house : House)= specialNames.contains(house.name)

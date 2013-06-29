@@ -156,6 +156,9 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
       val fact = getDelta() / moveDuration.toFloat
       location.c = dest - (dir * math.max(0, (1 - fact)))
     }
+    override def onEnd(){
+      location.c = dest
+    }
   }
 
   class Fade extends TimedEntity {
