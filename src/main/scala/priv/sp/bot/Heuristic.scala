@@ -84,7 +84,7 @@ class MultiRatioHeuris(
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
     val humanLifeRatio = lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
-    var res = 1f //humanLifeRatio
+    var res = humanLifeRatio
 
     if (useKillRatio){
       val botKill = getKill(playerStats(botPlayerId))
