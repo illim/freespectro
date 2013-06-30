@@ -91,7 +91,7 @@ trait Bot {
   }
 }
 
-class Choices(bot : Bot) {
+class Choices(bot : Bot, cardStats : List[CardStats]) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
     val p = state.players(playerId)
@@ -137,10 +137,13 @@ class Choices(bot : Bot) {
   def getRandomMove(state: GameState, playerId: PlayerId): Option[Command] = {
     val p = state.players(playerId)
     val otherp = state.players(other(playerId))
-    val houseDesc = p.desc.get.houses(Random.nextInt(5))
-    val houseState = p.houses(houseDesc.house.houseIndex)
-    val cards = houseDesc.cards.filter(_.isAvailable(houseState))
-    val cardOption = randHeadOption(cards)
+    val cardStat = cardStats(playerId)
+    val cardOption = cardStat.getRandomCard(p)
+
+/**      val houseDesc = p.desc.get.houses(Random.nextInt(5))
+      val houseState = p.houses(houseDesc.house.houseIndex)
+      val cards = houseDesc.cards.filter(_.isAvailable(houseState))
+      randHeadOption(cards)*/
 
     cardOption.flatMap { cardDesc =>
       import cardDesc.card

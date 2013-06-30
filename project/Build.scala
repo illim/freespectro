@@ -27,4 +27,5 @@ object SpectroBuild extends Build {
   val distTask = dist := {
     println("TODO")
   }
+
 }

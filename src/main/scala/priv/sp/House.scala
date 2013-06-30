@@ -75,7 +75,6 @@ class Houses
   private val allCards = allHouses.flatMap(_.cards)
 
   val getHouseById = allHouses.map(h => h.houseId -> h).toMap
-  println(getHouseById)
   def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
 
   def isSpecial(house : House)= specialNames.contains(house.name)

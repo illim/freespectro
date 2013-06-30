@@ -15,13 +15,13 @@ class BBBot2Spec extends BotTestHelper {
         get(Fire, 3, 6, 8, 12),
         get(Water, 3, 5, 8, 11),
         get(Air, 3, 6, 8, 10),
-        get(Earth, 3, 6, 9, 10),
+        get(Earth, 3, 6, 8, 10),
         get(dudeMancer.Dude, 1, 3, 6, 7))),
       PlayerDesc(Vector(
         get(Fire, 1, 4, 5, 11),
         get(Water, 1, 4, 7, 10),
         get(Air, 1, 2, 7, 10),
-        get(Earth, 2, 6, 8, 12),
+        get(Earth, 1, 6, 9, 12),
         get(dudeMancer.Dude, 2, 4, 5, 8)))))
 
   "bot" should "wait for tornado" in {
@@ -35,8 +35,8 @@ class BBBot2Spec extends BotTestHelper {
      pstate(1,
        houseStates(3, 2, 9, 3, 1),
        slots = slots(
-         (1 -> toSlotState(Earth, 8)),
-         (2 -> toSlotState(Fire, 12))),
+         (1 -> toSlotState(Fire, 1)),
+         (4 -> toSlotState(Earth, 1))),
        life = 40)) )
 
     val bot = new BoundedBot(1, desc, houses)

@@ -1,3 +1,4 @@
+import AssemblyKeys._
 name := "freespectro"
 
 version := "1.0"
@@ -24,3 +25,4 @@ addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.1")
 
 scalacOptions ++= Seq("-P:continuations:enable")
 
+test in assembly := {}

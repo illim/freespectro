@@ -77,8 +77,7 @@ class MultiRatioHeuris(
   useManaRatio : Boolean = true,
   useOppManaRatio : Boolean = false,
   useBoardRatio : Boolean = false,
-  lifeThreshold : Float = 0.4f,
-  manaThreshold : Float = 0.3f
+  lifeThreshold : Float = 1f
 ) extends HeuristicHelper {
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
