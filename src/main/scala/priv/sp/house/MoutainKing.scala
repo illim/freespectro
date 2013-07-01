@@ -146,10 +146,14 @@ class MoutainKing {
   }
 
   class BerserkerReaction extends Reaction {
-    def onPlayerDamage(amount : Int, slot : SlotUpdate) = {
+    import scala.util.control.TailCalls._
+    def onPlayerDamage(amount : Int, slot : SlotUpdate) {
       if (amount > 5){
-        slot.slots.player.runSlot(slot.num, slot.get)
+        runSlot(slot).result
       }
+    }
+    private def runSlot(slot : SlotUpdate) : TailRec[Unit] = tailcall {
+      done(slot.slots.player.runSlot(slot.num, slot.get))
     }
     override def selfProtect(d : Damage, slot : SlotUpdate) = {
       if (slot.get.data == Hird){

@@ -44,10 +44,10 @@ trait HeuristicHelper extends Heuris {
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
     def getPower(p : PlayerState) = {
       (p.houses.zipWithIndex.map{ case (x, i) =>
-        if (i == 4) math.pow(x.mana, 2.5) else math.pow(x.mana, 2)
+        PlayerStats.getCostPowMana(x.mana, i)
       }.sum + p.slots.values.map{s =>
-        val card = s.card
-        if (card.houseIndex == 4) math.pow(card.cost, 2.5) else math.pow(card.cost, 2)
+        val card = s.card // shitty raw stable board presence
+        PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (s.life.toFloat / card.life)
       }.sum).toFloat
     }
     def getBoardValue(p : PlayerState) = {
