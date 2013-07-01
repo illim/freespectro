@@ -15,7 +15,7 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouse
     case 0 => new LifeManaRatioHeuris(botPlayerId)
     case 1 => new LifeHeuris(botPlayerId)
     case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillValueRatio = true)
-    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppManaRatio = true, useKillValueRatio = true, useBoardRatio = true)
+    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppManaRatio = true, useKillValueRatio = true, useBoardRatio = true, useManaRatio = true)
 //    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 
@@ -36,7 +36,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
   val human = other(botPlayerId)
   val selector = new Selector()
   val perfStat = new PerfStat()
-  val cardStats = playerIds.map{ p => new CardStats(start, p, p == human) }
+  val cardStats = playerIds.map{ p => new CardStats(start, p, bot) }
   val choices = new Choices(bot, cardStats)
 
   def execute() = {
@@ -69,7 +69,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         else acc
     }
     //last.tree.draw(Show.showFromToString[Node]).foreach(println _)
-    //cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
+    cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
     result.flatMap { node =>
       println(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
       node.commandOpt
@@ -167,9 +167,10 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         val s = nodePlayerStats(i)
         playerStats.map(_(i) + s).getOrElse(s)
       }
-      val reward = boost * end.map{ p =>
-        if (p == botPlayerId) 1f else -1f
-      }.getOrElse(0.01f * heuris(st, stats, depth))
+      val h = heuris(st, stats, depth)
+      val reward = boost * end.map{p => if (p == botPlayerId) h else { 
+        if (h> 0) -1f else h
+      } /** ensure negative :S */ }.getOrElse(0.01f * h)
       rewards += reward
       backPropagate(reward)
       reward

@@ -67,10 +67,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
 
   private def waitPlayer(player: PlayerId) {
-    def autoSkip[A] : Option[Option[A]] = if (state.players(player).isDisabled) Some(None) else None
+    def autoSkip[A](default : A) : Option[A] = if (state.players(player).isDisabled) Some(default) else None
 
     if (player == server.playerId) {
-      (autoSkip[Option[Command]]
+      (autoSkip[Option[Option[Command]]](Some(None))
        orElse {
          cardPanels(player).setEnabled(true)
          gameLock.waitFor[Option[Option[Command]]]{ c =>
@@ -87,7 +87,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
            }
          }
     } else {
-      (autoSkip[Command]
+      (autoSkip[Option[Command]](None)
        orElse gameLock.waitFor[Option[Command]]{ c =>
          commandRecorder.startWith(c) {
            cardPanels(player).setEnabled(true)

@@ -6,8 +6,11 @@ object PlayerStats {
   def basicKillValue(slot : SlotState) = slot.card.cost * (if (slot.card.houseIndex == 4) 1.5f else 1f)
   def hpManaRatio(slot : SlotState) : Float = (slot.card.life / (0.5 + getCostPowMana(slot.card.cost, slot.card.houseIndex))).toFloat
 
+  def getCostMana(m : Int, houseIndex : Int) = {
+    if (houseIndex == 4) m * 1.5 else m
+  }
   def getCostPowMana(m : Int, houseIndex : Int) = {
-    if (houseIndex == 4) math.pow(m, 3) else math.pow(m, 2)
+    if (houseIndex == 4) math.pow(m, 2.5) else math.pow(m, 2)
   }
 }
 

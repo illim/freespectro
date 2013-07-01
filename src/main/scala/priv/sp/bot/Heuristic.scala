@@ -25,7 +25,7 @@ trait HeuristicHelper extends Heuris {
   }
 
   def getKill(s : PlayerStats) = s.nbKill
-  def getKillValue(s : PlayerStats) = s.nbKill * (math.max(1, s.killValue / 2)).toFloat
+  def getKillValue(s : PlayerStats) = s.killValue
   def fixz[N](x : N)(implicit num : Numeric[N]) = if (x==num.zero) 0.1f else num.toFloat(x)
   def temper(x : Float, ratio : Float) = if (x < 0) x / fixz(ratio) else x * ratio
 
