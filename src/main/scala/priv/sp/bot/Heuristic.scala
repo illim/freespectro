@@ -37,14 +37,19 @@ trait HeuristicHelper extends Heuris {
     lazy val lifeDelta = bot.life - human.life
     lazy val manaDelta = getMana(bot) - getMana(human)
     lazy val botMana = getMana(bot)
-    lazy val botPowMana = getPowMana(bot)
-    lazy val powMana = getPowMana(human)
+    lazy val botPower = getPower(bot)
+    lazy val power = getPower(human)
     lazy val boardDelta = getBoardValue(bot) - getBoardValue(human)
 
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
-    def getPowMana(p : PlayerState) = p.houses.zipWithIndex.map{ case (x, i) =>
-      if (i == 4) math.pow(x.mana, 3) else math.pow(x.mana, 2)
-    }.sum.toFloat
+    def getPower(p : PlayerState) = {
+      (p.houses.zipWithIndex.map{ case (x, i) =>
+        if (i == 4) math.pow(x.mana, 2.5) else math.pow(x.mana, 2)
+      }.sum + p.slots.values.map{s =>
+        val card = s.card
+        if (card.houseIndex == 4) math.pow(card.cost, 2.5) else math.pow(card.cost, 2)
+      }.sum).toFloat
+    }
     def getBoardValue(p : PlayerState) = {
       p.slots.values.map{s => PlayerStats.hpManaRatio(s) }.sum.toFloat
     }
@@ -74,8 +79,8 @@ class MultiRatioHeuris(
   val name : String,
   useKillRatio : Boolean = false,
   useKillValueRatio : Boolean = false,
-  useManaRatio : Boolean = true,
-  useOppManaRatio : Boolean = false,
+  usePowerRatio : Boolean = true,
+  useOppPowerRatio : Boolean = false,
   useBoardRatio : Boolean = false,
   lifeThreshold : Float = 1f
 ) extends HeuristicHelper {
@@ -97,12 +102,13 @@ class MultiRatioHeuris(
       res = temper(res, (if (allKill == 0) 1f else (0.5f + (botKill / allKill))))
     }
 
-    if (useManaRatio){
-      res = temper(res, h.botPowMana / (turns * fixz(start.botPowMana)))
+    // this is quite wrong to use mana after lot of simulated turns
+    if (usePowerRatio){
+      res = temper(res, h.botPower / (turns * fixz(start.botPower)))
     }
 
-    if (useOppManaRatio){
-      res = temper(res, (turns * start.powMana) / fixz(h.powMana))
+    if (useOppPowerRatio){
+      res = temper(res, (turns * start.power) / fixz(h.power))
     }
 
     if (useBoardRatio){
