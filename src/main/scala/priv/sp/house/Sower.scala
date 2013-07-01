@@ -96,11 +96,15 @@ class Sower {
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
       import summoned._
       if (selectedPlayerId == player.id && selected != num && card.houseId == Sower.houseId){
-        player.updater.focus(selected, player.id)
         val slots = player.slots
-        val dists = player.value.slotList.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
-        dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
-          slots(pos).add(card)
+        val drake = slots(selected)
+        if (drake.get.has(CardSpec.runFlag)){ // to avoid looping
+          player.updater.focus(selected, player.id)
+
+          val dists = player.value.slotList.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
+          dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
+            slots(pos).add(card)
+          }
         }
       }
     }
