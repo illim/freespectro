@@ -15,7 +15,7 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouse
     case 0 => new LifeManaRatioHeuris(botPlayerId)
     case 1 => new LifeHeuris(botPlayerId)
     case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillValueRatio = true)
-    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppPowerRatio = true, useKillValueRatio = true, useBoardRatio = true)
+    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppPowerRatio = true, useKillValueRatio = true, useBoardRatio = true, usePowerRatio = true)
 //    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 
@@ -169,7 +169,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       }
       val h = heuris(st, stats, depth)
       val reward = boost * end.map{p => if (p == botPlayerId) h else {
-        if (h> 0) -(1/(1 + h)) else h - 1
+        if (h> 0) -(1/(1 + h)) -1 else h - 1
       } /** horror to ensure negative :S */ }.getOrElse(0.01f * h)
       rewards += reward
       backPropagate(reward)
