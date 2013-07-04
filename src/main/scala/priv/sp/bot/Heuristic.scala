@@ -45,10 +45,10 @@ trait HeuristicHelper extends Heuris {
     def getPower(p : PlayerState) = {
       (p.houses.zipWithIndex.map{ case (x, i) =>
         PlayerStats.getCostPowMana(x.mana, i)
-      }.sum + p.slots.values.map{s =>
+      }.sum + (p.slots.values.map{s =>
         val card = s.card // shitty raw stable board presence
-        PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (s.life.toFloat / card.life)
-      }.sum).toFloat
+        (PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (0.5 + s.life.toFloat / (2 * card.life)))
+      }.sum)).toFloat
     }
     def getBoardValue(p : PlayerState) = {
       p.slots.values.map{s => PlayerStats.hpManaRatio(s) }.sum.toFloat
@@ -87,8 +87,11 @@ class MultiRatioHeuris(
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
-    val humanLifeRatio = lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
-    var res = humanLifeRatio
+    val lifeRatio = state.checkEnded match {
+      case Some(p) if p == humanId => (h.bot.life - start.bot.life) / fixz(math.max(h.bot.life, start.bot.life))
+      case _ => lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
+    }
+    var res = lifeRatio
 
     if (useKillRatio){
       val botKill = getKill(playerStats(botPlayerId))

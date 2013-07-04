@@ -10,7 +10,7 @@ object PlayerStats {
     if (houseIndex == 4) m * 1.5 else m
   }
   def getCostPowMana(m : Int, houseIndex : Int) = {
-    if (houseIndex == 4) math.pow(m, 2.5) else math.pow(m, 2)
+    if (houseIndex == 4) math.pow(m, 2) else math.pow(m, 1.7)
   }
 }
 
