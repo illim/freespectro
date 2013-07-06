@@ -6,9 +6,9 @@ import sp._
 import priv.util.Utils._
 
 object Main extends JFrame with App {
-  val mode = InitDisplay.findDisplayMode(1024, 768, 32).get
   val fgc = getGraphicsConfiguration
   val gbounds = fgc.getBounds()
+  val mode = InitDisplay.findDisplayMode(gbounds.height, 32).get
   setSize(mode.getWidth, mode.getHeight)
   setExtendedState(java.awt.Frame.MAXIMIZED_VERT)
   setUndecorated(true)

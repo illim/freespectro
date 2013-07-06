@@ -94,7 +94,7 @@ class MainRender(canvas : java.awt.Canvas, mode : DisplayMode, settingsPanel : M
 
   private def getMouseCoord() = {
     val p = canvas.getLocation
-    Coord2i(Mouse.getX() - p.x, g.height - offsety - Mouse.getY() - p.y)
+    Coord2i(((Mouse.getX() - p.x)/g.xfact).toInt, ((g.height - Mouse.getY() - p.y) / g.yfact).toInt  - offsety)
   }
 
   private def scroll(world : World, y : Int){

@@ -15,7 +15,8 @@ import javax.swing._
 
 object InitDisplay {
 
-  def findDisplayMode(width: Int, height: Int, bpp: Int) = {
+  def findDisplayMode(height: Int, bpp: Int) = {
+    val width = 4 * height / 3
     val modes = Display.getAvailableDisplayModes()
     modes.toList.map { mode =>
       (mode, (mode.getWidth() == width,  mode.getHeight() == height, bpp - mode.getBitsPerPixel()))
@@ -42,8 +43,9 @@ object InitDisplay {
     glEnable(GL_ALPHA_TEST)
     glEnable(GL_BLEND)
     glEnable(GL_TEXTURE_2D)
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
     glClearColor(0f, 0f, 0f, 0.5f) //set clear color to black
-    glOrtho(0, mode.getWidth(), mode.getHeight, 0, -1, 1)
+    glOrtho(0, 1024, 768, 0, -1, 1)
     glViewport(0, 0, mode.getWidth(), mode.getHeight)
     org.lwjgl.opengl.Util.checkGLError()
   }
@@ -51,7 +53,9 @@ object InitDisplay {
 
 case class DisplayConf(val width: Int, val height: Int) {
   val resolution = Coord2i(width, height)
-
+  val xfact = width / 1024d
+  val yfact = height / 768d
+/**
   val offscreenTex = new OffscreenTexture(width, height)
 
   def saveScreen() {
@@ -59,7 +63,7 @@ case class DisplayConf(val width: Int, val height: Int) {
     glBindTexture(GL_TEXTURE_2D, offscreenTex.id)
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height)
   }
-
+*/
   def cleanUp() {
     Display.destroy()
   }
