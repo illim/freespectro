@@ -42,7 +42,7 @@ trait Air {
 class PhoenixReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     import dead._
-    if (player.houses.value(0).mana > 9) {
+    if (! dead.isDestroy && player.houses.value(0).mana > 9) {
       player.slots(num).add(card)
     }
   }

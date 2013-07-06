@@ -148,7 +148,7 @@ trait PlayerEvent extends BoardEvent {
   def player : PlayerUpdate
   def otherPlayer = player.otherPlayer
 }
-case class Dead(num : Int, slot : SlotState, player : PlayerUpdate , isEffect : Boolean) extends PlayerEvent {
+case class Dead(num : Int, slot : SlotState, player : PlayerUpdate , isEffect : Boolean, isDestroy : Boolean = false) extends PlayerEvent {
   def card= slot.card
 }
 // need source if no target
