@@ -3,6 +3,7 @@ package priv
 import javax.swing._
 import java.awt.event._
 import sp._
+import org.lwjgl.opengl.{AWTGLCanvas, PixelFormat}
 import priv.util.Utils._
 
 object Main extends JFrame with App {
@@ -16,7 +17,7 @@ object Main extends JFrame with App {
 
   val panel = getContentPane
   panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS))
-  val canvas = new java.awt.Canvas()
+  val canvas = new AWTGLCanvas(new PixelFormat().withDepthBits(24).withSamples(4).withSRGB(true))
   val settingsPanel = new SettingsPanel
   settingsPanel.setVisible(false)
   panel.add(settingsPanel)

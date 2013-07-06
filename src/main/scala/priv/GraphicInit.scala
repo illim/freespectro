@@ -43,7 +43,6 @@ object InitDisplay {
     glEnable(GL_ALPHA_TEST)
     glEnable(GL_BLEND)
     glEnable(GL_TEXTURE_2D)
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
     glClearColor(0f, 0f, 0f, 0.5f) //set clear color to black
     glOrtho(0, 1024, 768, 0, -1, 1)
     glViewport(0, 0, mode.getWidth(), mode.getHeight)
