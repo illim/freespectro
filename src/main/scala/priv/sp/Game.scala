@@ -116,7 +116,6 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   private def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)
     slotPanels.foreach(_.disable())
-    cardPanels.foreach(_.setEnabled(false))
     persist(updater.lift(_.players(player).submit(commandOption)))
     refresh()
     commandOption.foreach{ c =>
@@ -124,13 +123,16 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     }
 
     if(state.players(player).transitions.isEmpty) {
+      cardPanels.foreach(_.setEnabled(false))
       run(player)
     } else {
       val t = persist(updater.lift{ u =>
         u.players(player).popTransition.get
       })
       t match {
-        case WaitPlayer(p) => waitPlayer(p)
+        case WaitPlayer(p) =>
+          if (p != player) cardPanels.foreach(_.setEnabled(false))
+          waitPlayer(p)
       }
     }
   }
