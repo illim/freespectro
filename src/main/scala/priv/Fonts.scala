@@ -30,6 +30,7 @@ class PimpFont(awtFont : Font) {
         case 'blue => Color.blue
         case 'red => Color.red
         case 'green => darkGreen
+        case 'gray => Color.gray
         case _ => Color.black
       }
     }

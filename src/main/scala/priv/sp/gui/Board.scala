@@ -5,7 +5,7 @@ import org.lwjgl.opengl.GL11._
 import priv.sp._
 import scala.util.continuations._
 
-class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel : DescriptionPanel, val sp: SpWorld) {
+class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel : DescriptionPanel, infoPanel : InfoPanel, val sp: SpWorld) {
 
   val panel = getPanel()
 
@@ -29,7 +29,11 @@ class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[C
             Translate(
               Coord2i(0, -30), slotPanels(playerId).panel)))),
         Row(List(
-          Translate(Coord2i(50, 10), descriptionPanel),
+          Translate(
+            Coord2i(50, 10),
+            Column(List(
+              descriptionPanel,
+              Translate(Coord2i(-30, 130), infoPanel)))),
           Translate(Coord2i(250, 0), cardPanels(playerId).panel)))))
   }
 

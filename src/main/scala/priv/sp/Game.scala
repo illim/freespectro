@@ -22,10 +22,11 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   // gui
   val commandRecorder  = new CommandRecorder(this)
   val descriptionPanel = new DescriptionPanel(this)
+  val infoPanel        = new InfoPanel(this)
   val cardPanels       = playerIds.map(new CardPanel(_, this))
   val slotPanels       = playerIds.map(new SlotPanel(_, this))
   val topCardPanel     = new TopCardPanel(playerIds(otherPlayerId), this)
-  val board            = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, sp)
+  val board            = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, infoPanel, sp)
 
   val surrenderButton = new GuiButton("New game")
   val skipButton      = new GuiButton("Skip turn")
@@ -118,6 +119,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     cardPanels.foreach(_.setEnabled(false))
     persist(updater.lift(_.players(player).submit(commandOption)))
     refresh()
+    commandOption.foreach{ c =>
+      infoPanel.add(c.card)
+    }
 
     if(state.players(player).transitions.isEmpty) {
       run(player)
