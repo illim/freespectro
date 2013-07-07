@@ -116,10 +116,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
     println(player + " submit " + commandOption)
     slotPanels.foreach(_.disable())
     cardPanels.foreach(_.setEnabled(false))
-    commandOption foreach { c =>
-      persist(updater.lift(_.players(c.player).submit(c)))
-      refresh()
-    }
+    persist(updater.lift(_.players(player).submit(commandOption)))
+    refresh()
+
     if(state.players(player).transitions.isEmpty) {
       run(player)
     } else {

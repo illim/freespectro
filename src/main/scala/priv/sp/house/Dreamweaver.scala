@@ -142,7 +142,10 @@ case object SwordAttackSource extends AttackSlotStateFunc {
 }
 
 class SwordAttack extends RunAttack {
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  isMultiTarget = true
+
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val oppSlot     = otherPlayer.slots(num)
     val targets     = oppSlot :: oppSlot.adjacentSlots

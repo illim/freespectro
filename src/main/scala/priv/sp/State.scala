@@ -7,13 +7,14 @@ case class GameState(players: List[PlayerState]) {
   def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
 }
 case class PlayerState(
-  houses       : PlayerState.HousesType,
-  desc         : DescReader,
-  slots        : PlayerState.SlotsType = PlayerState.emptySlots,
-  slotList     : List[Int] = baseSlotList,
-  life         : Int = 60,
-  effects      : List[CardSpec.PhaseEffect] = Nil,
-  transitions  : List[Transition] = Nil) { // not great using this field to pass parameter
+  houses      : PlayerState.HousesType,
+  desc        : DescReader,
+  slots       : PlayerState.SlotsType = PlayerState.emptySlots,
+  slotList    : List[Int] = baseSlotList,
+  life        : Int = 60,
+  effects     : List[CardSpec.PhaseEffect] = Nil,
+  data        : AnyRef = null,
+  transitions : List[Transition] = Nil) { // not great using this field to pass parameter
 
   def isDisabled = desc.get.houses.forall{ h =>
     val hs = houses(h.house.houseIndex)
@@ -23,7 +24,7 @@ case class PlayerState(
   def isInSlotRange(n : Int) = slotList.contains(n)
 }
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, data : AnyRef = null){
+case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, target : Option[Int], data : AnyRef = null){
 
   def inflict(damage : Damage) : Option[SlotState] = {
     if (has(CardSpec.invincibleFlag)) Some(this)
@@ -54,7 +55,10 @@ object PlayerState {
   type SlotsType = immutable.TreeMap[Int, SlotState]
   type HousesType = Vector[HouseState]
   val emptySlots = immutable.TreeMap.empty[Int, SlotState]
-  def init(houseState : PlayerState.HousesType, desc : PlayerDesc) = PlayerState(houseState, new DescReader(desc), effects = desc.houses(4).house.effects)
+  def init(houseState : PlayerState.HousesType, desc : PlayerDesc) = {
+    val special = desc.houses(4).house
+    PlayerState(houseState, new DescReader(desc), effects = special.effects, data = special.data)
+  }
   def openSlots(p : PlayerState) : List[Int] = {
     p.slotList.filter{ num =>
       p.slots.get(num) match {

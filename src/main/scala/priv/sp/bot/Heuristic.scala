@@ -89,6 +89,7 @@ class MultiRatioHeuris(
     val h = new HeurisValue(state)
     val lifeRatio = state.checkEnded match {
       case Some(p) if p == humanId => (h.bot.life - start.bot.life) / fixz(math.max(h.bot.life, start.bot.life))
+      case None => 1f // maybe damper this
       case _ => lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
     }
     var res = lifeRatio

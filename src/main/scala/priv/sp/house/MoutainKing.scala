@@ -288,7 +288,8 @@ case object LowerSpecialCostMod extends DescMod {
 
 class CrossbowAttack extends RunAttack {
 
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     otherPlayer.inflict(d)

@@ -112,7 +112,8 @@ class Vampire {
 }
 
 private class NoctuleAttack extends RunAttack {
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
@@ -127,7 +128,8 @@ private class NoctuleAttack extends RunAttack {
 }
 
 private class GhoulAttack extends RunAttack {
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
@@ -159,7 +161,8 @@ class AcolyteReaction extends Reaction {
 }
 
 class AristoAttack extends RunAttack {
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
@@ -177,7 +180,8 @@ class AristoAttack extends RunAttack {
 
 class NeophyteAttack extends RunAttack with DamageAttack {
 
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val healAmount = damageAndGet(num, d, player)
     player.slots(num).heal(math.ceil(healAmount / 2f).toInt)
   }

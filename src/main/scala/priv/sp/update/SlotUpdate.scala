@@ -71,7 +71,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     if (value.isDefined){ // crap for marine
       val s = get
       remove()
-      slots.onDead(Dead(num, s, player, isEffect = true))
+      slots.onDead(Dead(num, s, player, isEffect = true, isDestroy = true))
     }
   }
 

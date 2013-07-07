@@ -185,27 +185,30 @@ class Reaction {
   // playerId allow to specify which player is notified, in case we need death event from both players.
   def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
-  def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command]) = Reaction.falseNone
 }
 
 trait RunAttack {
   var isMultiTarget = false
-  def apply(num : Int, d : Damage, player : PlayerUpdate)
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate)
 }
 object SingleTargetAttack extends RunAttack {
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
-    val slot = otherPlayer.slots(num)
-    if (slot.value.isEmpty) {
-      otherPlayer.inflict(d)
-    } else {
-      slot.inflict(d)
+    target match {
+      case Some(num) =>
+        val slot = otherPlayer.slots(num)
+        if (slot.value.isEmpty) {
+          otherPlayer.inflict(d)
+        } else {
+          slot.inflict(d)
+        }
+      case _ => otherPlayer.inflict(d)
     }
   }
 }
 object MultiTargetAttack extends RunAttack {
   isMultiTarget = true
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)
     otherPlayer.slots.inflictCreatures(d)

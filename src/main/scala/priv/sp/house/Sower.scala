@@ -71,7 +71,8 @@ class Sower {
   }
 
   private class MonsterPlantAttack extends RunAttack {
-    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.get
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
@@ -115,7 +116,8 @@ class Sower {
 // code horror
 private class BloodSundewAttack extends RunAttack with DamageAttack {
 
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val healAmount = damageAndGet(num, d, player)
     player.slots(num).heal(healAmount)
   }
@@ -123,7 +125,8 @@ private class BloodSundewAttack extends RunAttack with DamageAttack {
 
 private class PredatorPlantAttack extends RunAttack {
 
-  def apply(num : Int, d : Damage, player : PlayerUpdate) {
+  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.get
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {

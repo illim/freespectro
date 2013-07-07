@@ -30,7 +30,8 @@ class ZenMage {
   }
 
   private class ElemAttack extends RunAttack {
-    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.get
       val otherPlayer = player.otherPlayer
       otherPlayer.getSlots.get(num) match {
         case None => otherPlayer.inflict(d)
@@ -46,7 +47,10 @@ class ZenMage {
   }
 
   private class RedlightAttack extends RunAttack {
-    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    isMultiTarget = true
+
+    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.get
       val otherPlayer = player.otherPlayer
       val bonus       = player.slots(num).adjacentSlots.count(_.value.isDefined)
       val targets     = if (bonus == 0) List(num) else (num -1 to num +1)
@@ -67,7 +71,10 @@ class ZenMage {
   }
 
   private class SpiralAttack extends RunAttack {
-    def apply(num : Int, d : Damage, player : PlayerUpdate) {
+    isMultiTarget = true
+
+    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.get
       val otherPlayer = player.otherPlayer
 
       slotInterval(num - 2, num +2).foreach{ n =>
@@ -114,8 +121,12 @@ class ZenMage {
     }
   }
 
-  private class DreamerReaction extends Reaction {
-    final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
+  trait ZenReaction {
+    def interceptSubmit(command : Command, updater : GameStateUpdater) : (Boolean, Option[Command])
+  }
+
+  private class DreamerReaction extends Reaction with ZenReaction {
+    final def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (command.card.isSpell && command.flag == None){
         val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))
         updater.players(command.player).addEffect(OnTurn -> new Dream(c))
@@ -124,8 +135,8 @@ class ZenMage {
     }
   }
 
- private class MimicReaction extends Reaction {
-    final override def interceptSubmit(command : Command, updater : GameStateUpdater) = {
+ private class MimicReaction extends Reaction with ZenReaction {
+    final def interceptSubmit(command : Command, updater : GameStateUpdater) = {
       if (!command.card.isSpell && command.flag == None){
         val c = command.copy(flag = Some(DreamCommandFlag), cost = math.max(0, command.cost - 2))
         updater.players(command.player).addEffect(OnTurn -> new Hatch(c))
@@ -142,7 +153,7 @@ class ZenMage {
         case _ => false
       }){
         env.player.heal(3)
-        env.player.submit(c)
+        env.player.submit(Some(c))
       }
       env.player.removeEffect(_.isInstanceOf[Hatch])
     }
@@ -160,7 +171,7 @@ class ZenMage {
         case SelectTargetCreature =>
           !env.otherPlayer.slots().isDefinedAt(c.input.get.num)
       }){
-        env.player.submit(c)
+        env.player.submit(Some(c))
       }
       env.player.removeEffect(_.isInstanceOf[Dream])
     }
@@ -175,9 +186,18 @@ class ZenMage {
   }
 
   class ZenEventListener extends HouseEventListener {
-    override def interceptSubmit(c : Command) : (Boolean, Option[Command]) = {
-      player.slots.foldl((false, Option.empty[Command])) { (acc, s) =>
-        if (acc._1) acc else s.get.card.reaction.interceptSubmit(c, player.updater)
+    override def interceptSubmit(commandOption : Option[Command]) : (Boolean, Option[Command]) = {
+      commandOption match {
+        case None => (false, None)
+        case Some(c) =>
+          player.slots.foldl((false, Option.empty[Command])) { (acc, s) =>
+            if (acc._1) acc else {
+              s.get.card.reaction match {
+                case z : ZenReaction => z.interceptSubmit(c, player.updater)
+                case _ => acc
+              }
+            }
+          }
       }
     }
   }

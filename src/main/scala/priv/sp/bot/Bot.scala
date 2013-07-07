@@ -66,10 +66,8 @@ trait Bot {
       updater.lift{ u =>
         val p = u.players(playerId)
 
-        commandOption foreach { command =>
-          p.submit(command)
-          u.flush()
-        }
+        p.submit(commandOption)
+        u.flush()
         p.popTransition getOrElse {
           p.runSlots()
           if (!u.ended) {

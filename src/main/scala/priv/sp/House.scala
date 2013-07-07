@@ -7,8 +7,8 @@ import java.io._
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
-// eventListener is only used for special houses
-case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None) extends Externalizable {
+// eventListener & data is only used for special houses
+case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None, data : AnyRef = null) extends Externalizable {
   def this() = this(null, Nil)
 
   var houseId = House.currentId.incrementAndGet()
@@ -64,11 +64,12 @@ class Houses
   val trooper     = new Trooper
   val vampire     = new Vampire
   val warp        = new Warp
+  val wind        = new MasterOfWind
   val zenMage     = new ZenMage
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, wind.Wind, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special
