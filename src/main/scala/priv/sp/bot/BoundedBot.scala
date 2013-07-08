@@ -69,7 +69,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         else acc
     }
     //last.tree.draw(Show.showFromToString[Node]).foreach(println _)
-    cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
+    // cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
     result.flatMap { node =>
       println(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
       node.commandOpt
@@ -138,7 +138,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     def parent = path.headOption
     def getAvgReward : Float = rewards/numSim
     def getUct : Float =  parent.map{ p =>
-      getAvgReward + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
+      getAvgReward + math.sqrt(math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
     def getFair = parent.map{ p =>
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue

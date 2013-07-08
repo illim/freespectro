@@ -124,14 +124,16 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
 
     if(state.players(player).transitions.isEmpty) {
       cardPanels.foreach(_.setEnabled(false))
+      slotPanels(player).lifeLabel.phaseOption = None
       run(player)
     } else {
       val t = persist(updater.lift{ u =>
         u.players(player).popTransition.get
       })
       t match {
-        case WaitPlayer(p) =>
+        case WaitPlayer(p, name) =>
           if (p != player) cardPanels.foreach(_.setEnabled(false))
+          slotPanels(p).lifeLabel.setPhase(name)
           waitPlayer(p)
       }
     }

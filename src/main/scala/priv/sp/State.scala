@@ -108,6 +108,7 @@ case class DescReader(init : PlayerDesc, descMods : Vector[DescMod] = Vector.emp
 
 // crappy hard coded transitions
 sealed trait Transition {
+  def name : String
   def playerId : PlayerId
 }
-case class WaitPlayer(playerId : PlayerId) extends Transition
+case class WaitPlayer(playerId : PlayerId, name : String = null) extends Transition

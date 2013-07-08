@@ -43,17 +43,19 @@ class MasterOfWind {
     player.houses.incrMana(card.cost / 2 , card.houseIndex)
   }
 
+  val blPhase = "Ball lightning phase"
   def ballLightning = { env : Env =>
     import env._
     otherPlayer.inflict(Damage(7, env, isSpell = true))
-    player.addTransition(WaitPlayer(env.playerId))
+    player.addTransition(WaitPlayer(playerId, blPhase))
   }
 
+  val sqPhase1 = "Squall phase 1"
+  val sqPhase2 = "Squall phase 2"
   def squall = { env : Env =>
     import env._
-    val t = WaitPlayer(env.playerId)
-    player.addTransition(t)
-    player.addTransition(t)
+    player.addTransition(WaitPlayer(playerId, sqPhase2))
+    player.addTransition(WaitPlayer(playerId, sqPhase1))
   }
 
   def vortex = { env : Env =>
@@ -68,11 +70,12 @@ class MasterOfWind {
     }))
   }
 
+  val wwPhase = "whirlwind phase"
   def whirlwind = { env : Env =>
     import env._
     player.slots(selected).destroy()
     otherPlayer.slots(selected).destroy()
-    player.addTransition(WaitPlayer(env.playerId))
+    player.addTransition(WaitPlayer(playerId, wwPhase))
   }
 
   def storm = { env : Env =>

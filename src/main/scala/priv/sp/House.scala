@@ -57,6 +57,7 @@ class Houses
   val dudeMancer  = new DudeMancer
   val dreamweaver = new Dreamweaver
   val element     = new Elementalist
+//  val highPriest  = new HighPriest
   val junkMage    = new JunkMage
   val lostChurch  = new LostChurch
   val moutainKing = new MoutainKing
@@ -69,7 +70,7 @@ class Houses
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, wind.Wind, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, /**highPriest.HighPriest, */ junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, wind.Wind, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special

@@ -22,11 +22,12 @@ class Elementalist {
   val sylph = Elementalist.cards(0)
   Elementalist.initCards(Houses.basicCostFunc)
 
+  val sPhase = "sylph phase"
   def sylphEffect = { env : Env =>
     import env._
     player.addDescMod(IncrSylphCostMod)
     player.addDescMod(HideBasicMod)
-    player.addTransition(WaitPlayer(env.playerId))
+    player.addTransition(WaitPlayer(env.playerId, sPhase))
     player.addEffect(OnEndTurn -> UnMod(HideBasicMod))
   }
 
