@@ -31,18 +31,18 @@ class Sower {
 
   private def tangle = { env : Env =>
     import env._
-    val slot = otherPlayer.slots(selected)
-    val damage = Damage(slot.get.attack, env, isSpell = true)
-    slot.inflict(damage)
-    val opp = player.slots(selected)
-    if (opp.value.isDefined){
-      opp.heal(damage.amount)
+    val slot = getSelectedSlot()
+    val oppSlot = slot.oppositeSlot
+    val damage = Damage(oppSlot.get.attack, env, isSpell = true)
+    oppSlot.inflict(damage)
+    if (slot.value.isDefined){
+      slot.heal(damage.amount)
     }
   }
 
   private def devour = { env : Env =>
     import env._
-    player.slots(selected).destroy()
+    getSelectedSlot().destroy()
     val factor = AttackFactor(2f)
     player.slots.foreach(_.attack.add(factor))
     player.addEffect(OnEndTurn -> new RemoveAttack(factor))
@@ -50,7 +50,7 @@ class Sower {
 
   private def pollinate : Effect = { env : Env =>
     import env._
-    val slot = player.slots(selected)
+    val slot = getSelectedSlot()
     val cost = slot.get.card.cost
     Sower.cards.find(_.cost == cost - 3).foreach{
       case c : Creature =>

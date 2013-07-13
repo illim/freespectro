@@ -11,7 +11,7 @@ import CardSpec._
  * babi -> listen for incrMana
  * bennu -> doing something before dying = crap
  * serpent of ... ->
- *    crap spawning just before au kill
+ *    crap spawning just before a kill
  *    doing something on opponent's turn
  *
  * localized bs:
@@ -27,17 +27,20 @@ class HighPriest {
   val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and increases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
   val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
-  val babi = Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature.", reaction = new BabiReaction)
+  val babi = Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature.", effects = effects(Direct -> initBabi), reaction = new BabiReaction)
+    val amit = Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power of that element\nand gives 1 special power to owner.", reaction = new AmitReaction)
 
   val hpSet = List[Card](
     Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
     Creature("Serpopard", Attack(4), 18, "When owner summons special creature, moves in nearest unblocked slot\nand doubles attack for 1 turn.", reaction = new SerpoReaction),
     Creature("Anubite", Attack(4), 18, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
     babi,
-    Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.", effects = effects(Direct -> curse)),
+    Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.",
+          inputSpec = Some(SelectTargetCreature),
+          effects = effects(Direct -> curse)),
     Creature("Simooom", Attack(4), 18, "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn."),
-    Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power of that element\nand gives 1 special power to owner."),
-    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1."))
+    amit,
+    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep)))
 
   val HighPriest : House = House("High Priest", List(
     Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
@@ -48,7 +51,7 @@ class HighPriest {
     sphynx,
     ouroboros,
     dragonOfRa),
-    effects = List(OnTurn -> choosePath),
+    effects = List(OnTurn -> choosePath, OnStart -> choosePath),
     eventListener = Some(new CustomListener(new HPriestEventListener)),
     data = HPriestData())
 
@@ -62,7 +65,7 @@ class HighPriest {
     import env._
     val houses = player.getHouses
     val fireearth = houses(0).mana + houses(3).mana
-    val waterair = houses(1).mana + houses(2).mana
+    val waterair = 11111 //houses(1).mana + houses(2).mana
     val hasMod = player.value.desc.descMods.contains(PathSet)
     if (fireearth > waterair) {
       if (hasMod) player.removeDescMod(PathSet)
@@ -130,6 +133,18 @@ class HighPriest {
     }
   }
 
+  def initBabi = { env : Env =>
+    import env._
+
+    val mana = otherPlayer.houses.value.map(_.mana).sum
+    getSelectedSlot().setData(new Integer(mana))
+  }
+
+  def apep = { env : Env =>
+    env.player.houses.incrMana(-1, 0, 1, 2, 3)
+    env.otherPlayer.houses.incrMana(-1, 0, 1, 2, 3)
+  }
+
   // BULLSHIT (leak) this is crap. things happening on opponent's turn should belongs to opponent
   class SerpentDie extends Function[Env, Unit] {
     def apply(env : Env){
@@ -185,13 +200,28 @@ class HighPriest {
 
 
   class BabiReaction extends Reaction {
-      def reactIncrMana(selected : SlotUpdate){
-        val otherPlayer = selected.slots.player.otherPlayer
-        val mana = otherPlayer.houses.value.map(_.mana).sum
-        selected.oppositeSlot.inflict(Damage(mana, Context()))
+    def reactIncrMana(selected : SlotUpdate){
+      val otherPlayer = selected.slots.player.otherPlayer
+      val old = selected.get.data.asInstanceOf[Integer]
+      val mana = otherPlayer.houses.value.map(_.mana).sum
+      if (mana > old){
+        val oppSlot = selected.oppositeSlot
+        if (oppSlot.value.isDefined){
+          oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
+          selected.focus()
+        }
       }
+      selected.setData(new Integer(mana))
+    }
   }
 
+  class AmitReaction extends Reaction {
+    final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
+      val power = dead.player.getHouses(dead.card.houseIndex).mana
+      dead.player.inflict(Damage(power, Context(playerId, Some(amit), selected), isAbility = true))
+      dead.player.houses.incrMana(1, 4)
+    }
+  }
 
   class HPriestEventListener extends HouseEventListener {
     override def onOppSubmit(command : Command){
@@ -239,7 +269,10 @@ class CrocodileAttack extends RunAttack {
 
   def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
     SingleTargetAttack.apply(target, d, player)
-    player.slots(d.context.selected).toggle(stunFlag)
+    player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
+    player.addEffect(OnTurn -> new CountDown(2, { env : Env =>
+      env.player.slots(d.context.selected).toggleOff(CardSpec.pausedFlag)
+    }))
   }
 }
 
@@ -275,3 +308,4 @@ class SerpoReaction extends Reaction {
     }
   }
 }
+

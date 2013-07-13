@@ -3,6 +3,10 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
+/**
+ * Introduced bullshit:
+ * acolyte -> listen to enemy's damage
+ */
 class Vampire {
   import CardSpec._
   import GameCardEffect._

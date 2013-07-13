@@ -136,16 +136,8 @@ class Warp {
 class ErrantAttack extends RunAttack {
 
   def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-    val num = target.get
-    val otherPlayer = player.otherPlayer
-    val slot = otherPlayer.slots(num)
-    if (slot.value.isEmpty) {
-      otherPlayer.inflict(d)
-    } else {
-      slot.inflict(d)
-      if (slot.value.isEmpty){
-        player.slots(num).toggle(CardSpec.pausedFlag)
-      }
+    if (SingleTargetAttack.attack(target, d, player)){
+      player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
     }
   }
 }
