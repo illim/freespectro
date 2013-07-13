@@ -12,6 +12,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   lazy val adjacentSlots : List[SlotUpdate] = adjacents(num).map{ n => slots(n) }
   lazy val otherHouseListener = updater.houseEventListeners(other(playerId))
 
+  def oppositeSlot = player.otherPlayer.slots(num)
   def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
 
   @inline def get = value.get

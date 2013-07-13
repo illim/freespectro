@@ -31,7 +31,7 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
       case _ => false
     }
   }
-  def writeExternal(out : ObjectOutput ){ println("write " +name+ houseId); out.writeInt(houseId) }
+  def writeExternal(out : ObjectOutput ){ out.writeInt(houseId) }
   def readExternal(in : ObjectInput  ){  houseId = in.readInt() }
   protected def readResolve() : Object = HouseSingleton.getHouseById(houseId)
 }

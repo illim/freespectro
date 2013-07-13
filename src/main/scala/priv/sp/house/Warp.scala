@@ -5,6 +5,12 @@ import priv.sp.update._
 import CardSpec._
 import GameCardEffect._
 
+/**
+ * Introduced bullshit:
+ * stranger ->
+ *        proxy for houseeventlistener
+ *        refreshOnOppUpdate
+ */
 // FIXME: schizo when unbridle
 class Warp {
 

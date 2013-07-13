@@ -22,6 +22,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   val stats = PlayerStats()
   val otherId = other(id)
   protected lazy val otherPlayerStats = updater.playerFieldUpdates(otherId).stats
+  def otherHouseEventListener = updater.houseEventListeners(otherId)
 
   def otherPlayer = updater.players(other(id)) // not great
   def getHouses   = if (housesUpdate.isDirty) housesUpdate.value else value.houses
@@ -215,6 +216,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         new HouseState(math.max(0, newmana))
       })
       updateElementals()
+      otherHouseEventListener.onOppIncrMana()
     }
 
     def incrMana(amount : Int, houseIndex : Int*) {
@@ -223,6 +225,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
       })
       updateElementals()
+      otherHouseEventListener.onOppIncrMana()
     }
 
     def updateElementals(){

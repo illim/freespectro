@@ -3,6 +3,10 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
+/**
+ * Introduced bullshit:
+ * prisoner -> random not managed by AI
+ */
 class LostChurch {
   import CardSpec._
   import GameCardEffect._

@@ -5,6 +5,10 @@ import priv.sp.update._
 import CardSpec._
 import GameCardEffect._
 
+/**
+ * Introduced bullshit:
+ * crossbowman -> doing something before dying = shitty code on removal
+ */
 class MoutainKing {
 
   val soldier = Creature("Dwarven soldier", Attack(3), 12, "On entering the game increases attack of neighbors by 3 for 1 turn.\nHird: decreases attack of opposite creature by 1 for each\ndwarven soldier on the board.", effects = effects(Direct -> soldierEffect), reaction = new SoldierReaction)

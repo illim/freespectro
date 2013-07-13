@@ -208,22 +208,12 @@ object SingleTargetAttack extends RunAttack {
     }
   }
 
-  // TODO refactor in macro
-  def attack(target : Option[Int], d : Damage, player : PlayerUpdate, onKill : => Unit) {
-    val otherPlayer = player.otherPlayer
-    target match {
-      case Some(num) =>
-        val slot = otherPlayer.slots(num)
-        if (slot.value.isEmpty) {
-          otherPlayer.inflict(d)
-        } else {
-          slot.inflict(d)
-          if (slot.value.isEmpty){
-            onKill
-          }
-        }
-      case _ => otherPlayer.inflict(d)
-    }
+  // BS todo refactor
+  def attack(target : Option[Int], d : Damage, player : PlayerUpdate) = {
+    val otherSlots = player.otherPlayer.slots
+    val targetExists = target.exists{ num => otherSlots(num).value.isDefined}
+    apply(target, d, player)
+    targetExists && otherSlots(target.get).value.isEmpty
   }
 }
 object MultiTargetAttack extends RunAttack {

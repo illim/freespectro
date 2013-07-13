@@ -3,6 +3,13 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
+/**
+ * Introduced bullshit:
+ * fortune -> in damageSlot, reeval slot after reaction because fortune update her data
+ *
+ * Localized bs:
+ * chain controler -> effect applied in slot order so it's bugged when a move is involved
+ */
 class JunkMage {
   import CardSpec._
   import GameCardEffect._

@@ -6,6 +6,17 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
+/**
+ * Introduced bullshit :
+ * babi -> listen for incrMana
+ * bennu -> doing something before dying = crap
+ * serpent of ... ->
+ *    crap spawning just before au kill
+ *    doing something on opponent's turn
+ *
+ * localized bs:
+ * eyes of wajet -> store nb card played (bugged for abilities)
+ */
 class HighPriest {
 
   val apis = Creature("Apis", Attack(4), 20, "Every turn gives to owner 1 special power and\n3 hp for each other apis on the board.", effects = effects(OnTurn -> apisEffect))
@@ -16,12 +27,13 @@ class HighPriest {
   val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and increases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
   val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
+  val babi = Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature.", reaction = new BabiReaction)
 
   val hpSet = List[Card](
     Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
     Creature("Serpopard", Attack(4), 18, "When owner summons special creature, moves in nearest unblocked slot\nand doubles attack for 1 turn.", reaction = new SerpoReaction),
     Creature("Anubite", Attack(4), 18, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
-    Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature."),
+    babi,
     Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.", effects = effects(Direct -> curse)),
     Creature("Simooom", Attack(4), 18, "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn."),
     Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power of that element\nand gives 1 special power to owner."),
@@ -61,7 +73,7 @@ class HighPriest {
     def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
       if (house.houseIndex == 4) {
         cards.map{ c =>
-          CardDesc(hpSet(c.card.cost - 1))
+          CardDesc(hpSet(c.card.cost - 1)) // bs index is cost -1
         }
       } else cards
     }
@@ -162,14 +174,24 @@ class HighPriest {
 
   class AnubiteAttack extends RunAttack {
     def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      SingleTargetAttack.attack(target, d, player, onKill = {
+      if (SingleTargetAttack.attack(target, d, player)){
         nearestEmptySlot(d.context.selected, player).foreach{ pos =>
           player.updater.focus(d.context.selected, player.id)
           player.slots(pos).add(guardianMummy)
         }
-      })
+      }
     }
   }
+
+
+  class BabiReaction extends Reaction {
+      def reactIncrMana(selected : SlotUpdate){
+        val otherPlayer = selected.slots.player.otherPlayer
+        val mana = otherPlayer.houses.value.map(_.mana).sum
+        selected.oppositeSlot.inflict(Damage(mana, Context()))
+      }
+  }
+
 
   class HPriestEventListener extends HouseEventListener {
     override def onOppSubmit(command : Command){
@@ -177,6 +199,15 @@ class HighPriest {
       // hack for warp
       if (data != null && !data.revealeds.contains(command.card)){
         player.updateData[HPriestData](_.copy(revealeds = data.revealeds + command.card))
+      }
+    }
+
+    override def onOppIncrMana(){
+      player.slots.foreach{ s =>
+        s.get.card.reaction match {
+          case br : BabiReaction => br.reactIncrMana(s)
+          case _ =>
+        }
       }
     }
   }

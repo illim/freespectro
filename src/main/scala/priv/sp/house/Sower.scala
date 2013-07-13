@@ -72,14 +72,14 @@ class Sower {
 
   private class MonsterPlantAttack extends RunAttack {
     def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      SingleTargetAttack.attack(target, d, player, onKill = {
+      if (SingleTargetAttack.attack(target, d, player)) {
         // FIXME maybe not good at all and should add source in damage?
         player.slots.foreach{ slot =>
           if (slot.get.card == monsterPlant){
             slot.heal(monsterPlant.life)
           }
         }
-      })
+      }
     }
   }
 

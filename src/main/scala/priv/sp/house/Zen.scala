@@ -6,6 +6,10 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
+/**
+ * Introduced bullshit:
+ * electric guard -> added lot of useless check to see if a slot is not killed by guard
+ */
 class ZenMage {
 
   val Zen : House = House("Zen", List(
