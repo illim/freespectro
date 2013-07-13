@@ -11,11 +11,12 @@ import CardSpec._
  * babi -> listen for incrMana
  * bennu -> doing something before dying = crap
  * serpent of ... ->
- *    crap spawning just before a kill
+ *    crap spawning just after death
  *    doing something on opponent's turn
  *
  * localized bs:
  * eyes of wajet -> store nb card played (bugged for abilities)
+ * simoom -> store nb turn ^^
  */
 class HighPriest {
 
@@ -28,7 +29,7 @@ class HighPriest {
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
   val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
   val babi = Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature.", effects = effects(Direct -> initBabi), reaction = new BabiReaction)
-    val amit = Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power of that element\nand gives 1 special power to owner.", reaction = new AmitReaction)
+  val amit = Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
 
   val hpSet = List[Card](
     Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
@@ -38,7 +39,7 @@ class HighPriest {
     Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> curse)),
-    Creature("Simooom", Attack(4), 18, "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn."),
+    Creature("Simooom", Attack(4), 18, "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
     amit,
     Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep)))
 
@@ -58,8 +59,8 @@ class HighPriest {
   HighPriest.initCards(Houses.basicCostFunc)
   HighPriest.initCards(Houses.basicCostFunc, hpSet)
 
-  case class HPriestData(revealeds : Set[Card] = Set.empty)
-  def getData(p : PlayerUpdate) = p.value.data.asInstanceOf[HPriestData]
+  case class HPriestData(revealeds : Set[Card] = Set.empty, numTurn : Int = 0)
+  def getData(p : PlayerState) = p.data.asInstanceOf[HPriestData]
 
   def choosePath = { env : Env =>
     import env._
@@ -67,6 +68,7 @@ class HighPriest {
     val fireearth = houses(0).mana + houses(3).mana
     val waterair = 11111 //houses(1).mana + houses(2).mana
     val hasMod = player.value.desc.descMods.contains(PathSet)
+    player.updateData[HPriestData](x => x.copy( numTurn = x.numTurn + 1))
     if (fireearth > waterair) {
       if (hasMod) player.removeDescMod(PathSet)
     } else if (!hasMod) player.addDescMod(PathSet)
@@ -84,7 +86,7 @@ class HighPriest {
 
   def wajet = { env : Env =>
     import env._
-    val nbRevealeds = getData(player).revealeds.size
+    val nbRevealeds = getData(player.value).revealeds.size
     player.slots.healCreatures(nbRevealeds)
     otherPlayer.slots.inflictCreatures(Damage(nbRevealeds, env, isSpell = true))
   }
@@ -124,6 +126,23 @@ class HighPriest {
     nearestEmptySlot(selected, player).foreach{ pos =>
       player.slots(pos).add(sunStone)
     }
+  }
+
+  def simoom = { env : Env =>
+    import env._
+    val nTurn = getData(player.value).numTurn
+    val bonus = SimAttackReduction(nTurn)
+    var maxAttack = 0
+    otherPlayer.slots.foreach{ s =>
+      val att = s.get.attack
+      if (att > 1){
+        if (att > maxAttack){
+          maxAttack = att
+        }
+        s.attack.add(bonus)
+      }
+    }
+    player.addEffect(OnEndTurn -> SimoomRefresh(nTurn, math.ceil(maxAttack / 3f).toInt))
   }
 
   def incrRaAttack = { env : Env =>
@@ -198,7 +217,6 @@ class HighPriest {
     }
   }
 
-
   class BabiReaction extends Reaction {
     def reactIncrMana(selected : SlotUpdate){
       val otherPlayer = selected.slots.player.otherPlayer
@@ -223,9 +241,30 @@ class HighPriest {
     }
   }
 
+  case class SimAttackReduction(numTurn : Int) extends AttackStateFunc {
+    def apply(attack : Int, player : PlayerUpdate) : Int = {
+      val curr = getData(player.updater.value.players(other(player.id))).numTurn
+      1 + math.min((curr - numTurn) * 3, attack -1)
+    }
+  }
+
+  case class SimoomRefresh(numTurn : Int, turnCount : Int) extends Function[Env, Unit] {
+    val maxTurn = numTurn + turnCount
+    def apply(env : Env){
+      import env._
+      if (getData(player.value).numTurn > maxTurn){
+        player.removeEffect(_ == this)
+      } else {
+        player.otherPlayer.slots.foreach{ s =>
+          s.attack.setDirty()
+        }
+      }
+    }
+  }
+
   class HPriestEventListener extends HouseEventListener {
     override def onOppSubmit(command : Command){
-      val data = getData(player)
+      val data = getData(player.value)
       // hack for warp
       if (data != null && !data.revealeds.contains(command.card)){
         player.updateData[HPriestData](_.copy(revealeds = data.revealeds + command.card))
