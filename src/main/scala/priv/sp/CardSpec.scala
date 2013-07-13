@@ -148,7 +148,9 @@ trait PlayerEvent extends BoardEvent {
   def player : PlayerUpdate
   def otherPlayer = player.otherPlayer
 }
-case class Dead(num : Int, slot : SlotState, player : PlayerUpdate , isEffect : Boolean, isDestroy : Boolean = false) extends PlayerEvent {
+case class Dead(num : Int, slot : SlotState, player : PlayerUpdate , damage : Option[Damage]) extends PlayerEvent {
+  def isEffect = damage.isEmpty || damage.get.isEffect
+  def isDestroy = damage.isEmpty
   def card= slot.card
 }
 // need source if no target
@@ -170,7 +172,7 @@ class Reaction {
   // used by black monk to heal by the amount even when dying, and by errant to wakeup
   def onMyDamage(amount : Int, slot : SlotUpdate){}
   // /!\ the slot is not yet empty but is about to (used for f5, f7, schizo, crossbow)
-  def onMyRemove(slot : SlotUpdate){}
+  def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){}
   def onMyDeath(dead : Dead) {}
   // TODO call this from house listener?
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
@@ -201,6 +203,24 @@ object SingleTargetAttack extends RunAttack {
           otherPlayer.inflict(d)
         } else {
           slot.inflict(d)
+        }
+      case _ => otherPlayer.inflict(d)
+    }
+  }
+
+  // TODO refactor in macro
+  def attack(target : Option[Int], d : Damage, player : PlayerUpdate, onKill : => Unit) {
+    val otherPlayer = player.otherPlayer
+    target match {
+      case Some(num) =>
+        val slot = otherPlayer.slots(num)
+        if (slot.value.isEmpty) {
+          otherPlayer.inflict(d)
+        } else {
+          slot.inflict(d)
+          if (slot.value.isEmpty){
+            onKill
+          }
         }
       case _ => otherPlayer.inflict(d)
     }

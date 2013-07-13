@@ -29,17 +29,17 @@ class BBBotSpec extends BotTestHelper {
      pstate(0,
        houseStates(10, 10, 10, 10, 10),
        slots = slots(
-         (0 -> toSlotState(Fire, 10, 10)),
-         (1 -> toSlotState(Water, 11)),
-         (2 -> toSlotState(Earth, 10, 10)),
-         (3 -> toSlotState(Earth, 10, 10)),
-         (4 -> toSlotState(Earth, 10, 10))),
+         toSlot(0, Fire, 10, 10),
+         toSlot(1, Water, 11),
+         toSlot(2, Earth, 10, 10),
+         toSlot(3, Earth, 10, 10),
+         toSlot(4, Earth, 10, 10)),
        life = 15),
      pstate(1,
        houseStates(10, 7, 10, 10, 10),
        slots = slots(
-         (0 -> toSlotState(Water, 10, 7)),
-         (5 -> toSlotState(Earth, 7))),
+         toSlot(0, Water, 10, 7),
+         toSlot(5, Earth, 7)),
        life = 5) ))
 
     val bot = new BoundedBot(1, desc, houses)
@@ -51,14 +51,14 @@ class BBBotSpec extends BotTestHelper {
      pstate(0,
        houseStates(11, 10, 7, 10, 10),
        slots = slots(
-         (0 -> toSlotState(Fire, 10, 11)),
-         (4 -> toSlotState(Earth, 10, 10))),
+         toSlot(0, Fire, 10, 11),
+         toSlot(4, Earth, 10, 10)),
        life = 15),
      pstate(1,
        houseStates(10, 2, 10, 10, 10),
        slots = slots(
-         (0 -> toSlotState(Water, 10, 2)),
-         (5 -> toSlotState(Earth, 7))),
+         toSlot(0, Water, 10, 2),
+         toSlot(5, Earth, 7)),
        life = 5) ))
 
     val bot = new BoundedBot(1, desc, houses)

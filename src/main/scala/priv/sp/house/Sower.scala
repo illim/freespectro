@@ -72,25 +72,16 @@ class Sower {
 
   private class MonsterPlantAttack extends RunAttack {
     def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      val num = target.get
-      val otherPlayer = player.otherPlayer
-      val slot = otherPlayer.slots(num)
-      if (slot.value.isEmpty) {
-        otherPlayer.inflict(d)
-      } else {
-        slot.inflict(d)
+      SingleTargetAttack.attack(target, d, player, onKill = {
         // FIXME maybe not good at all and should add source in damage?
-        if (slot.value.isEmpty){
-          player.slots.foreach{ slot =>
-            if (slot.get.card == monsterPlant){
-              slot.heal(monsterPlant.life)
-            }
+        player.slots.foreach{ slot =>
+          if (slot.get.card == monsterPlant){
+            slot.heal(monsterPlant.life)
           }
         }
-      }
+      })
     }
   }
-
 
   private class ForestDrakeReaction extends Reaction {
 
@@ -102,8 +93,7 @@ class Sower {
         if (drake.get.has(CardSpec.runFlag)){ // to avoid looping
           player.updater.focus(selected, player.id)
 
-          val dists = player.value.slotList.collect{ case n if slots(n).value.isEmpty => (n, math.abs(n - selected)) }
-          dists.sortBy(_._2).headOption.foreach{ case (pos, _) =>
+          nearestEmptySlot(selected, player).foreach{ pos =>
             slots(pos).add(card)
           }
         }

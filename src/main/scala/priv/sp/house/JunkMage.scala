@@ -71,12 +71,14 @@ class JunkMage {
   }
 
   private def roam = { env: Env =>
-    val otherSlots = env.otherPlayer.slots
-    val slots = env.player.slots
-    if (otherSlots(env.selected).value.isEmpty) {
-      otherSlots.slots.collect{ case slot if slots(slot.num).value.isEmpty && slot.value.isDefined => slot }.sortBy(x => math.abs(x.num - env.selected)).headOption.foreach{ dest =>
+    import env._
+    val otherSlots = otherPlayer.slots
+    if (otherSlots(selected).value.isEmpty) {
+      nearestSlotOpposed(selected, player).foreach{ n =>
+        val slots = player.slots
+        val dest = slots(n)
         dest.inflict(Damage(5, env, isAbility = true))
-        slots.move(env.selected, dest.num)
+        slots.move(selected, n)
       }
     }
   }

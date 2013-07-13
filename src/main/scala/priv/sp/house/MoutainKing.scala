@@ -45,7 +45,7 @@ class MoutainKing {
   }
 
   class SoldierReaction extends Reaction {
-    override def onMyRemove(slot : SlotUpdate) {
+    override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
       val otherPlayer = slot.slots.player.otherPlayer
       otherPlayer.getSlots.get(slot.num) match {
         case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) =>
@@ -171,7 +171,7 @@ class MoutainKing {
   }
 
   class MountainReaction extends Reaction {
-    final override def onMyRemove(slot : SlotUpdate) {
+    final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
       if (slot.get.data == Hird){
         setHird(false, slot.slots.player)
       }
@@ -301,7 +301,7 @@ class CrossbowAttack extends RunAttack {
 
 class CrossbowReaction extends Reaction {
   // HACK should be on my death but the slot would already be empty
-  final override def onMyRemove(slot : SlotUpdate){
+  final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
     if (slot.get.data == Hird){
       slot.setData(null)
       slot.slots.player.runSlot(slot.num, slot.get)

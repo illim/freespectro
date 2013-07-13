@@ -77,6 +77,7 @@ class HouseEventListener {
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
   def onPlayerDamage(amount : Int){} // bs for mk
   def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = Reaction.falseNone
+  def onOppSubmit(c : Command) {}
   def refreshOnOppUpdate() {} // bullcrap, and should not affect opp(looping is not managed)
   def setPlayer(p : PlayerUpdate){ playerField = p  }
 }
@@ -91,6 +92,7 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
   override def onPlayerDamage(amount : Int){ inner.onPlayerDamage(amount)}
   override def refreshOnOppUpdate() { inner.refreshOnOppUpdate() }
   override def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = inner.interceptSubmit(c)
+  override def onOppSubmit(c : Command) {inner.onOppSubmit(c)}
   override def setPlayer(p : PlayerUpdate){
     playerField = p
     inner.setPlayer(p)

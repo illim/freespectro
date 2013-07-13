@@ -12,7 +12,7 @@ class Warp {
     Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to their mana", effects = effects(Direct -> quake)),
     Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    Creature("Photographer", Attack(3), 20, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
+    Creature("Photographer", Attack(3), 17, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
     Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
@@ -106,7 +106,7 @@ class Warp {
         }
       }
     }
-    override def onMyRemove(slot : SlotUpdate) {
+    override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
       unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between schizo and wq
     }
   }

@@ -92,7 +92,9 @@ class MasterOfWind {
 
   class SpiritThunderReaction extends Reaction {
     def onNoCommand(selected : SlotUpdate, player : PlayerUpdate) = {
-      player.otherPlayer.slots.inflictCreatures(Damage(4, Context(player.id, Some(spirit), selected.num), isAbility = true))
+      val damage = Damage(3, Context(player.id, Some(spirit), selected.num), isAbility = true)
+      player.otherPlayer.inflict(damage)
+      player.otherPlayer.slots.inflictCreatures(damage)
     }
   }
 

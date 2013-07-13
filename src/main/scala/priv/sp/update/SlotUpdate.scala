@@ -9,7 +9,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   import slots.{player, updater}
   val playerId = player.id
   private lazy val attackUpdate = new AttackUpdate(this)
-  lazy val adjacentSlots = adjacents(num).map{ n => slots(n) }
+  lazy val adjacentSlots : List[SlotUpdate] = adjacents(num).map{ n => slots(n) }
   lazy val otherHouseListener = updater.houseEventListeners(other(playerId))
 
   def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
@@ -70,16 +70,17 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def destroy(){
     if (value.isDefined){ // crap for marine
       val s = get
-      remove()
-      slots.onDead(Dead(num, s, player, isEffect = true, isDestroy = true))
+      val event = Dead(num, s, player, None)
+      remove(Some(event))
+      slots.onDead(event)
     }
   }
 
-  def remove(){
+  def remove(deadOpt : Option[Dead] = None){
     val slotState = get
-    attackUpdate.invalidate() // FIXME hack?
-    slotState.card.reaction.onMyRemove(this)
+    slotState.card.reaction.onMyRemove(this, deadOpt)
     write(None)
+    attackUpdate.invalidate() // FIXME hack?
   }
 
   def focus(blocking : Boolean = true){
@@ -92,8 +93,9 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 
   private def delayedDestroy(d : Damage){
     val s = get
-    remove()
-    slots.log(Dead(num, s, player, isEffect = d.isEffect))
+    val event = Dead(num, s, player, Some(d))
+    remove(Some(event))
+    slots.log(event)
   }
 }
 

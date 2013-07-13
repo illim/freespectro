@@ -29,14 +29,14 @@ class BBBot2Spec extends BotTestHelper {
      pstate(0,
        houseStates(11, 3, 7, 2, 2),
        slots = slots(
-         (1 -> toSlotState(Water, 3)),
-         (3 -> toSlotState(dudeMancer.Dude, 1))),
+         toSlot(1, Water, 3),
+         toSlot(3, dudeMancer.Dude,  1)),
        life = 40),
      pstate(1,
        houseStates(3, 2, 9, 3, 1),
        slots = slots(
-         (1 -> toSlotState(Fire, 1)),
-         (4 -> toSlotState(Earth, 1))),
+         toSlot(1, Fire, 1),
+         toSlot(4, Earth, 1)),
        life = 40)) )
 
     val bot = new BoundedBot(1, desc, houses)

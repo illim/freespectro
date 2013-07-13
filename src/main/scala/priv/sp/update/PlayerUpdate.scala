@@ -20,7 +20,8 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }.getOrElse(new HouseEventListener)
   houseEventListener.setPlayer(this)
   val stats = PlayerStats()
-  protected lazy val otherPlayerStats = updater.playerFieldUpdates(other(id)).stats
+  val otherId = other(id)
+  protected lazy val otherPlayerStats = updater.playerFieldUpdates(otherId).stats
 
   def otherPlayer = updater.players(other(id)) // not great
   def getHouses   = if (housesUpdate.isDirty) housesUpdate.value else value.houses
@@ -96,6 +97,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         }
         f(env)
       }
+      updater.houseEventListeners(otherId).onOppSubmit(command)
       updateListener.refresh()
     }
   }

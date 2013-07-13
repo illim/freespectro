@@ -138,7 +138,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     def parent = path.headOption
     def getAvgReward : Float = rewards/numSim
     def getUct : Float =  parent.map{ p =>
-      getAvgReward + math.sqrt(math.log(p.numSim)/numSim).floatValue
+      getAvgReward + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
     def getFair = parent.map{ p =>
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue

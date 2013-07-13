@@ -20,4 +20,17 @@ class SerialSpec extends FlatSpec with ShouldMatchers {
     println(card)
   }
 
+  "we" should "be able to serialize house" in {
+    houses.special.foreach{ h =>
+      val bos = new ByteArrayOutputStream
+      val oos = new ObjectOutputStream(bos)
+      oos.writeObject(h)
+      oos.flush()
+      val barr = bos.toByteArray
+      val bis = new ByteArrayInputStream(barr)
+      val ois = new ObjectInputStream(bis)
+      val res = ois.readObject()
+      h should equal(res)
+    }
+  }
 }

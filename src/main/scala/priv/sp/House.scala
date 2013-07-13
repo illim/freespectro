@@ -15,8 +15,8 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
 
   def costs = cards.map(_.cost)
 
-  def initCards(costFn: Int => Int) {
-    cards.zipWithIndex.foreach { case (c, i) =>
+  def initCards(costFn: Int => Int, cs : List[Card] = cards) {
+    cs.zipWithIndex.foreach { case (c, i) =>
       c.cost = costFn(i)
       c.houseIndex = houseIndex
       c.houseId = houseId
@@ -31,7 +31,7 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
       case _ => false
     }
   }
-  def writeExternal(out : ObjectOutput ){  out.writeInt(houseId) }
+  def writeExternal(out : ObjectOutput ){ println("write " +name+ houseId); out.writeInt(houseId) }
   def readExternal(in : ObjectInput  ){  houseId = in.readInt() }
   protected def readResolve() : Object = HouseSingleton.getHouseById(houseId)
 }
@@ -57,7 +57,7 @@ class Houses
   val dudeMancer  = new DudeMancer
   val dreamweaver = new Dreamweaver
   val element     = new Elementalist
-//  val highPriest  = new HighPriest
+  val highPriest  = new HighPriest
   val junkMage    = new JunkMage
   val lostChurch  = new LostChurch
   val moutainKing = new MoutainKing
@@ -70,7 +70,7 @@ class Houses
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, /**highPriest.HighPriest, */ junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, wind.Wind, zenMage.Zen)
+  val special = List(darkPriest.DarkPriest, dreamweaver.Dreamweaver, dudeMancer.Dude, element.Elementalist, highPriest.HighPriest, junkMage.Junk, lostChurch.LostChurch, moutainKing.MoutainKing, sower.Sower, trooper.Trooper, vampire.Vampire, warp.Warp, wind.Wind, zenMage.Zen)
   val specialNames = special.map(_.name).to[Set]
   val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special
