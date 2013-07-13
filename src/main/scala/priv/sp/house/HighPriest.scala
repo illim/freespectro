@@ -8,7 +8,8 @@ import CardSpec._
 
 /**
  * Introduced bullshit :
- * babi -> listen for incrMana
+ * choose path -> listen for incrMana
+ * babi -> listen for opp incrMana
  * bennu -> doing something before dying = crap
  * serpent of ... ->
  *    crap spawning just after death
@@ -17,6 +18,8 @@ import CardSpec._
  * localized bs:
  * eyes of wajet -> store nb card played (bugged for abilities)
  * simoom -> store nb turn ^^
+ *
+ * TODO fix choose path occurs at right moment
  */
 class HighPriest {
 
@@ -52,7 +55,7 @@ class HighPriest {
     sphynx,
     ouroboros,
     dragonOfRa),
-    effects = List(OnTurn -> choosePath, OnStart -> choosePath),
+    effects = List(OnTurn -> hpTurn, OnStart -> init),
     eventListener = Some(new CustomListener(new HPriestEventListener)),
     data = HPriestData())
 
@@ -62,16 +65,21 @@ class HighPriest {
   case class HPriestData(revealeds : Set[Card] = Set.empty, numTurn : Int = 0)
   def getData(p : PlayerState) = p.data.asInstanceOf[HPriestData]
 
-  def choosePath = { env : Env =>
-    import env._
+  def init = { env: Env =>  choosePath(env.player)  }
+
+  def choosePath(player : PlayerUpdate){
     val houses = player.getHouses
     val fireearth = houses(0).mana + houses(3).mana
-    val waterair = 11111 //houses(1).mana + houses(2).mana
+    val waterair = houses(1).mana + houses(2).mana
     val hasMod = player.value.desc.descMods.contains(PathSet)
-    player.updateData[HPriestData](x => x.copy( numTurn = x.numTurn + 1))
     if (fireearth > waterair) {
       if (hasMod) player.removeDescMod(PathSet)
     } else if (!hasMod) player.addDescMod(PathSet)
+  }
+
+  def hpTurn = { env : Env =>
+    import env._
+    player.updateData[HPriestData](x => x.copy( numTurn = x.numTurn + 1))
   }
 
   case object PathSet extends DescMod {
@@ -278,6 +286,10 @@ class HighPriest {
           case _ =>
         }
       }
+    }
+
+    override def onIncrMana(){
+      choosePath(player)
     }
   }
 }

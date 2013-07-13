@@ -80,6 +80,7 @@ class HouseEventListener {
   def onOppSubmit(c : Command) {}
   def refreshOnOppUpdate() {} // bullcrap, and should not affect opp(looping is not managed)
   def onOppIncrMana(){} // bs for babi
+  def onIncrMana(){ } // for hpriest
   def setPlayer(p : PlayerUpdate){ playerField = p  }
 }
 
@@ -95,6 +96,7 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
   override def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = inner.interceptSubmit(c)
   override def onOppSubmit(c : Command) {inner.onOppSubmit(c)}
   override def onOppIncrMana(){inner.onOppIncrMana()}
+  override def onIncrMana(){ inner.onIncrMana() }
   override def setPlayer(p : PlayerUpdate){
     playerField = p
     inner.setPlayer(p)

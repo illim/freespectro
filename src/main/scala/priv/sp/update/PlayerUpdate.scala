@@ -216,6 +216,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         new HouseState(math.max(0, newmana))
       })
       updateElementals()
+      houseEventListener.onIncrMana()
       otherHouseEventListener.onOppIncrMana()
     }
 
@@ -225,11 +226,12 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
       })
       updateElementals()
+      houseEventListener.onIncrMana()
       otherHouseEventListener.onOppIncrMana()
     }
 
     def updateElementals(){
-      if (getSlots.exists(_._2.card.attack.base.isEmpty)){
+      if (getSlots.exists(_._2.card.attack.base.isEmpty)){ // bs
         slots.foreach { slot =>
           if (slot.attack.value.base.isEmpty){
             slot.attack.setDirty() // force reeval
