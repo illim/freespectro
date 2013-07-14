@@ -82,15 +82,15 @@ class MultiRatioHeuris(
   usePowerRatio : Boolean = true,
   useOppPowerRatio : Boolean = false,
   useBoardRatio : Boolean = false,
-  lifeThreshold : Float = 1f
+  lifeThreshold : Float = 0.5f
 ) extends HeuristicHelper {
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
     val lifeRatio = state.checkEnded match {
-      case Some(p) if p == humanId => (h.bot.life - start.bot.life) / fixz(math.max(h.bot.life, start.bot.life))
-      case None => 1f // maybe damper this
-      case _ => lifeThreshold + (start.human.life - h.human.life) / fixz(math.max(h.human.life, start.human.life))
+      case Some(p) if p == humanId => (h.bot.life - start.bot.life) / math.abs(fixz(math.max(h.bot.life, start.bot.life)))
+      case None => lifeThreshold + (h.lifeDelta - start.lifeDelta) / math.abs(fixz(math.max(h.lifeDelta, start.lifeDelta)))
+      case _ => lifeThreshold + (start.human.life - h.human.life) / math.abs(fixz(math.max(h.human.life, start.human.life)))
     }
     var res = lifeRatio
 
@@ -116,7 +116,7 @@ class MultiRatioHeuris(
     }
 
     if (useBoardRatio){
-      res = temper(res, 0.3f + math.max(0, start.boardDelta / fixz(h.boardDelta)))
+      res = temper(res, 0.3f + math.max(0, start.boardDelta / math.abs(fixz(h.boardDelta))))
     }
     res
   }
