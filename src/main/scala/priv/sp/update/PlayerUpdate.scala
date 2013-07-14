@@ -71,36 +71,37 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
    */
   def submit(c : Option[Command]){
     val (test, newComand) = houseEventListener.interceptSubmit(c)
-    (if (!test) c else newComand).foreach{ command =>
-      if (command.card.isSpell){
-        updateListener.spellPlayed(command)
-      }
-      houses.incrMana(- command.cost, command.card.houseIndex) // could be after but it's ugly(-> hack for fury)
-      updateListener.refresh(silent = true)
-      if (!command.card.isSpell) {
-        command.input.foreach{ slotInput =>
-          val targetSlots = command.card.inputSpec match {
-            case Some(SelectTargetCreature) =>
-              otherPlayer.slots
-            case _ =>
-              slots
-          }
-          stats.nbSummon += 1
-          targetSlots.summon(slotInput.num, command.card.asCreature)
-        }
-      }
-      command.card.effects(CardSpec.Direct) foreach { f =>
-        val env = new GameCardEffect.Env(command.player, updater)
-        env.card = Some(command.card)
-        command.input foreach { slotInput =>
-          env.selected = slotInput.num
-        }
-        f(env)
-      }
-      updater.houseEventListeners(otherId).onOppSubmit(command)
-      updateListener.refresh()
-    }
+    (if (!test) c else newComand).foreach(submitCommand)
   }
+
+  val submitCommand = new priv.util.ObservableFunc1({ command : Command =>
+    if (command.card.isSpell){
+      updateListener.spellPlayed(command)
+    }
+    houses.incrMana(- command.cost, command.card.houseIndex) // could be after but it's ugly(-> hack for fury)
+    updateListener.refresh(silent = true)
+    if (!command.card.isSpell) {
+      command.input.foreach{ slotInput =>
+        val targetSlots = command.card.inputSpec match {
+          case Some(SelectTargetCreature) =>
+            otherPlayer.slots
+          case _ =>
+            slots
+        }
+        stats.nbSummon += 1
+        targetSlots.summon(slotInput.num, command.card.asCreature)
+      }
+    }
+    command.card.effects(CardSpec.Direct) foreach { f =>
+      val env = new GameCardEffect.Env(command.player, updater)
+      env.card = Some(command.card)
+      command.input foreach { slotInput =>
+        env.selected = slotInput.num
+      }
+      f(env)
+    }
+    updateListener.refresh()
+  })
 
   def inflict(d : Damage) = {
     if (!ended) {

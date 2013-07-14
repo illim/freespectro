@@ -269,7 +269,7 @@ class HighPriest {
   }
 
   class HPriestEventListener extends HouseEventListener {
-    override def onOppSubmit(command : Command){
+    def onOppSubmit(command : Command){
       val data = getData(player.value)
       // hack for warp
       if (data != null && !data.revealeds.contains(command.card)){
@@ -290,6 +290,7 @@ class HighPriest {
           }
         }
       }
+      p.otherPlayer.submitCommand.after(onOppSubmit _)
     }
   }
 }

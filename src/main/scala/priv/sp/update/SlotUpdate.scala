@@ -40,11 +40,10 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   }
 
   def add(card : Creature) {  add(slots.buildSlotState(this, card)) }
-  def add(slot : SlotState) {
+  val add = new priv.util.ObservableFunc1({ slot : SlotState =>
     write(Some(slot))
     slots.reactAdd(this)
-    updater.houseEventListeners.foreach(_.onAdd(this))
-  }
+  })
 
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {

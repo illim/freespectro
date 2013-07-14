@@ -99,7 +99,7 @@ class MasterOfWind {
   }
 
   class WindEventListener extends HouseEventListener {
-    override def onAdd(slot : SlotUpdate){
+    def onAdd(slot : SlotUpdate){
       val slotPlayer = slot.slots.player
       if (slotPlayer.id == player.id){
         val data = player.value.data.asInstanceOf[WindState]
@@ -126,6 +126,12 @@ class MasterOfWind {
       if (data.vortex){
         damage.copy(amount = math.ceil(damage.amount * 1.5).intValue)
       } else damage
+    }
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      val onAddFunc = onAdd _
+      p.slots.slots.foreach(slot => slot.add.after(_ => onAddFunc(slot)))
     }
   }
 }

@@ -232,7 +232,7 @@ class MoutainKing {
         }
       }
     }
-    override def onAdd(slot : SlotUpdate){
+    def onAdd(slot : SlotUpdate){
       if (slot.playerId == player.id){
         if (slot.get.card.houseId == moutainHouseId){
           if (slot.filledAdjacents.count{ s =>
@@ -264,6 +264,12 @@ class MoutainKing {
           }
         }
       }
+    }
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      val onAddFunc = onAdd _
+      p.slots.slots.foreach(slot => slot.add.after(_ => onAddFunc(slot)))
     }
 
     private def setHird(s : SlotUpdate, b : Boolean){
