@@ -1,6 +1,8 @@
 import sbt._
 import sbtassembly.Plugin._
 import AssemblyKeys._
+import java.io.File
+import sbt.Keys._
 
 object SpectroBuild extends Build {
 
@@ -17,15 +19,20 @@ object SpectroBuild extends Build {
     case PathList("library.properties", _*) => MergeStrategy.first
     case PathList("org", x , _*) if orgDiscards.contains(x) => MergeStrategy.discard
     case PathList("oscar", x , _*) if oscardDiscards.contains(x)  => MergeStrategy.discard
+    case PathList("Images", _*)  => MergeStrategy.discard
     case PathList(x, _*) if rootDiscards.contains(x) => MergeStrategy.discard
+    case PathList(x @ _*) if x.size == 1 => MergeStrategy.discard
     case x => old(x)
   }
   })
 
   val dist = TaskKey[Unit]("dist", "")
-
   val distTask = dist := {
-    println("TODO")
+    val dest = new File("d:/tmp/fspectdist")
+    val res = new File(dest, "resources")
+    IO.delete(res)
+    IO.copyDirectory((resourceDirectory in Compile).value, res)
+    val jarname = (jarName in assembly).value
+    IO.copyFile(new File((crossTarget in Compile).value, jarname), new File(dest, jarname))
   }
-
 }

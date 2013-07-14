@@ -51,7 +51,7 @@ class HighPriest {
     Creature("Sun priest", Attack(3), 16, "When attacks, deals to all enemy creatures damage equal to\nowner's lowest power.", runAttack = new SunPriestAttack),
     apis,
     Creature("Bennu", Attack(5), 21, "If killed by enemy card, attacks opposite slot with tripled attack\nbefore death.", reaction = new BennuReaction),
-    Spell("Eye of Wajet", "heals to owner and his creatures 1 hp for each revealed enemy card and\ndeals the same damage to all enemies.", effects = effects(Direct -> wajet)),
+    Spell("Eye of wajet", "heals to owner and his creatures 1 hp for each revealed enemy card and\ndeals the same damage to all enemies.", effects = effects(Direct -> wajet)),
     sphynx,
     ouroboros,
     dragonOfRa),

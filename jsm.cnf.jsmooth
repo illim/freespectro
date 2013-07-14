@@ -6,8 +6,8 @@
 <JVMSearchPath>jdkpath</JVMSearchPath>
 <JVMSearchPath>exepath</JVMSearchPath>
 <JVMSearchPath>jview</JVMSearchPath>
-<arguments></arguments>
 <classPath>target\scala-2.10\freespectro-assembly-1.0.jar</classPath>
+<classPath>target\scala-2.10\resources</classPath>
 <embeddedJar>false</embeddedJar>
 <executableName>target\scala-2.10\freespectro-1.0-jsm.exe</executableName>
 <initialMemoryHeap>-1</initialMemoryHeap>
