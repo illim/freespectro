@@ -45,14 +45,17 @@ case object SkipTurn extends DescMod {
   }
 }
 
-trait OwnerDeathEventListener { _ : HouseEventListener =>
-  override def onDeath(dead : Dead) {
-    if (dead.player.id == player.id){
-      player.slots.foreach{ s =>
-        if (s.num != dead.num) {
-          val card = s.get.card
-          if (card.isSpecial){
-            card.reaction.onDeath(s.num, player.id, dead)
+trait OwnerDeathEventListener extends HouseEventListener {
+  override def setPlayer(p : PlayerUpdate){
+    super.setPlayer(p)
+    p.slots.onDead.after{ dead =>
+      if (dead.player.id == player.id){
+        player.slots.foreach{ s =>
+          if (s.num != dead.num) {
+            val card = s.get.card
+            if (card.isSpecial){
+              card.reaction.onDeath(s.num, player.id, dead)
+            }
           }
         }
       }
@@ -60,13 +63,16 @@ trait OwnerDeathEventListener { _ : HouseEventListener =>
   }
 }
 
-trait AnyDeathEventListener { _ : HouseEventListener =>
-  override def onDeath(dead : Dead) {
-    player.slots.foreach{ s =>
-      if (dead.player.id != player.id || s.num != dead.num){
-        val card = s.get.card
-        if (card.isSpecial){
-          card.reaction.onDeath(s.num, player.id, dead)
+trait AnyDeathEventListener extends HouseEventListener {
+  override def setPlayer(p : PlayerUpdate){
+    super.setPlayer(p)
+    p.slots.onDead.after{ dead =>
+      player.slots.foreach{ s =>
+        if (dead.player.id != player.id || s.num != dead.num){
+          val card = s.get.card
+          if (card.isSpecial){
+            card.reaction.onDeath(s.num, player.id, dead)
+          }
         }
       }
     }

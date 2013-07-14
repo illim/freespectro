@@ -71,12 +71,7 @@ class HouseEventListener {
   protected var playerField : PlayerUpdate = null
   def player = playerField.reinit()
 
-  // Because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
-  def onDeath(dead : Dead) {}
-//  def onAdd(slot : SlotUpdate){ }
   def mod(damage : Damage) = damage
-  def protect(slot : SlotUpdate, damage : Damage) = damage
-  def protectOpp(slot : SlotUpdate, damage : Damage) = damage
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
   def onPlayerDamage(amount : Int){} // bs for mk
   def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = Reaction.falseNone
@@ -85,10 +80,7 @@ class HouseEventListener {
 
 // bs for warp class
 class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener {
-  override def onDeath(dead : Dead) { inner.onDeath(dead) }
-//  override def onAdd(slot : SlotUpdate){ super.onAdd(slot)  }
-  override def protect(slot : SlotUpdate, damage : Damage) = inner.protect(slot, damage)
-  override def protectOpp(slot : SlotUpdate, damage : Damage) = inner.protectOpp(slot, damage)
+
   override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) { inner.onDamaged(card, amount, slot) }
   override def onPlayerDamage(amount : Int){ inner.onPlayerDamage(amount)}
   override def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = inner.interceptSubmit(c)

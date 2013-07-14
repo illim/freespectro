@@ -130,8 +130,7 @@ class MasterOfWind {
 
     override def setPlayer(p : PlayerUpdate){
       super.setPlayer(p)
-      val onAddFunc = onAdd _
-      p.slots.slots.foreach(slot => slot.add.after(_ => onAddFunc(slot)))
+      p.slots.slots.foreach(slot => slot.add.after(_ => onAdd(slot)))
     }
   }
 }

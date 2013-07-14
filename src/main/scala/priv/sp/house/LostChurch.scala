@@ -222,7 +222,7 @@ class LostChurch {
 
   // crap
   class LCEventListener extends HouseEventListener {
-    override def protect(slot : SlotUpdate, damage : Damage) = {
+    def protect(slot : SlotUpdate, damage : Damage) = {
       val target = slot.get.card
       if (target == prisoner || target == enragedPrisoner){
         player.slots.foldl(damage) { (acc, s) =>
@@ -232,6 +232,14 @@ class LostChurch {
           } else acc
         }
       } else damage
+    }
+
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      p.slots.slots.foreach{ slot =>
+        slot.protect.intercept(d => protect(slot, d))
+      }
     }
   }
 }

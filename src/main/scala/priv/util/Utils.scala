@@ -267,3 +267,17 @@ class ObservableFunc1[A](f : A => Unit) extends Function[A, Unit] {
     }
   }
 }
+
+
+class InterceptableFunc1[A](f : A => A) extends Function[A, A] {
+  private var inner = f
+
+  def apply(x : A) = inner(x)
+
+  def intercept(g : A => A) {
+    val old = inner
+    inner = { x : A =>
+      g(old(x))
+    }
+  }
+}

@@ -131,12 +131,19 @@ class JunkMage {
   }
 
   class JunkEventListener extends HouseEventListener with OwnerDeathEventListener {
-    override def protect(slot : SlotUpdate, damage : Damage) = {
+    def protect(slot : SlotUpdate, damage : Damage) = {
       player.slots.foldl(damage) { (acc, s) =>
         val sc = s.get.card
         if (sc == jf){
           s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
         } else acc
+      }
+    }
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      p.slots.slots.foreach{ slot =>
+        slot.protect.intercept(d => protect(slot, d))
       }
     }
   }

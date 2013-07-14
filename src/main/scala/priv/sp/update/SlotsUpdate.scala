@@ -71,11 +71,12 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     }
   }
 
-  def onDead(dead : Dead){
+  // If observed , because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
+  val onDead = new priv.util.ObservableFunc1({dead : Dead =>
     updateListener.die(dead.num, playerId)
     dead.card.reaction.onMyDeath(dead)
-    player.updater.houseEventListeners.map(_.onDeath(dead))
-  }
+  })
+
   def buildSlotState(slot : SlotUpdate, card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), Some(slot.num), card.data)
   def getAttack(slot : SlotUpdate, attackSources : AttackSources) = {
     (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>

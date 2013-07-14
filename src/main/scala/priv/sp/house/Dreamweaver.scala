@@ -85,7 +85,7 @@ class Dreamweaver {
     }
   }
 
-  class DreamweaverEventListener extends HouseEventListener {
+  class DreamweaverEventListener extends HouseEventListener with OwnerDeathEventListener {
     def refreshRoc() {
       if (player.getSlots.values.exists(_.card == roc)){
         player.slots.filleds.withFilter(_.get.card == roc).foreach{ s =>
@@ -93,7 +93,7 @@ class Dreamweaver {
         }
       }
     }
-    override def protect(slot : SlotUpdate, damage : Damage) = {
+    def protect(slot : SlotUpdate, damage : Damage) = {
       player.slots.foldl(damage) { (acc, s) =>
         val c = s.get.card
         if (c == castle){
@@ -101,21 +101,12 @@ class Dreamweaver {
         } else acc
       }
     }
-    override def onDeath(dead : Dead) {
-      if (dead.player.id == player.id) {
-        player.slots.foreach{ s =>
-          if (s.num != dead.num){
-            val c = s.get.card
-            if (c.houseIndex == 4){
-              c.reaction.onDeath(s.num, player.id, dead)
-            }
-          }
-        }
-      }
-    }
 
     override def setPlayer(p : PlayerUpdate){
       super.setPlayer(p)
+      p.slots.slots.foreach{ slot =>
+        slot.protect.intercept(d => protect(slot, d))
+      }
       p.otherPlayer.slots.update.after{ _ => refreshRoc()  }
     }
   }

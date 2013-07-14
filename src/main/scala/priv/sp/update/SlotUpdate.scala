@@ -14,6 +14,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 
   def oppositeSlot = player.otherPlayer.slots(num)
   def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
+  def oppositeState : Option[SlotState] = player.otherPlayer.getSlots.get(num)
 
   @inline def get = value.get
   // some crap
@@ -48,11 +49,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
       val card = get.card
-      val d = otherHouseListener.protectOpp(
-        this,
-        player.houseEventListener.protect(
-          this,
-          card.reaction.selfProtect(damage, this))) // /!\ possible side effect (jf can protect herself once and toggle a flag)
+      val d = protect(card.reaction.selfProtect(damage, this)) // /!\ possible side effect (jf can protect herself once and toggle a flag)
       val slot = get
       val amount = slot.inflict(d) match {
         case None =>
@@ -66,6 +63,10 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
       slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
     }
   }
+
+  val protect = new priv.util.InterceptableFunc1({d : Damage =>
+    d
+  })
 
   def destroy(){
     if (value.isDefined){ // crap for marine

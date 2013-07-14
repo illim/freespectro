@@ -15,7 +15,7 @@ class MoutainKing {
   val shieldman = Creature("Dwarven shieldman", Attack(3), 15, "Redirects to himself half of the damage dealt to neighbors.\nHird: cannot be killed with magic (at least 1 hp will be left).", reaction = new ShieldmanReaction)
   val runesmith = Creature("Runesmith", AttackSources(Some(7), Vector(RuneAttackSource)), 23, "Runesmith and opposite creature can be harmed only by\neach other's attacks.\nHird: +1 attack for each dwarf in the game (including himself).", reaction = new RuneReaction)
   val ballista = Creature("Ballista", Attack(6), 34, "When enemy creature enters the game, halves its health and\nloses 10 health itself.\nHird: loses only 7 health on activating ability.", reaction = new BallistaReaction)
-  val berserker = Creature("Berserker", AttackSources(Some(6), Vector(BerserkerAttackSource)), 40, "When owner receives more than 5 damage attacks out-of-turn opposite slot.\nHird: +3 attack and damage dealt to berserker.", reaction = new BerserkerReaction)
+  val berserker = Creature("Berserker", AttackSources(Some(6), Vector(BerserkerAttackSource)), 40, "When owner receives more than 4 damage attacks out-of-turn opposite slot.\nHird: +3 attack and damage dealt to berserker.", reaction = new BerserkerReaction)
   val moutainKing = Creature("Moutain king", Attack(5), 45, "When allied dwarf enters the game, heals himself by 6 and\npermanently increases his attack by 2.\nWhen enters the game stuns strongest opponent creature.\nHird: reduces cost of dwarven cards by 1.", effects = effects(Direct -> moutain), reaction = new MountainReaction)
 
   val MoutainKing = House("Moutain King", List(
@@ -82,7 +82,7 @@ class MoutainKing {
 
   class RuneReaction extends Reaction {
     final override def selfProtect(d : Damage, slot : SlotUpdate) = {
-      if (d.context.selected != slot.num || ! d.context.card.exists(!_.isSpell)) {
+      if (slot.oppositeState.isDefined && (d.context.selected != slot.num || ! d.context.card.exists(!_.isSpell))) {
         d.copy(amount = 0)
       } else d
     }
@@ -152,7 +152,7 @@ class MoutainKing {
   class BerserkerReaction extends Reaction {
     import scala.util.control.TailCalls._
     def onPlayerDamage(amount : Int, slot : SlotUpdate) {
-      if (amount > 5){
+      if (amount > 4){
         runSlot(slot).result
       }
     }
@@ -197,7 +197,7 @@ class MoutainKing {
   // crap
   class MKEventListener extends HouseEventListener {
     val moutainHouseId = MoutainKing.houseId
-    override def protect(slot : SlotUpdate, damage : Damage) = {
+    def protect(slot : SlotUpdate, damage : Damage) = {
       player.slots.foldl(damage) { (acc, s) =>
         val sc = s.get.card
         if (sc.houseIndex == 4){
@@ -206,13 +206,13 @@ class MoutainKing {
       }
     }
 
-    override def protectOpp(slot : SlotUpdate, damage : Damage) = {
+    def protectOpp(slot : SlotUpdate, damage : Damage) = {
       player.getSlots.get(slot.num) match {
         case Some(s) if s.card == runesmith => s.card.reaction.selfProtect(damage, slot)
         case _ => damage
       }
     }
-    override def onDeath(dead : Dead) {
+    def onDeath(dead : Dead) {
       val c = dead.card
       if (dead.player.id == player.id && c.houseId == moutainHouseId) {
         player.slots.foreach{ s =>
@@ -268,8 +268,14 @@ class MoutainKing {
 
     override def setPlayer(p : PlayerUpdate){
       super.setPlayer(p)
-      val onAddFunc = onAdd _
-      p.slots.slots.foreach(slot => slot.add.after(_ => onAddFunc(slot)))
+      p.slots.onDead.after(onDeath _)
+      p.slots.slots.foreach{ slot =>
+        slot.add.after(_ => onAdd(slot))
+        slot.protect.intercept(d => protect(slot, d))
+      }
+      p.otherPlayer.slots.slots.foreach{ slot =>
+        slot.protect.intercept(d => protectOpp(slot, d))
+      }
     }
 
     private def setHird(s : SlotUpdate, b : Boolean){
