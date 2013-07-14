@@ -8,8 +8,6 @@ import CardSpec._
 
 /**
  * Introduced bullshit :
- * choose path -> listen for incrMana
- * babi -> listen for opp incrMana
  * bennu -> doing something before dying = crap
  * serpent of ... ->
  *    crap spawning just after death
@@ -279,17 +277,19 @@ class HighPriest {
       }
     }
 
-    override def onOppIncrMana(){
-      player.slots.foreach{ s =>
-        s.get.card.reaction match {
-          case br : BabiReaction => br.reactIncrMana(s)
-          case _ =>
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      p.houses.update.after{ _ =>
+        choosePath(p)
+      }
+      p.otherPlayer.houses.update.after{ _ =>
+        p.slots.foreach{ s =>
+          s.get.card.reaction match {
+            case br : BabiReaction => br.reactIncrMana(s)
+            case _ =>
+          }
         }
       }
-    }
-
-    override def onIncrMana(){
-      choosePath(player)
     }
   }
 }

@@ -86,9 +86,8 @@ class Dreamweaver {
   }
 
   class DreamweaverEventListener extends HouseEventListener {
-    override def refreshOnOppUpdate() {
-      super.refreshOnOppUpdate()
-      if (player.otherPlayer.slotsUpdate.isDirty && player.getSlots.values.exists(_.card == roc)){
+    def refreshRoc() {
+      if (player.getSlots.values.exists(_.card == roc)){
         player.slots.filleds.withFilter(_.get.card == roc).foreach{ s =>
           s.attack.setDirty()
         }
@@ -113,6 +112,11 @@ class Dreamweaver {
           }
         }
       }
+    }
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      p.otherPlayer.slots.update.after{ _ => refreshRoc()  }
     }
   }
 }

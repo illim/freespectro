@@ -18,7 +18,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
       }.getOrElse(f(new HouseEventListener))
     case c : CustomListener => c()
   }.getOrElse(new HouseEventListener)
-  houseEventListener.setPlayer(this)
+
   val stats = PlayerStats()
   val otherId = other(id)
   protected lazy val otherPlayerStats = updater.playerFieldUpdates(otherId).stats
@@ -43,7 +43,6 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
         }
         slots.logs = Nil
       }
-      updater.houseEventListeners(other(id)).refreshOnOppUpdate()
     }
   }
   def result = value.copy(slots = getSlots, houses = getHouses)
@@ -211,23 +210,19 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     def houses = value
 
     def incrMana(incr : Int = 1){
-      write(houses.map{ house =>
+      update(houses.map{ house =>
         val newmana = house.mana + incr
         new HouseState(math.max(0, newmana))
       })
       updateElementals()
-      houseEventListener.onIncrMana()
-      otherHouseEventListener.onOppIncrMana()
     }
 
     def incrMana(amount : Int, houseIndex : Int*) {
-      write(houseIndex.foldLeft(houses){ (acc, id) =>
+      update(houseIndex.foldLeft(houses){ (acc, id) =>
         val house = acc(id)
         acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
       })
       updateElementals()
-      houseEventListener.onIncrMana()
-      otherHouseEventListener.onOppIncrMana()
     }
 
     def updateElementals(){

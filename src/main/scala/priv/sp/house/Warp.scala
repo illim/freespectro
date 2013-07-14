@@ -122,9 +122,14 @@ class Warp {
     private def isStranger(card : Card) = {
       card == stranger || card.isInstanceOf[MergeStranger]
     }
-    override def refreshOnOppUpdate() {
-      super.refreshOnOppUpdate()
-      if (player.otherPlayer.housesUpdate.isDirty && player.getSlots.values.exists(s => isStranger(s.card))){
+
+    override def setPlayer(p : PlayerUpdate){
+      super.setPlayer(p)
+      p.otherPlayer.houses.update.after{ _ => refreshStranger()  }
+    }
+
+    def refreshStranger(){
+      if (player.getSlots.values.exists(s => isStranger(s.card))){
         player.slots.filleds.withFilter(s => isStranger(s.get.card)).foreach{ s =>
           s.attack.setDirty()
         }
