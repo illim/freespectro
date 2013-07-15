@@ -169,7 +169,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       }
       val h = heuris(st, stats, depth)
       val reward = (boost * end.map{p => if (p == botPlayerId) h else {
-        if (h> 0) -(1/(1 + h)) -1 else h - 1
+        if (h <= 0) h else - 1/ h
       } /** horror to ensure negative :S */ }.getOrElse(0.01f * h))
       rewards += reward
       backPropagate(reward)

@@ -108,7 +108,7 @@ class MultiRatioHeuris(
     val h = new HeurisValue(state)
     val lifeRatio = ((state.checkEnded match {
       case `somehumanId` =>
-        2 * negToPos((h.lifeDelta - start.lifeDelta) / maxAbs(h.bot.life, start.bot.life))
+        negToPos((h.lifeDelta - start.lifeDelta) / maxAbs(h.bot.life, start.bot.life))
       case None => negToPos(h.lifeDelta / h.bot.life.toFloat)
       case _ => negToPos((start.human.life - h.human.life) / maxAbs(h.human.life, start.human.life))
     }) +1 ) / turns
