@@ -46,8 +46,8 @@ case object SkipTurn extends DescMod {
 }
 
 trait OwnerDeathEventListener extends HouseEventListener {
-  override def setPlayer(p : PlayerUpdate){
-    super.setPlayer(p)
+  override def init(p : PlayerUpdate){
+    super.init(p)
     p.slots.onDead.after{ dead =>
       if (dead.player.id == player.id){
         player.slots.foreach{ s =>
@@ -64,8 +64,8 @@ trait OwnerDeathEventListener extends HouseEventListener {
 }
 
 trait AnyDeathEventListener extends HouseEventListener {
-  override def setPlayer(p : PlayerUpdate){
-    super.setPlayer(p)
+  override def init(p : PlayerUpdate){
+    super.init(p)
     p.slots.onDead.after{ dead =>
       player.slots.foreach{ s =>
         if (dead.player.id != player.id || s.num != dead.num){

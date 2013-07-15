@@ -4,7 +4,8 @@ import priv.sp._
 
 object PlayerStats {
   def basicKillValue(slot : SlotState) = slot.card.cost * (if (slot.card.houseIndex == 4) 1.5f else 1f)
-  def hpManaRatio(slot : SlotState) : Float = (slot.card.life / (0.5 + getCostPowMana(slot.card.cost, slot.card.houseIndex))).toFloat
+  def hpManaRatio(slot : SlotState) : Float = hpManaRatio(slot.card)
+  @inline def hpManaRatio(card : Creature) : Float = (card.life / (0.5 + getCostPowMana(card.cost, card.houseIndex))).toFloat
 
   def getCostMana(m : Int, houseIndex : Int) = {
     if (houseIndex == 4) m * 1.5 else m

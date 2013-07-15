@@ -74,6 +74,7 @@ class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
 }
 
 // a soup of shitty indicators
+// ratio has to be between 0, +oo so their multiplication is not sign dependent
 class MultiRatioHeuris(
   val botPlayerId : PlayerId,
   val name : String,
@@ -82,17 +83,37 @@ class MultiRatioHeuris(
   usePowerRatio : Boolean = true,
   useOppPowerRatio : Boolean = false,
   useBoardRatio : Boolean = false,
-  lifeThreshold : Float = 0.5f
+  lifeThreshold : Float = 0.5f,
+  logging : Boolean = false
 ) extends HeuristicHelper {
+
+  private def maxAbs(x : Int, y : Int) : Float = fixz(math.max(math.abs(x), math.abs(y)))
+  def negToPos(x : Float) = if (x < 0) 1 /(1 - x) else 1 + (x / 10f) // divide to have a weight not to high for positive values
+
+  val logs = mutable.Map.empty[Symbol, List[Float]].withDefault(_ => Nil)
+  case class ValueLogger(name : Symbol){
+    val log =
+      if (logging) {x : Float =>  logs += (name -> (x :: logs(name))) }
+      else { x: Float => () }
+  }
+
+  val lifeRatioLog     = ValueLogger('lifeRatio)
+  val powerRatioLog    = ValueLogger('powerRatio)
+  val oppPowerRatioLog = ValueLogger('oppPowerRatio)
+  val boardRatioLog    = ValueLogger('boardRatio)
+  val killValueLog     = ValueLogger('killValue)
+  val somehumanId = Some(humanId)
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
     val h = new HeurisValue(state)
-    val lifeRatio = state.checkEnded match {
-      case Some(p) if p == humanId => (h.bot.life - start.bot.life) / math.abs(fixz(math.max(h.bot.life, start.bot.life)))
-      case None => lifeThreshold + (h.lifeDelta - start.lifeDelta) / math.abs(fixz(math.max(h.lifeDelta, start.lifeDelta)))
-      case _ => lifeThreshold + (start.human.life - h.human.life) / math.abs(fixz(math.max(h.human.life, start.human.life)))
-    }
+    val lifeRatio = ((state.checkEnded match {
+      case `somehumanId` =>
+        2 * negToPos((h.lifeDelta - start.lifeDelta) / maxAbs(h.bot.life, start.bot.life))
+      case None => negToPos(h.lifeDelta / h.bot.life.toFloat)
+      case _ => negToPos((start.human.life - h.human.life) / maxAbs(h.human.life, start.human.life))
+    }) +1 ) / turns
     var res = lifeRatio
+    lifeRatioLog.log(lifeRatio)
 
     if (useKillRatio){
       val botKill = getKill(playerStats(botPlayerId))
@@ -103,20 +124,28 @@ class MultiRatioHeuris(
     if (useKillValueRatio){
       val botKill = getKillValue(playerStats(botPlayerId))
       val allKill = botKill + getKillValue(playerStats(humanId))
-      res = temper(res, (if (allKill == 0) 1f else (0.5f + (botKill / allKill))))
+      val killRatio = if (allKill == 0) 1f else (0.5f + (botKill / allKill))
+      killValueLog.log(killRatio)
+      res = temper(res, killRatio)
     }
 
     // this is quite wrong to use mana after lot of simulated turns
     if (usePowerRatio){
-      res = temper(res, h.botPower / (turns * fixz(start.botPower)))
+      val powerRatio = h.botPower / (turns * fixz(start.botPower))
+      powerRatioLog.log(powerRatio)
+      res = temper(res, powerRatio)
     }
 
     if (useOppPowerRatio){
-      res = temper(res, (turns * start.power) / fixz(h.power))
+      val oppPowerRatio = (turns * start.power) / fixz(h.power)
+      oppPowerRatioLog.log(oppPowerRatio)
+      res = temper(res, oppPowerRatio)
     }
 
     if (useBoardRatio){
-      res = temper(res, 0.3f + math.max(0, start.boardDelta / math.abs(fixz(h.boardDelta))))
+      val boardRatio = negToPos(h.boardDelta / maxAbs(start.boardDelta.toInt, h.boardDelta.toInt))
+      boardRatioLog.log(boardRatio)
+      res = temper(res, boardRatio)
     }
     res
   }

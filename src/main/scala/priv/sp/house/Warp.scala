@@ -9,7 +9,6 @@ import GameCardEffect._
  * Introduced bullshit:
  * stranger ->
  *        proxy for houseeventlistener
- *        refreshOnOppUpdate
  */
 // FIXME: schizo when unbridle
 class Warp {
@@ -123,8 +122,8 @@ class Warp {
       card == stranger || card.isInstanceOf[MergeStranger]
     }
 
-    override def setPlayer(p : PlayerUpdate){
-      super.setPlayer(p)
+    override def init(p : PlayerUpdate){
+      super.init(p)
       p.otherPlayer.houses.update.after{ _ => refreshStranger()  }
     }
 

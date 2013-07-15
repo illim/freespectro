@@ -17,14 +17,16 @@ import CardSpec._
  * eyes of wajet -> store nb card played (bugged for abilities)
  * simoom -> store nb turn ^^
  *
- * TODO fix choose path occurs at right moment
+ *
+ * bugs: wajet
+ * spawned serpent if 2 ouros
  */
 class HighPriest {
 
   val apis = Creature("Apis", Attack(4), 20, "Every turn gives to owner 1 special power and\n3 hp for each other apis on the board.", effects = effects(OnTurn -> apisEffect))
   val sphynx =  Creature("Sphinx", Attack(8), 24, "When dies, leaves puzzle 0/6.\nIf puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new SphinxReaction)
   val puzzle = Creature("puzzle", Attack(0), 6, "If puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new PuzzleReaction)
-  val ouroboros = Creature("Ouroboros", Attack(6), 38, "At the beginning of owner's turn summons in nearest empty slot serpent of eternity.", effects = effects(OnTurn -> ouro))
+  val ouroboros = Creature("Ouroboros", Attack(6), 38, "At the beginning of owner's turn summons in nearest empty slot\nserpent of eternity.", effects = effects(OnTurn -> ouro))
   val serpent = Creature("serpent of eternity", Attack(2), 8, "At the end of opponent's turn serpent dies and heals X hp to owner and Ouroboros (X = its remaining hp).")
   val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and increases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
@@ -148,7 +150,7 @@ class HighPriest {
         s.attack.add(bonus)
       }
     }
-    player.addEffect(OnEndTurn -> SimoomRefresh(nTurn, math.ceil(maxAttack / 3f).toInt))
+    player.addEffect(OnEndTurn -> SimoomRefresh(bonus, math.ceil(maxAttack / 3f).toInt))
   }
 
   def incrRaAttack = { env : Env =>
@@ -254,11 +256,14 @@ class HighPriest {
     }
   }
 
-  case class SimoomRefresh(numTurn : Int, turnCount : Int) extends Function[Env, Unit] {
-    val maxTurn = numTurn + turnCount
+  case class SimoomRefresh(bonus : SimAttackReduction, turnCount : Int) extends Function[Env, Unit] {
+    val maxTurn = bonus.numTurn + turnCount
     def apply(env : Env){
       import env._
       if (getData(player.value).numTurn > maxTurn){
+        player.otherPlayer.slots.foreach{ s =>
+          s.attack.removeAny(bonus)
+        }
         player.removeEffect(_ == this)
       } else {
         player.otherPlayer.slots.foreach{ s =>
@@ -277,8 +282,8 @@ class HighPriest {
       }
     }
 
-    override def setPlayer(p : PlayerUpdate){
-      super.setPlayer(p)
+    override def init(p : PlayerUpdate){
+      super.init(p)
       p.houses.update.after{ _ =>
         choosePath(p)
       }

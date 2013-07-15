@@ -235,8 +235,8 @@ class LostChurch {
     }
 
 
-    override def setPlayer(p : PlayerUpdate){
-      super.setPlayer(p)
+    override def init(p : PlayerUpdate){
+      super.init(p)
       p.slots.slots.foreach{ slot =>
         slot.protect.intercept(d => protect(slot, d))
       }

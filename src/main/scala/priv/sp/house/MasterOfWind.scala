@@ -6,6 +6,9 @@ import priv.sp.gui._
 import GameCardEffect._
 import CardSpec._
 
+/**
+ * Introduced bs: player data
+ */
 class MasterOfWind {
 
   val spirit = Creature("The spirit of thunderstorm", Attack(2), 30, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
@@ -128,8 +131,8 @@ class MasterOfWind {
       } else damage
     }
 
-    override def setPlayer(p : PlayerUpdate){
-      super.setPlayer(p)
+    override def init(p : PlayerUpdate){
+      super.init(p)
       p.slots.slots.foreach(slot => slot.add.after(_ => onAdd(slot)))
     }
   }

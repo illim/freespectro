@@ -51,7 +51,7 @@ trait Bot {
     k = generateK().get
   }
 
-  protected def initGameUpdater(state : GameState){
+  def initGameUpdater(state : GameState){
     if (updater == null){
       updater = new GameStateUpdater(state, gameDesc)
     }
@@ -150,8 +150,7 @@ class Choices(bot : Bot, cardStats : List[CardStats]) {
         case Some(SelectOwnerSlot) =>
           val opens = PlayerState.openSlots(p)
           val (blockeds, unBlockeds) = opens.partition(otherp.slots.isDefinedAt _)
-          // todo use macro?
-          (if (Random.nextBoolean) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
+          (if (Random.nextFloat < 0.7) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerCreature) =>

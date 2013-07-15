@@ -112,3 +112,16 @@ sealed trait Transition {
   def playerId : PlayerId
 }
 case class WaitPlayer(playerId : PlayerId, name : String = null) extends Transition
+
+object GameState {
+  def toString(s : GameState) = {
+    s.players.map{ p =>
+      "houses " + p.houses.map(_.mana).mkString(",") + ", life " + p.life +
+      ", slots " + p.slotList.map{ i =>
+        p.slots.get(i).map{ s =>
+          s.card.name + "/" + s.life
+        }.getOrElse(".")
+      }.mkString(",")
+    }
+  }
+}

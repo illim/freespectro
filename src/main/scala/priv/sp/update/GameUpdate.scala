@@ -13,7 +13,7 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
   val houseEventListeners = playerFieldUpdates.map(_.houseEventListener)
   val stats = playerFieldUpdates.map(_.stats)
   playerFieldUpdates.foreach{ p =>
-    p.houseEventListener.setPlayer(p)
+    p.houseEventListener.init(p)
   }
 
   def state = value
@@ -75,7 +75,7 @@ class HouseEventListener {
   def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
   def onPlayerDamage(amount : Int){} // bs for mk
   def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = Reaction.falseNone
-  def setPlayer(p : PlayerUpdate){ playerField = p  }
+  def init(p : PlayerUpdate){ playerField = p  }
 }
 
 // bs for warp class
@@ -84,8 +84,8 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
   override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) { inner.onDamaged(card, amount, slot) }
   override def onPlayerDamage(amount : Int){ inner.onPlayerDamage(amount)}
   override def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = inner.interceptSubmit(c)
-  override def setPlayer(p : PlayerUpdate){
+  override def init(p : PlayerUpdate){
     playerField = p
-    inner.setPlayer(p)
+    inner.init(p)
   }
 }

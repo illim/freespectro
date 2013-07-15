@@ -16,7 +16,6 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouse
     case 1 => new LifeHeuris(botPlayerId)
     case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillValueRatio = true)
     case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppPowerRatio = true, useKillValueRatio = true, useBoardRatio = true, usePowerRatio = true)
-//    case 3 => new MultiRatioHeuris(botPlayerId, "Rush4life", useManaRatio = false)
   }
 
   def executeAI(start: GameState) = {
@@ -104,6 +103,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     }
     //println("end " +nbStep+","+ end)
     val reward = node.updateStatsFrom(state, end, playerStats = Some(bot.updater.stats))
+    //end.foreach{ e =>   println(e + " -> " + botCards + ";" + oppCards) }
     cardStats(botPlayerId).update(reward, botCards)
     cardStats(human).update(reward, oppCards)
   }
@@ -168,9 +168,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         playerStats.map(_(i) + s).getOrElse(s)
       }
       val h = heuris(st, stats, depth)
-      val reward = boost * end.map{p => if (p == botPlayerId) h else {
+      val reward = (boost * end.map{p => if (p == botPlayerId) h else {
         if (h> 0) -(1/(1 + h)) -1 else h - 1
-      } /** horror to ensure negative :S */ }.getOrElse(0.01f * h)
+      } /** horror to ensure negative :S */ }.getOrElse(0.01f * h))
       rewards += reward
       backPropagate(reward)
       reward
