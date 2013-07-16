@@ -18,8 +18,7 @@ import CardSpec._
  * simoom -> store nb turn ^^
  *
  *
- * bugs: wajet
- * spawned serpent if 2 ouros
+ * bugs: spawned serpent if 2 ouros
  */
 class HighPriest {
 
@@ -62,7 +61,7 @@ class HighPriest {
   HighPriest.initCards(Houses.basicCostFunc)
   HighPriest.initCards(Houses.basicCostFunc, hpSet)
 
-  case class HPriestData(revealeds : Set[Card] = Set.empty, numTurn : Int = 0)
+  case class HPriestData(revealeds : Set[(Int, Int)] = Set.empty, numTurn : Int = 0)
   def getData(p : PlayerState) = p.data.asInstanceOf[HPriestData]
 
   def init = { env: Env =>  choosePath(env.player)  }
@@ -163,7 +162,7 @@ class HighPriest {
   def initBabi = { env : Env =>
     import env._
 
-    val mana = otherPlayer.houses.value.map(_.mana).sum
+    val mana = otherPlayer.getHouses.map(_.mana).sum
     getSelectedSlot().setData(new Integer(mana))
   }
 
@@ -200,16 +199,16 @@ class HighPriest {
     final override def onMyDeath(dead : Dead){
       import dead._
       damage match {
-        case Some(d) if !d.isEffect =>
+        case Some(d) if !d.isSpell && d.context.playerId != player.id =>
+          val slot = player.slots(dead.num)
+          val slotState = player.slots.buildSlotState(slot, sphynx)
+          slot.add(slotState.copy(life = slotState.life/2))
+        case _ =>
           val otherPlayer = player.otherPlayer
           val houseId = (otherPlayer.getHouses.foldLeft((0, 0, 0)){ case ((hidx, m, idx), h) =>
             if (h.mana > m) (idx, h.mana, idx+1) else (hidx, m, idx +1)
           })._1
           otherPlayer.houses.incrMana(-3, houseId)
-        case _ =>
-          val slot = player.slots(dead.num)
-          val slotState = player.slots.buildSlotState(slot, card)
-          slot.add(slotState.copy(life = slotState.life/2))
       }
     }
   }
@@ -226,18 +225,19 @@ class HighPriest {
   }
 
   class BabiReaction extends Reaction {
-    def reactIncrMana(selected : SlotUpdate){
-      val otherPlayer = selected.slots.player.otherPlayer
+    def reactIncrMana(houses : PlayerState.HousesType, selected : SlotUpdate){
       val old = selected.get.data.asInstanceOf[Integer]
-      val mana = otherPlayer.houses.value.map(_.mana).sum
+      val mana = houses.map(_.mana).sum
+      selected.setData(new Integer(mana))
+      print("set" + mana + "("+old+")")
       if (mana > old){
         val oppSlot = selected.oppositeSlot
         if (oppSlot.value.isDefined){
+          print("dam"+(mana - old))
           oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
           selected.focus()
         }
       }
-      selected.setData(new Integer(mana))
     }
   }
 
@@ -277,20 +277,21 @@ class HighPriest {
     def onOppSubmit(command : Command){
       val data = getData(player.value)
       // hack for warp
-      if (data != null && !data.revealeds.contains(command.card)){
-        player.updateData[HPriestData](_.copy(revealeds = data.revealeds + command.card))
+      val cardIdent = (command.card.houseIndex, command.card.cardIndex)
+      if (data != null && !data.revealeds.contains(cardIdent)){
+        player.updateData[HPriestData](_.copy(revealeds = data.revealeds + cardIdent))
       }
     }
 
     override def init(p : PlayerUpdate){
       super.init(p)
       p.houses.update.after{ _ =>
-        choosePath(p)
+        choosePath(player)
       }
-      p.otherPlayer.houses.update.after{ _ =>
-        p.slots.foreach{ s =>
+      p.otherPlayer.houses.update.after{ houses =>
+        player.slots.foreach{ s => // crap
           s.get.card.reaction match {
-            case br : BabiReaction => br.reactIncrMana(s)
+            case br : BabiReaction => br.reactIncrMana(houses, s)
             case _ =>
           }
         }

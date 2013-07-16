@@ -20,6 +20,7 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
       c.cost = costFn(i)
       c.houseIndex = houseIndex
       c.houseId = houseId
+      c.cardIndex = i
     }
   }
 

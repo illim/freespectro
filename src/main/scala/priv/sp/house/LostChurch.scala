@@ -44,7 +44,9 @@ class LostChurch {
     c.houseId = LostChurch.houseId
   }
   windOfOppression.cost = 3
+  windOfOppression.cardIndex = 4
   darkMonk.cost = 3
+  darkMonk.cardIndex = 3
   prisoner.cost = 1
   enragedPrisoner.cost = 4
 

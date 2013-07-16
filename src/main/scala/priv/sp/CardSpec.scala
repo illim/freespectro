@@ -19,6 +19,7 @@ sealed abstract class Card extends Externalizable {
   var id = Card.currentId.incrementAndGet
   var houseId = 0
   var houseIndex = 0
+  var cardIndex = 0
   final val isSpell = isInstanceOf[Spell]
   def isSpecial = houseIndex == 4
   def asCreature = {

@@ -8,6 +8,8 @@ import CardSpec._
 
 /**
  * Introduced bs: player data
+ *
+ * TODO custom select for simoom
  */
 class MasterOfWind {
 
@@ -19,11 +21,11 @@ class MasterOfWind {
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> simoom)),
     Spell("Ball Lightning", "Deals to opponent 7 damage, allows to use additional card this turn.", effects = effects(Direct -> ballLightning)),
-    Spell("Squall", "Allows to use two additional cards this turn.", effects = effects(Direct -> squall)),
+    Spell("Squall", "Deals 1 damage to opponent and all his creatures.\nAllows to use two additional cards this turn.", effects = effects(Direct -> squall)),
     Spell("Energetic vortex", "increases damage dealt by next owner spell by 50%\nand transfer 2 air mana from opponent to owner.", effects = effects(Direct -> vortex)),
     spirit,
     Spell("Whirlwind", "destroys the target creature and opposite one,\nallows to use additional card this turn.",
-      inputSpec = Some(SelectTargetCreature),
+      inputSpec = Some(SelectOwnerCreature),
       effects(Direct -> whirlwind)),
     Spell("Eternal Storm", "this turn all friendly creatures attack directly opponent.", effects = effects(Direct -> storm))),
   eventListener = Some(new CustomListener(new WindEventListener)),
@@ -41,9 +43,11 @@ class MasterOfWind {
     import env._
 
     val slot = otherPlayer.slots(selected)
-    slot.toggle(stunFlag)
     val card = slot.get.card
-    player.houses.incrMana(card.cost / 2 , card.houseIndex)
+    if (card.houseIndex != 4) {
+      slot.toggle(stunFlag)
+      player.houses.incrMana(card.cost / 2 , card.houseIndex)
+    }
   }
 
   val blPhase = "Ball lightning phase"
@@ -57,6 +61,8 @@ class MasterOfWind {
   val sqPhase2 = "Squall phase 2"
   def squall = { env : Env =>
     import env._
+    val d = Damage(1, env, isSpell = true)
+    player.inflict(d)
     player.addTransition(WaitPlayer(playerId, sqPhase2))
     player.addTransition(WaitPlayer(playerId, sqPhase1))
   }
