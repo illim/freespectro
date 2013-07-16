@@ -112,6 +112,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   }
   private def persistState(newState : GameState) { state = newState  }
   private def persistUpdater() = persistState(updater.result)  // crappy side effect
+  def giveMeMana(){
+    persist(updater.lift(_.players(owner).houses.incrMana(10, 0, 1, 2, 3, 4)))
+  }
 
   private def submit(commandOption: Option[Command], player: PlayerId) = {
     println(player + " submit " + commandOption)

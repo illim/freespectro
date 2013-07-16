@@ -27,23 +27,23 @@ class HighPriest {
   val puzzle = Creature("puzzle", Attack(0), 6, "If puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new PuzzleReaction)
   val ouroboros = Creature("Ouroboros", Attack(6), 38, "At the beginning of owner's turn summons in nearest empty slot\nserpent of eternity.", effects = effects(OnTurn -> ouro))
   val serpent = Creature("serpent of eternity", Attack(2), 8, "At the end of opponent's turn serpent dies and heals X hp to owner and Ouroboros (X = its remaining hp).")
-  val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and increases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
+  val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and\nincreases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
   val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
-  val babi = Creature("Babi", Attack(4), 18, "When opponent's power grows, deals the same damage to opposite creature.", effects = effects(Direct -> initBabi), reaction = new BabiReaction)
-  val amit = Creature("Ammit", Attack(4), 18, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
+  val babi = Creature("Babi", Attack(6), 23, "When opponent's power grows, deals the same damage to opposite creature.", effects = effects(Direct -> initBabi), reaction = new BabiReaction)
+  val amit = Creature("Ammit", Attack(9), 39, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
 
   val hpSet = List[Card](
     Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
     Creature("Serpopard", Attack(4), 18, "When owner summons special creature, moves in nearest unblocked slot\nand doubles attack for 1 turn.", reaction = new SerpoReaction),
-    Creature("Anubite", Attack(4), 18, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
+    Creature("Anubite", Attack(5), 20, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
     babi,
     Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> curse)),
-    Creature("Simooom", Attack(4), 18, "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
+    Spell("Simooom", "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
     amit,
-    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep)))
+    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep), runAttack = MultiTargetAttack))
 
   val HighPriest : House = House("High Priest", List(
     Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
@@ -229,11 +229,9 @@ class HighPriest {
       val old = selected.get.data.asInstanceOf[Integer]
       val mana = houses.map(_.mana).sum
       selected.setData(new Integer(mana))
-      print("set" + mana + "("+old+")")
       if (mana > old){
         val oppSlot = selected.oppositeSlot
         if (oppSlot.value.isDefined){
-          print("dam"+(mana - old))
           oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
           selected.focus()
         }
@@ -273,7 +271,7 @@ class HighPriest {
     }
   }
 
-  class HPriestEventListener extends HouseEventListener {
+  class HPriestEventListener extends HouseEventListener with AnyDeathEventListener {
     def onOppSubmit(command : Command){
       val data = getData(player.value)
       // hack for warp
