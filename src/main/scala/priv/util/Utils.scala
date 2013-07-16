@@ -210,7 +210,7 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
   var dirty = 0
   var value = getValue
   var valuedirty = 0 // if dirty is set by children value is out of sync
-  val update = new ObservableFunc1(write(_ : A))
+  val update = new ObservableFunc1(setValue(_ : A))
 
   def initNewUpdate(value : A) : this.type = {
     write(value)
@@ -229,18 +229,20 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
   }
 
   def write(v : A){
-    value = v
     setDirty()
+    update(v)
   }
 
   // f is a whole rebuild of the value
   def updated(f : => A) : A = {
     if (valuedirty != dirty) {
-      value = f
       valuedirty = dirty
+      update(f)
     }
     value
   }
+
+  def setValue(v : A){ value = v }
 
   def isInited = tid == parent.get.tid
   def isDirty = parent.exists(_.tid == tid && dirty > 0)

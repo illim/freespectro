@@ -7,18 +7,19 @@ import GameCardEffect._
 
 class Dreamweaver {
 
+  val roc = Creature("Roc Hatchling", AttackSources(Some(6), Vector(RocAttackSource)), 17, "While Roc Hatchling is unopposed, its attack is halved (round up).")
+  val castle = Creature("Flying Castle", Attack(2), 37, "Flying Castle attacks opponent and all opponent's creatures.\nFlying Castle reduces damage done to all other owner's creatures by 2.", runAttack = MultiTargetAttack, reaction = new CastleReaction)
+
   val Dreamweaver = House("Dreamweaver", List(
     Creature("Ethereal Wisp", AttackSources(Some(2), Vector(EtherealAttackSource)), 8, "Ethereal Wisp takes no damage from enemy spells and abilities.\nEthereal Wisp's attack is increased by 1 for each other owner's creature.", reaction = new EtherealReaction),
-    Creature("Roc Hatchling", AttackSources(Some(6), Vector(RocAttackSource)), 17, "While Roc Hatchling is unopposed, its attack is halved (round up)."),
+    roc,
     Spell("Aurora", "All creatures are healed for 12 life and\nadd 1 mana of their own type to their owner's mana pools.", effects = effects(Direct -> aurora)),
     Creature("Spiritual Guide", Attack(4), 19, "When Spiritual Guide is summoned, it heals all owner's creatures\nare healed an amount equal to owner's Dream power,\nand heals its owner by 3 life for each owner's creature.", effects = effects(Direct -> guide)),
     Creature("Living Sword", AttackSources(Some(4), Vector(SwordAttackSource)), 28, "Living Sword gains 1 attack power for each neighboring creature.\nWhen Living Sword attacks, if there are creatures adjacent to\nthe opposing slot it also attacks those creatures.", reaction = new SwordReaction, runAttack = new SwordAttack),
     Creature("Rainbow Butterfly", Attack(4), 31, "Each time opponent summons a Creature,\nRainbow Butterfly's owner gains 3 mana of that creature's type.\n(All Special creatures count as Dream for this purpose.)", reaction = new RainbowReaction),
-    Creature("Flying Castle", Attack(2), 37, "Flying Castle attacks opponent and all opponent's creatures.\nFlying Castle reduces damage done to all other owner's creatures by 2.", runAttack = MultiTargetAttack, reaction = new CastleReaction),
+    castle,
     Creature("Night Mare", AttackSources(Some(5), Vector(EtherealAttackSource)), 44, "When Nightmare is summoned, it deals 6 damage to each opponent's\ncreaturefor each empty opponent slot.\nNight Mare's attack is increased by 1 for each other owner's creature.", effects = effects(Direct -> mare), reaction = new NightmareReaction)), eventListener = Some(new CustomListener(new DreamweaverEventListener)))
 
-  val roc = Dreamweaver.cards(1)
-  val castle = Dreamweaver.cards(6)
   Dreamweaver.initCards(Houses.basicCostFunc)
 
   def aurora = { env : Env =>

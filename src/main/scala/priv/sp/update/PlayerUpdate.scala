@@ -212,7 +212,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     def houses = value
 
     def incrMana(incr : Int = 1){
-      update(houses.map{ house =>
+      write(houses.map{ house =>
         val newmana = house.mana + incr
         new HouseState(math.max(0, newmana))
       })
@@ -220,7 +220,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
 
     def incrMana(amount : Int, houseIndex : Int*) {
-      update(houseIndex.foldLeft(houses){ (acc, id) =>
+      write(houseIndex.foldLeft(houses){ (acc, id) =>
         val house = acc(id)
         acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
       })
