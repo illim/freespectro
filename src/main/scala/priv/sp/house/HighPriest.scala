@@ -16,11 +16,8 @@ import CardSpec._
  * localized bs:
  * eyes of wajet -> store nb card played (bugged for abilities)
  * simoom -> store nb turn ^^
- *
- *
- * bugs: spawned serpent if 2 ouros
  */
-class HighPriest {
+object HighPriest {
 
   val apis = Creature("Apis", Attack(4), 20, "Every turn gives to owner 1 special power and\n3 hp for each other apis on the board.", effects = effects(OnTurn -> apisEffect))
   val sphynx =  Creature("Sphinx", Attack(8), 24, "When dies, leaves puzzle 0/6.\nIf puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new SphinxReaction)
@@ -45,7 +42,7 @@ class HighPriest {
     amit,
     Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep), runAttack = MultiTargetAttack))
 
-  val HighPriest : House = House("High Priest", List(
+  val HighPriest = House("High Priest", List(
     Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
     Creature("Sun priest", Attack(3), 16, "When attacks, deals to all enemy creatures damage equal to\nowner's lowest power.", runAttack = new SunPriestAttack),
     apis,
@@ -61,7 +58,6 @@ class HighPriest {
   HighPriest.initCards(Houses.basicCostFunc)
   HighPriest.initCards(Houses.basicCostFunc, hpSet)
 
-  case class HPriestData(revealeds : Set[(Int, Int)] = Set.empty, numTurn : Int = 0)
   def getData(p : PlayerState) = p.data.asInstanceOf[HPriestData]
 
   def init = { env: Env =>  choosePath(env.player)  }
@@ -123,9 +119,7 @@ class HighPriest {
     nearestEmptySlot(selected, player).foreach{ pos =>
       player.slots(pos).add(serpent)
     }
-    if (! getOtherPlayerState.effects.exists(_._2.isInstanceOf[SerpentDie])){
-      player.otherPlayer.addEffect(OnEndTurn -> new SerpentDie)
-    }
+    player.otherPlayer.addEffect(OnEndTurn -> new SerpentDie(selected))
   }
 
   def ra : Effect = { env : Env =>
@@ -172,17 +166,19 @@ class HighPriest {
   }
 
   // BULLSHIT (leak) this is crap. things happening on opponent's turn should belongs to opponent
-  class SerpentDie extends Function[Env, Unit] {
+  class SerpentDie(ouronumslot : Int) extends Function[Env, Unit] {
     def apply(env : Env){
       import env._
-      val ouros = otherPlayer.getSlots.collect{ case (i, s) if s.card == ouroboros => i}
       otherPlayer.getSlots.foreach{ case (i, s) =>
         if (s.card == serpent){
           val slots = otherPlayer.slots
           val slot = slots(i)
           val amount = s.life
           otherPlayer.heal(amount)
-          ouros.foreach{ o => slots(o).heal(amount) }
+          otherPlayer.getSlots.get(ouronumslot) match {
+            case Some(s) if card == ouroboros => slots(ouronumslot).heal(amount)
+            case _ => player.removeEffect(_ == this) // a bit bs should be in ouro reaction on his death
+          }
           slot.focus()
           slot.destroy()
         }
@@ -365,3 +361,4 @@ class SerpoReaction extends Reaction {
   }
 }
 
+case class HPriestData(revealeds : Set[(Int, Int)] = Set.empty, numTurn : Int = 0)

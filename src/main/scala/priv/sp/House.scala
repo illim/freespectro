@@ -8,7 +8,13 @@ object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 // eventListener & data is only used for special houses
-case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects : List[CardSpec.PhaseEffect] = Nil, eventListener : Option[ListenerBuilder] = None, data : AnyRef = null) extends Externalizable {
+case class House(
+  name: String,
+  cards: List[Card],
+  houseIndex : Int = 4,
+  effects : List[CardSpec.PhaseEffect] = Nil,
+  eventListener : Option[ListenerBuilder] = None,
+  data : AnyRef = null) extends Externalizable {
   def this() = this(null, Nil)
 
   var houseId = House.currentId.incrementAndGet()
@@ -34,7 +40,7 @@ case class House(name: String, cards: List[Card], houseIndex : Int = 4, effects 
   }
   def writeExternal(out : ObjectOutput ){ out.writeInt(houseId) }
   def readExternal(in : ObjectInput  ){  houseId = in.readInt() }
-  protected def readResolve() : Object = HouseSingleton.getHouseById(houseId)
+  protected def readResolve() : Object = { HouseSingleton.getHouseById(houseId) }
 }
 
 sealed trait ListenerBuilder
@@ -54,19 +60,19 @@ class Houses
   import CardSpec._
   import GameCardEffect._
 
-  val darkPriest  = new DarkPriest
+  val darkPriest  = DarkPriest
   val dudeMancer  = new DudeMancer
   val dreamweaver = new Dreamweaver
   val element     = new Elementalist
-  val highPriest  = new HighPriest
+  val highPriest  = HighPriest
   val junkMage    = new JunkMage
-  val lostChurch  = new LostChurch
+  val lostChurch  = LostChurch
   val moutainKing = new MoutainKing
   val sower       = new Sower
   val trooper     = new Trooper
   val vampire     = new Vampire
   val warp        = new Warp
-  val wind        = new MasterOfWind
+  val wind        = MasterOfWind
   val zenMage     = new ZenMage
 //  val test = new TestMage
 

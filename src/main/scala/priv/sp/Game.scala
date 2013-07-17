@@ -55,6 +55,10 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, restartButton, settingsButton, skipButton))))
   resources.gameExecutor.submit(runnable(start()))
+  server.abort = { () =>
+    commandRecorder.cont.foreach(_.set(None))
+    endGame(owner)
+  }
 
   private def start(){
     server.resetSeed()

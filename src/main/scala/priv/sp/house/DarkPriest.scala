@@ -3,7 +3,7 @@ package priv.sp.house
 import priv.sp._
 import priv.sp.update._
 
-class DarkPriest {
+object DarkPriest {
   import CardSpec._
   import GameCardEffect._
 

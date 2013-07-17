@@ -28,6 +28,7 @@ trait GameServer {
   def resetSeed(){  Random.setSeed(seed) }
   def reset(){ }
   def surrender(){ }
+  var abort = { () => }
 }
 
 class Local(resources : GameResources) extends GameServer {
@@ -71,11 +72,16 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   peer.updateImpl(this)
 
   val currentTurnId = new AtomicInteger
+  @volatile private var ended = false
   var cont = Option.empty[TVar[Option[Option[Command]]]]
 
   def waitNextCommand(c : TVar[Option[Option[Command]]], state : GameState) {
-    cont = Some(c)
-    currentTurnId.incrementAndGet
+    this.synchronized{
+      if (! ended){
+        cont = Some(c)
+        currentTurnId.incrementAndGet
+      } else c.set(None)
+    }
   }
   def submitCommand(commandOption : Option[Command]){
     remoteSubmit(currentTurnId.incrementAndGet, commandOption)
@@ -83,7 +89,13 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 
   def end(){
     peer.release()
-    cont.get.set(None)
+    this.synchronized{
+      ended = true
+      cont match {
+        case Some(c) => c.set(None) // bullshit not safe (should be none of option(option(...))
+        case None => abort()
+      }
+    }
   }
 
   // out
@@ -97,7 +109,10 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
     cont.get.set(Some(commandOption))
     cont = None
   }
-  override def surrender(){ peer.proxy.end() }
+  override def surrender(){
+    peer.proxy.end()
+    peer.ended = true
+  }
 }
 
 
@@ -169,8 +184,11 @@ class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : refle
       val m = methods.find{ m => m.getName == message.name  }.getOrElse(sys.error(message.name + " method not found"))
       val res = m.invoke(currentImpl, message.args : _*)
       assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
-      obj = ois.readObject()
+      if (!ended){
+        obj = ois.readObject()
+      }
     }
+    println("stop reading stream")
   }
 
   def updateImpl(impl : AnyRef){

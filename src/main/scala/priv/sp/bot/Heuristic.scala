@@ -25,7 +25,7 @@ trait HeuristicHelper extends Heuris {
   }
 
   def getKill(s : PlayerStats) = s.nbKill
-  def getKillValue(s : PlayerStats) = s.killValue
+  def getKillValue(s : PlayerStats) = s.killValue.toFloat
   def fixz[N](x : N)(implicit num : Numeric[N]) = if (x==num.zero) 0.1f else num.toFloat(x)
   def temper(x : Float, ratio : Float) = if (x < 0) x / fixz(ratio) else x * ratio
 
@@ -47,7 +47,7 @@ trait HeuristicHelper extends Heuris {
         PlayerStats.getCostPowMana(x.mana, i)
       }.sum + (p.slots.values.map{s =>
         val card = s.card // shitty raw stable board presence
-        (PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (0.5 + s.life.toFloat / (2 * card.life)))
+        (PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (1 + s.attack / 20f) * (0.5 + s.life.toFloat / (2 * card.life)))
       }.sum)).toFloat
     }
     def getBoardValue(p : PlayerState) = {

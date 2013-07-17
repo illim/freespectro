@@ -7,7 +7,7 @@ import priv.sp.update._
  * Introduced bullshit:
  * prisoner -> random not managed by AI
  */
-class LostChurch {
+object LostChurch {
   import CardSpec._
   import GameCardEffect._
 
@@ -16,28 +16,28 @@ class LostChurch {
   val windOfOppression = Spell("wind of oppression", "Stun scarecrow's opposite creature and its neighbours. Deals 5 damage to them", effects = effects(Direct -> oppress))
   val darkMonk = Creature("Dark monk", Attack(2), 13, "Decrease opponent fire mana by 2\nand increase cost of them by 1 when alive.",
     effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
+  val preacher = Creature("Preacher", Attack(4), 13, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
+      effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction)
+  val falseProphet : Creature = Creature("false prophet", Attack(4), 18, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
+      reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize))
+  val astralEscape = Creature("Astral escape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction)
+  val scarecrow : Creature = Creature("Scarecrow", Attack(8), 28, "Stuns&Deals 5 damage to opposite creature\nWhen dying heal opposite creature by 5.",
+      effects = effects(Direct -> scare), reaction = new ScarecrowReaction)
+  val liberator = Creature("Liberator", Attack(3), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))
 
-  val LostChurch : House = House("Lost Church", List(
+  val LostChurch = new House("Lost Church", List(
     Spell("Speed drug", "Add +1 attack to owner creatures, deals to them 4 damage.\nEffect disappear when prisoner die.",
       effects = effects(Direct -> speedDrug)),
-    Creature("Preacher", Attack(4), 13, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
-      effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction),
-    Creature("false prophet", Attack(4), 18, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
-      reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize)),
-    Creature("Astral escape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction),
-    Creature("Scarecrow", Attack(8), 28, "Stuns&Deals 5 damage to opposite creature\nWhen dying heal opposite creature by 5.",
-      effects = effects(Direct -> scare), reaction = new ScarecrowReaction),
-    Creature("Liberator", Attack(3), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner))),
+    preacher,
+    falseProphet,
+    astralEscape,
+    scarecrow,
+    liberator,
     Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
     eventListener = Some(new CustomListener(new LCEventListener)))
 
-  val preacher = LostChurch.cards(1)
-  val falseProphet = LostChurch.cards(2)
-  val astralEscape = LostChurch.cards(3)
-  val scarecrow = LostChurch.cards(4)
-  val liberator = LostChurch.cards(5)
   LostChurch.initCards(Houses.basicCostFunc)
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk).foreach{ c =>
     c.houseIndex = LostChurch.houseIndex
@@ -106,12 +106,6 @@ class LostChurch {
     import env._
     player.houses.incrMana(2, 0, 1, 2, 3)
     player.addDescMod(IncrBasicCostMod, falseProphetAbility)
-  }
-  class FalseProphetReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
-      dead.player.removeDescMod(IncrBasicCostMod)
-      dead.player.houses.incrMana(-1, 0, 1, 2, 3)
-    }
   }
 
   def scare = { env : Env =>
@@ -246,12 +240,6 @@ class LostChurch {
   }
 }
 
-
-class FalseProphetReaction extends Reaction {
-  final override def onMyDeath(dead : Dead){
-    dead.player.houses.incrMana(-2, 0, 1, 2, 3)
-  }
-}
 class DarkMonkReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     dead.otherPlayer.removeDescMod(IncrFireCostMod)
@@ -274,3 +262,10 @@ case object IncrFireCostMod extends DescMod {
 }
 
 case class LCAttackBonus(player : PlayerId) extends AttackFunc { def apply(attack : Int) = attack + 1 }
+
+class FalseProphetReaction extends Reaction {
+    final override def onMyDeath(dead : Dead){
+      dead.player.removeDescMod(IncrBasicCostMod)
+      dead.player.houses.incrMana(-1, 0, 1, 2, 3)
+    }
+}

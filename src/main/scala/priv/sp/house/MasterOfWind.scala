@@ -11,7 +11,7 @@ import CardSpec._
  *
  * TODO custom select for simoom
  */
-class MasterOfWind {
+object MasterOfWind {
 
   val spirit = Creature("The spirit of thunderstorm", Attack(2), 30, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
 
@@ -30,8 +30,6 @@ class MasterOfWind {
     Spell("Eternal Storm", "this turn all friendly creatures attack directly opponent.", effects = effects(Direct -> storm))),
   eventListener = Some(new CustomListener(new WindEventListener)),
   data = WindState())
-
-  case class WindState(winged : Boolean = false, vortex : Boolean = false)
 
   Wind.initCards(Houses.basicCostFunc)
 
@@ -144,3 +142,4 @@ class MasterOfWind {
   }
 }
 
+case class WindState(winged : Boolean = false, vortex : Boolean = false)
