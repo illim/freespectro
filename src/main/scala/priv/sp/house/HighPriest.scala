@@ -91,6 +91,7 @@ object HighPriest {
   def wajet = { env : Env =>
     import env._
     val nbRevealeds = getData(player.value).revealeds.size
+    player.heal(nbRevealeds)
     player.slots.healCreatures(nbRevealeds)
     otherPlayer.slots.inflictCreatures(Damage(nbRevealeds, env, isSpell = true))
   }
@@ -241,6 +242,7 @@ object HighPriest {
       val power = dead.player.getHouses(dead.card.houseIndex).mana
       dead.player.inflict(Damage(power, Context(playerId, Some(amit), selected), isAbility = true))
       dead.player.houses.incrMana(1, 4)
+      dead.player.slots(selected).focus()
     }
   }
 
