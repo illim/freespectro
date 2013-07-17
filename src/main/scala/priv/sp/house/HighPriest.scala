@@ -65,13 +65,13 @@ object HighPriest {
 
   def choosePath(player : PlayerUpdate){
     val slots = player.getSlots
-    val (fireearth, waterair) = slots.values.foldLeft((0, 0)){ case ((f, w), s) =>
+    val (fireearth, waterair) = slots.values.foldLeft((0, 0)){ case (acc @ (f, w), s) =>
       val h = s.card.houseIndex
       if (h == 0 || h == 3){
         (f + s.card.cost, w)
-      } else {
+      } else if (h < 4) {
         (f, w+ s.card.cost)
-      }
+      } else acc
     }
     val hasMod = player.value.desc.descMods.contains(PathSet)
     if (fireearth >= waterair) {
