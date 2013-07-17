@@ -60,7 +60,8 @@ object MasterOfWind {
   def squall = { env : Env =>
     import env._
     val d = Damage(1, env, isSpell = true)
-    player.inflict(d)
+    otherPlayer.inflict(d)
+    otherPlayer.slots.inflictCreatures(d)
     player.addTransition(WaitPlayer(playerId, sqPhase2))
     player.addTransition(WaitPlayer(playerId, sqPhase1))
   }

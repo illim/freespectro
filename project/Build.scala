@@ -28,7 +28,7 @@ object SpectroBuild extends Build {
 
   val dist = TaskKey[Unit]("dist", "")
   val distTask = dist := {
-    val dest = new File("d:/tmp/fspectdist")
+    val dest = new File("d:/tmp/freespectro")
     val res = new File(dest, "resources")
     IO.delete(res)
     IO.copyDirectory((resourceDirectory in Compile).value, res)
