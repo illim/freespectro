@@ -291,8 +291,11 @@ object HighPriest {
 
     override def init(p : PlayerUpdate){
       super.init(p)
-      p.slots.update.after{ _ =>
-        choosePath(player)
+
+      if (p.value.desc.get.houses(4).house == HighPriest){       // hack for warp
+        p.slots.update.after{ _ =>
+          choosePath(player)
+        }
       }
       p.otherPlayer.houses.update.after{ houses =>
         player.slots.foreach{ s => // crap
