@@ -107,7 +107,7 @@ object HighPriest {
     import env._
     player.houses.incrMana(1, 4)
     val nbApis = player.slots.foldl(0){ (acc, s) =>
-      if (s.get.card == apis) (acc + 1) else 0
+      if (s.get.card == apis) (acc + 1) else acc
     }
     if (nbApis > 1){
       player.heal(3 * (nbApis - 1))
