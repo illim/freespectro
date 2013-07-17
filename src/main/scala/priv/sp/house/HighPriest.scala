@@ -57,6 +57,7 @@ object HighPriest {
 
   HighPriest.initCards(Houses.basicCostFunc)
   HighPriest.initCards(Houses.basicCostFunc, hpSet)
+  val additionalCards = hpSet
 
   def getData(p : PlayerState) = p.data.asInstanceOf[HPriestData]
 

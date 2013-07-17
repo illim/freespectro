@@ -38,6 +38,8 @@ object LostChurch {
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
     eventListener = Some(new CustomListener(new LCEventListener)))
 
+  val additionalCards = List(windOfOppression, darkMonk)
+
   LostChurch.initCards(Houses.basicCostFunc)
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk).foreach{ c =>
     c.houseIndex = LostChurch.houseIndex

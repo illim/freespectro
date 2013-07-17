@@ -81,7 +81,11 @@ class Houses
   val specialNames = special.map(_.name).to[Set]
   val specialByName = special.map{ c => (c.name, c) }.toMap
   private val allHouses = base ++ special
-  private val allCards = allHouses.flatMap(_.cards)
+  private val allCards = {
+    (allHouses.flatMap(_.cards)
+    ++ lostChurch.additionalCards
+    ++ highPriest.additionalCards)
+  }
 
   val getHouseById = allHouses.map(h => h.houseId -> h).toMap
   def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
