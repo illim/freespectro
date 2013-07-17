@@ -124,6 +124,9 @@ class Warp {
 
     override def init(p : PlayerUpdate){
       super.init(p)
+      if (p.otherPlayer.value.data != null){
+        player.setData(p.otherPlayer.value.data)
+      }
       p.otherPlayer.houses.update.after{ _ => refreshStranger()  }
     }
 

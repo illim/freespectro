@@ -40,7 +40,7 @@ object HighPriest {
           effects = effects(Direct -> curse)),
     Spell("Simooom", "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
     amit,
-    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep), runAttack = MultiTargetAttack))
+    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep, OnEndTurn -> apepOpp), runAttack = MultiTargetAttack))
 
   val HighPriest = House("High Priest", List(
     Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
@@ -64,11 +64,17 @@ object HighPriest {
   def init = { env: Env =>  choosePath(env.player)  }
 
   def choosePath(player : PlayerUpdate){
-    val houses = player.getHouses
-    val fireearth = houses(0).mana + houses(3).mana
-    val waterair = houses(1).mana + houses(2).mana
+    val slots = player.getSlots
+    val (fireearth, waterair) = slots.values.foldLeft((0, 0)){ case ((f, w), s) =>
+      val h = s.card.houseIndex
+      if (h == 0 || h == 3){
+        (f + s.card.cost, w)
+      } else {
+        (f, w+ s.card.cost)
+      }
+    }
     val hasMod = player.value.desc.descMods.contains(PathSet)
-    if (fireearth > waterair) {
+    if (fireearth >= waterair) {
       if (hasMod) player.removeDescMod(PathSet)
     } else if (!hasMod) player.addDescMod(PathSet)
   }
@@ -164,6 +170,9 @@ object HighPriest {
 
   def apep = { env : Env =>
     env.player.houses.incrMana(-1, 0, 1, 2, 3)
+  }
+
+  def apepOpp = { env : Env =>
     env.otherPlayer.houses.incrMana(-1, 0, 1, 2, 3)
   }
 
@@ -282,7 +291,7 @@ object HighPriest {
 
     override def init(p : PlayerUpdate){
       super.init(p)
-      p.houses.update.after{ _ =>
+      p.slots.update.after{ _ =>
         choosePath(player)
       }
       p.otherPlayer.houses.update.after{ houses =>

@@ -34,6 +34,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
   val restartButton   = new GuiButton("Restart")
 
   private val updater = new GameStateUpdater(state, desc)
+  persistUpdater() // bullshit for warp
 
   updater.updateListener = new GameUpdateListener
   skipButton.on{ case MouseClicked(_) =>
