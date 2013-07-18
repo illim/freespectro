@@ -249,7 +249,7 @@ class DarkMonkReaction extends Reaction {
 }
 class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
 object PreacherAttackBonus extends OneAttackBonus
-case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = attack + half }
+case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = math.max(0, attack + half) }
 case object IncrBasicCostMod extends DescMod {
   def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
     if (house.houseIndex == 4) cards

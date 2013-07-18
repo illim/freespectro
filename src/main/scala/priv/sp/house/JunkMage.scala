@@ -84,7 +84,7 @@ class JunkMage {
       nearestSlotOpposed(selected, player).foreach{ n =>
         val slots = player.slots
         val dest = slots(n)
-        dest.inflict(Damage(5, env, isAbility = true))
+        otherSlots(n).inflict(Damage(5, env, isAbility = true))
         slots.move(selected, n)
       }
     }

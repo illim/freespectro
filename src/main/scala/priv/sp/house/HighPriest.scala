@@ -234,13 +234,15 @@ object HighPriest {
   class BabiReaction extends Reaction {
     def reactIncrMana(houses : PlayerState.HousesType, selected : SlotUpdate){
       val old = selected.get.data.asInstanceOf[Integer]
-      val mana = houses.map(_.mana).sum
-      selected.setData(new Integer(mana))
-      if (mana > old){
-        val oppSlot = selected.oppositeSlot
-        if (oppSlot.value.isDefined){
-          oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
-          selected.focus()
+      if (old != null){ // not working for stranger
+        val mana = houses.map(_.mana).sum
+        selected.setData(new Integer(mana))
+        if (mana > old){
+          val oppSlot = selected.oppositeSlot
+          if (oppSlot.value.isDefined){
+            oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
+            selected.focus()
+          }
         }
       }
     }
