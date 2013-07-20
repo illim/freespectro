@@ -18,6 +18,7 @@ trait HeuristicHelper extends Heuris {
   val humanId = other(botPlayerId)
   var start = null.asInstanceOf[HeurisValue]
   var initState = null.asInstanceOf[GameState]
+  def settings : Settings
 
   def init(st : GameState){
     initState = st
@@ -44,26 +45,26 @@ trait HeuristicHelper extends Heuris {
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
     def getPower(p : PlayerState) = {
       (p.houses.zipWithIndex.map{ case (x, i) =>
-        PlayerStats.getCostPowMana(x.mana, i)
+        settings.getCostPowMana(x.mana, i)
       }.sum + (p.slots.values.map{s =>
         val card = s.card // shitty raw stable board presence
-        (PlayerStats.getCostPowMana(card.cost, card.houseIndex) * (1 + s.attack / 20f) * (0.5 + s.life.toFloat / (2 * card.life)))
+        (settings.getCostPowMana(card.cost, card.houseIndex) * (1 + s.attack * settings.attackBonus) * (settings.slotOccupationBonus + s.life.toFloat / (2 * card.life)))
       }.sum)).toFloat
     }
     def getBoardValue(p : PlayerState) = {
-      p.slots.values.map{s => PlayerStats.hpManaRatio(s) }.sum.toFloat
+      p.slots.values.map{s => settings.hpManaRatio(s) }.sum.toFloat
     }
   }
 }
 
 // simple life delta
-class LifeHeuris(val botPlayerId : PlayerId) extends HeuristicHelper {
+class LifeHeuris(val botPlayerId : PlayerId, val settings : Settings) extends HeuristicHelper {
   val name = "Rushomon" // not a real rusher
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) = (new HeurisValue(state)).lifeDelta - start.lifeDelta
 }
 
 // temper rush a bit with the cost of the life delta
-class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
+class LifeManaRatioHeuris(val botPlayerId : PlayerId, val settings : Settings) extends HeuristicHelper{
   val name = "Dealer"
 
   def apply(state : GameState, playerStats : List[PlayerStats], turns : Int) : Float = {
@@ -78,11 +79,10 @@ class LifeManaRatioHeuris(val botPlayerId : PlayerId) extends HeuristicHelper{
 class MultiRatioHeuris(
   val botPlayerId : PlayerId,
   val name : String,
-  useKillRatio : Boolean = false,
+  val settings : Settings = new Settings,
   useKillValueRatio : Boolean = false,
   usePowerRatio : Boolean = true,
   useOppPowerRatio : Boolean = false,
-  useBoardRatio : Boolean = false,
   lifeThreshold : Float = 0.5f,
   logging : Boolean = false
 ) extends HeuristicHelper {
@@ -100,7 +100,6 @@ class MultiRatioHeuris(
   val lifeRatioLog     = ValueLogger('lifeRatio)
   val powerRatioLog    = ValueLogger('powerRatio)
   val oppPowerRatioLog = ValueLogger('oppPowerRatio)
-  val boardRatioLog    = ValueLogger('boardRatio)
   val killValueLog     = ValueLogger('killValue)
   val somehumanId = Some(humanId)
 
@@ -115,38 +114,27 @@ class MultiRatioHeuris(
     var res = lifeRatio
     lifeRatioLog.log(lifeRatio)
 
-    if (useKillRatio){
-      val botKill = getKill(playerStats(botPlayerId))
-      val allKill = botKill + getKill(playerStats(humanId))
-      res = temper(res, (if (allKill == 0) 1f else (0.5f + (botKill / allKill))))
-    }
-
     if (useKillValueRatio){
       val botKill = getKillValue(playerStats(botPlayerId))
       val allKill = botKill + getKillValue(playerStats(humanId))
-      val killRatio = if (allKill == 0) 1f else (0.5f + (botKill / allKill))
+      val killRatio = if (allKill == 0) 1f else math.pow(0.5f + (botKill / allKill), settings.killFactor).toFloat
       killValueLog.log(killRatio)
       res = temper(res, killRatio)
     }
 
     // this is quite wrong to use mana after lot of simulated turns
     if (usePowerRatio){
-      val powerRatio = h.botPower / (turns * fixz(start.botPower))
+      val powerRatio = math.pow(h.botPower / (turns * fixz(start.botPower)), settings.powerFactor).toFloat
       powerRatioLog.log(powerRatio)
       res = temper(res, powerRatio)
     }
 
     if (useOppPowerRatio){
-      val oppPowerRatio = (turns * start.power) / fixz(h.power)
+      val oppPowerRatio = math.pow((turns * start.power) / fixz(h.power), settings.oppPowerFactor).toFloat
       oppPowerRatioLog.log(oppPowerRatio)
       res = temper(res, oppPowerRatio)
     }
 
-    if (useBoardRatio){
-      val boardRatio = negToPos(h.boardDelta / maxAbs(start.boardDelta.toInt, h.boardDelta.toInt))
-      boardRatioLog.log(boardRatio)
-      res = temper(res, boardRatio)
-    }
     res
   }
 }

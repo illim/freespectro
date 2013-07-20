@@ -10,37 +10,36 @@ import collection._
 // another stupid bot, faster because bounded in time, trying to use uct.
 // select best reward and not numsim due to boost(leafed node when early win/loss detected)
 // not using flat uct for opponent next move fairness?
-class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, heurisChoice : Int = 3) extends Bot {
+class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, heurisChoice : Int = 3, val settings : Settings = new Settings) extends Bot {
   val heuris = heurisChoice match {
-    case 0 => new LifeManaRatioHeuris(botPlayerId)
-    case 1 => new LifeHeuris(botPlayerId)
-    case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", useKillValueRatio = true)
-    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", useOppPowerRatio = true, useKillValueRatio = true, useBoardRatio = true, usePowerRatio = true)
+    case 0 => new LifeManaRatioHeuris(botPlayerId, settings)
+    case 1 => new LifeHeuris(botPlayerId, settings)
+    case 2 => new MultiRatioHeuris(botPlayerId, "Apprentice", settings, useKillValueRatio = true)
+    case 3 => new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
   }
 
   def executeAI(start: GameState) = {
     val st = k.ripDescReader(start)
     heuris.init(st)
     initGameUpdater(start)
-    new BoundedBotAI(botPlayerId, st, this, heuris).execute()
+    new BoundedBotAI(botPlayerId, st, this, heuris, settings).execute()
   }
 }
 
-class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris : Heuris) {
-  val duration = 4000
+class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris : Heuris, settings : Settings) {
+  import settings._
   var defaultPolicyMaxTurn = 10
   val expansionTreeMaxDepth = 2  // todo shuffle the nodes before increase maxDepth?
-  val boostFactor = 3
 
   val human = other(botPlayerId)
   val selector = new Selector()
   val perfStat = new PerfStat()
   val cardStats = playerIds.map{ p => new CardStats(start, p, bot) }
-  val choices = new Choices(bot, cardStats)
+  val choices = new Choices(bot, cardStats, settings)
 
   def execute() = {
     val startTime = System.currentTimeMillis
-    val end = startTime + duration
+    val end = startTime + settings.duration
     val node = Node(start, WaitPlayer(botPlayerId), Nil, None)
     val rootLoc = Tree(node).loc
     var next = Option(rootLoc)
@@ -58,11 +57,11 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     }
     val result = last.tree.subForest.foldLeft(Option.empty[Node]) {
       case (None, childTree) =>
-        println(childTree.rootLabel.statString)
+        log(childTree.rootLabel.statString)
         Some(childTree.rootLabel)
       case (acc @ Some(node), childTree) =>
         val child = childTree.rootLabel
-        println(child.statString)
+        log(child.statString)
         if (node.getAvgReward < child.getAvgReward)
           Some(childTree.rootLabel)
         else acc
@@ -70,10 +69,12 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     //last.tree.draw(Show.showFromToString[Node]).foreach(println _)
     // cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
     result.flatMap { node =>
-      println(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
+      log(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
       node.commandOpt
     }
   }
+
+  def log(s : String) = if (logging) println(s)
 
   def defaultPolicy(node : Node) = {
     var nbStep = 0
@@ -157,11 +158,11 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       if (p == other(botPlayerId)){ // FIXME decrease sim time if we aim short time survival
         defaultPolicyMaxTurn = 2
       }
-      updateStatsFrom(state, Some(p), boost = boostFactor * (1 + expansionTreeMaxDepth - depth)) // FIXME not great
+      updateStatsFrom(state, Some(p), boost = settings.boostFactor * (1 + expansionTreeMaxDepth - depth)) // FIXME not great
     }
 
     def commandChoices: Stream[Command] = choices.getNexts(state, outTransition.playerId)
-    def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Int = 1, playerStats : Option[List[PlayerStats]] = None) = {
+    def updateStatsFrom( st : GameState, end : Option[PlayerId], boost : Float = 1f, playerStats : Option[List[PlayerStats]] = None) = {
       numSim += 1
       val stats = playerIds.map{ i =>
         val s = nodePlayerStats(i)
@@ -170,7 +171,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       val h = heuris(st, stats, depth)
       val reward = (boost * end.map{p => if (p == botPlayerId) h else {
         if (h <= 0) h else - 1/ h
-      } }.getOrElse(0.01f * h))
+      } }.getOrElse(settings.rewardDefaultWeightFactor * h))
       rewards += reward
       backPropagate(reward)
       reward

@@ -121,7 +121,7 @@ object GameState {
         p.slots.get(i).map{ s =>
           s.card.name + "/" + s.life
         }.getOrElse(".")
-      }.mkString(",")
-    }
+      }.mkString(",") + "\n"
+    }.mkString
   }
 }

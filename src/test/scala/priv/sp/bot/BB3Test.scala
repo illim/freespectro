@@ -25,7 +25,7 @@ class BBBot3Spec extends BotTestHelper {
         get(Earth, 1, 6, 9, 11),
         get(dudeMancer.Dude, 2, 4, 5, 8)))))
 
-  val heuris = new MultiRatioHeuris(opponent, "Junior", useOppPowerRatio = true, useKillValueRatio = true, useBoardRatio = true, usePowerRatio = true, logging = true)
+  val heuris = new MultiRatioHeuris(opponent, "Junior", useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true, logging = true)
 
   "e11" should "be better than w12 if lower on life" in {
     val start = GameState(List(

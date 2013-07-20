@@ -89,7 +89,7 @@ trait Bot {
   }
 }
 
-class Choices(bot : Bot, cardStats : List[CardStats]) {
+class Choices(bot : Bot, cardStats : List[CardStats], settings : Settings) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
     val p = state.players(playerId)
@@ -150,7 +150,7 @@ class Choices(bot : Bot, cardStats : List[CardStats]) {
         case Some(SelectOwnerSlot) =>
           val opens = PlayerState.openSlots(p)
           val (blockeds, unBlockeds) = opens.partition(otherp.slots.isDefinedAt _)
-          (if (Random.nextFloat < 0.7) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
+          (if (Random.nextFloat < settings.simBlockedSlotWeight) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerCreature) =>
