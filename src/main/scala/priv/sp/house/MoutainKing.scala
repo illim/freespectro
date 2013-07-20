@@ -150,21 +150,19 @@ class MoutainKing {
   }
 
   class BerserkerReaction extends Reaction {
-    val zero = new Integer(0)
-
+    var data = -1 // HACK
     def onPlayerDamage(amount : Int, slot : SlotUpdate) {
-      def getData = slot.get.data.asInstanceOf[Integer]
       if (amount > 4){
-        if (slot.get.data == null){ // bs to avoid stack overflow
-          slot.setData(zero)
+        if (data == -1){
+          data = 0
           runSlot(slot)
-          while(slot.value.isDefined && getData > 0){
-            slot.setData(new Integer(getData - 1))
+          while(slot.value.isDefined && data > 0){
+            data -=1
             runSlot(slot)
           }
-          slot.setData(null)
+          data = -1
         } else {
-          slot.setData(new Integer(getData + 1))
+          data +=1
         }
       }
     }
