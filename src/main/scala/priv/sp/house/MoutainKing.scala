@@ -158,7 +158,7 @@ class MoutainKing {
         if (slot.get.data == null){ // bs to avoid stack overflow
           slot.setData(zero)
           runSlot(slot)
-          while(getData > 0 && slot.value.isDefined){
+          while(slot.value.isDefined && getData > 0){
             slot.setData(new Integer(getData - 1))
             runSlot(slot)
           }
