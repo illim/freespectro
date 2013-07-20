@@ -18,7 +18,7 @@ object MasterOfWind {
   val Wind : House = House("Wind", List(
     Creature("Winged Warrior", Attack(4), 9, "next creature summoned will attack on the same turn as summoned.", effects = effects(Direct -> winge)),
     Spell("Simoom", "Stuns target elemental creature, gives X mana\nX = half of cost of that creature\n(it will be rounded down).",
-      inputSpec = Some(SelectTargetCreature),
+      inputSpec = Some(SelectTarget(nonSpecial)),
       effects = effects(Direct -> simoom)),
     Spell("Ball Lightning", "Deals to opponent 7 damage, allows to use additional card this turn.", effects = effects(Direct -> ballLightning)),
     Spell("Squall", "Deals 1 damage to opponent and all his creatures.\nAllows to use two additional cards this turn.", effects = effects(Direct -> squall)),
@@ -32,6 +32,12 @@ object MasterOfWind {
   data = WindState())
 
   Wind.initCards(Houses.basicCostFunc)
+
+  def nonSpecial(p : PlayerId, state : GameState) : List[Int] = {
+    state.players(p).slots.foldLeft(List.empty[Int]){ case (acc, (i, s)) =>
+      if (s.card.houseIndex < 4) (i :: acc) else acc
+    }
+  }
 
   def winge = { env : Env =>
     env.player.updateData[WindState](_.copy(winged = true))

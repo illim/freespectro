@@ -109,12 +109,20 @@ class Choices(bot : Bot, cardStats : List[CardStats], settings : Settings) {
         import cardDesc.card
         card.inputSpec match {
           case None => List(Command(playerId, card, None, cardDesc.cost))
+          case Some(SelectOwner(f)) =>
+            f(playerId, state).map{ num =>
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+            }
           case Some(SelectOwnerSlot) =>
             openSlots.map { num =>
               Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
           case Some(SelectOwnerCreature) =>
             slots.keys.map { num =>
+              Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+            }
+          case Some(SelectTarget(f)) =>
+            f(other(playerId), state).map{ num =>
               Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
             }
           case Some(SelectTargetSlot) =>
@@ -147,6 +155,10 @@ class Choices(bot : Bot, cardStats : List[CardStats], settings : Settings) {
       import cardDesc.card
       card.inputSpec match {
         case None => Some(Command(playerId, card, None, cardDesc.cost))
+        case Some(SelectOwner(f)) =>
+          randHeadOption(f(playerId, state)).map{ num =>
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+          }
         case Some(SelectOwnerSlot) =>
           val opens = PlayerState.openSlots(p)
           val (blockeds, unBlockeds) = opens.partition(otherp.slots.isDefinedAt _)
@@ -155,6 +167,10 @@ class Choices(bot : Bot, cardStats : List[CardStats], settings : Settings) {
           }
         case Some(SelectOwnerCreature) =>
           randHeadOption(state.players(playerId).slots.keys.toSeq).map { num =>
+            Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
+          }
+        case Some(SelectTarget(f)) =>
+          randHeadOption(f(other(playerId), state)).map{ num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectTargetSlot) =>

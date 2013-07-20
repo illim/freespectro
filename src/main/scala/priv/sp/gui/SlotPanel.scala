@@ -106,7 +106,7 @@ class SlotPanel(playerId : PlayerId, val game : Game) {
         game.commandRecorder.addInput(new SlotInput(slotButton.num))
     }
   }
-  def setSlotEnabled(s : List[Int]) {
+  def setSlotEnabled(s : Traversable[Int]) {
     val nums = s.toSet
     slots.foreach { slot => slot.enabled = nums.contains(slot.num)  }
   }

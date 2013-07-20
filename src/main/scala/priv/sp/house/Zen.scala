@@ -166,6 +166,8 @@ class ZenMage {
   private class Dream(c : Command) extends Function[Env, Unit]{
     def apply(env : Env){
       if (! c.card.inputSpec.exists{
+        case SelectOwner(_) => error("not managed!!!!")
+        case SelectTarget(_) => error("not managed!!!!")
         case SelectOwnerSlot =>
           env.player.slots().isDefinedAt(c.input.get.num)
         case SelectOwnerCreature =>
