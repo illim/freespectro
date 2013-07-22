@@ -62,7 +62,7 @@ object PlayerState {
   def openSlots(p : PlayerState) : List[Int] = {
     p.slotList.filter{ num =>
       p.slots.get(num) match {
-        case Some(c) if !c.card.isAltar => false
+        case Some(s) if !s.card.isAltar => false
         case _ => true
       }
     }

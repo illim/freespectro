@@ -138,25 +138,27 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       val t = persist(updater.lift{ u =>
         u.players(player).popTransition.get
       })
-      t match {
-        case WaitPlayer(p, name) =>
-          if (p != player) cardPanels.foreach(_.setEnabled(false))
-          slotPanels(p).lifeLabel.setPhase(name)
-          waitPlayer(p)
+      endOr {
+        t match {
+          case WaitPlayer(p, name) =>
+            if (p != player) cardPanels.foreach(_.setEnabled(false))
+            slotPanels(p).lifeLabel.setPhase(name)
+            waitPlayer(p)
+        }
       }
     }
   }
 
-  private def run(playerId: PlayerId) {
-    def endOr(f : => Unit){
-      state.checkEnded match {
-        case Some(player) =>
-          refresh()
-          endGame(player)
-        case None => f
-      }
+  private def endOr(f : => Unit){
+    state.checkEnded match {
+      case Some(player) =>
+        refresh()
+        endGame(player)
+      case None => f
     }
+  }
 
+  private def run(playerId: PlayerId) {
     persist(updater.lift{ u =>
       val p = u.players(playerId)
 

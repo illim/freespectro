@@ -18,11 +18,25 @@ trait HeuristicHelper extends Heuris {
   val humanId = other(botPlayerId)
   var start = null.asInstanceOf[HeurisValue]
   var initState = null.asInstanceOf[GameState]
+  val spells = mutable.Map.empty[Int, Int]
   def settings : Settings
+
+
+  val cardBoardValues = mutable.Map.empty[Card, Double]
 
   def init(st : GameState){
     initState = st
     start = new HeurisValue(st)
+    // BS lower power of card without turn effects (for orc, spider) supposing the value of the card is impacted elsewhere
+    st.players(botPlayerId).desc.get.houses.foreach{ h =>
+      h.cards.foreach{ cardDesc =>
+        val c = cardDesc.card
+        val cardValue = if (c.effects(CardSpec.OnTurn).isEmpty && c.effects(CardSpec.OnEndTurn).isEmpty){
+          settings.getCostPowMana(math.max(1, c.cost - 2), c.houseIndex)
+        } else settings.getCostPowMana(c.cost, c.houseIndex)
+        cardBoardValues += (c -> cardValue)
+      }
+    }
   }
 
   def getKill(s : PlayerStats) = s.nbKill
@@ -40,7 +54,6 @@ trait HeuristicHelper extends Heuris {
     lazy val botMana = getMana(bot)
     lazy val botPower = getPower(bot)
     lazy val power = getPower(human)
-    lazy val boardDelta = getBoardValue(bot) - getBoardValue(human)
 
     def getMana(p : PlayerState) = p.houses.map{ _.mana }.sum
     def getPower(p : PlayerState) = {
@@ -48,11 +61,10 @@ trait HeuristicHelper extends Heuris {
         settings.getCostPowMana(x.mana, i)
       }.sum + (p.slots.values.map{s =>
         val card = s.card // shitty raw stable board presence
-        (settings.getCostPowMana(card.cost, card.houseIndex) * (1 + s.attack * settings.attackBonus) * (settings.slotOccupationBonus + s.life.toFloat / (2 * card.life)))
+        (cardBoardValues.getOrElseUpdate(card, settings.getCostPowMana(card.cost, card.houseIndex))
+         * (1 + s.attack * settings.attackBonus)
+         * (settings.slotOccupationBonus + s.life.toFloat / (2 * card.life)))
       }.sum)).toFloat
-    }
-    def getBoardValue(p : PlayerState) = {
-      p.slots.values.map{s => settings.hpManaRatio(s) }.sum.toFloat
     }
   }
 }
@@ -117,7 +129,7 @@ class MultiRatioHeuris(
     if (useKillValueRatio){
       val botKill = getKillValue(playerStats(botPlayerId))
       val allKill = botKill + getKillValue(playerStats(humanId))
-      val killRatio = if (allKill == 0) 1f else math.pow(0.5f + (botKill / allKill), settings.killFactor).toFloat
+      val killRatio = if (allKill == 0) 1f else (math.pow(0.5f + (botKill / allKill), settings.killFactor).toFloat)
       killValueLog.log(killRatio)
       res = temper(res, killRatio)
     }
