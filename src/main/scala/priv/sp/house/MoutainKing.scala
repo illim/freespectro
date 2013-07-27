@@ -17,12 +17,13 @@ class MoutainKing {
   val ballista = Creature("Ballista", Attack(6), 34, "When enemy creature enters the game, halves its health and\nloses 10 health itself.\nHird: loses only 7 health on activating ability.", reaction = new BallistaReaction)
   val berserker = Creature("Berserker", AttackSources(Some(6), Vector(BerserkerAttackSource)), 40, "When owner receives more than 4 damage attacks out-of-turn opposite slot.\nHird: +3 attack and damage dealt to berserker.", reaction = new BerserkerReaction)
   val moutainKing = Creature("Moutain king", Attack(5), 45, "When allied dwarf enters the game, heals himself by 6 and\npermanently increases his attack by 2.\nWhen enters the game stuns strongest opponent creature.\nHird: reduces cost of dwarven cards by 1.", effects = effects(Direct -> moutain), reaction = new MountainReaction)
+  val armourClad = Creature("Armour-clad Dwarf", Attack(5), 23, "Reduces non-magical damage dealt to him by X\n(X = difference in level with opposite creature).\nHird: his ability applies to neighbors as well.", reaction = new ArmourReaction)
 
   val MoutainKing = House("Moutain King", List(
     soldier,
     shieldman,
     Creature("Dwarven crossbowman", Attack(4), 17, "When attacks deals the same damage directly to opponent.\nHird: attacks out-of-turn right before death.", runAttack = new CrossbowAttack, reaction = new CrossbowReaction),
-    Creature("Armour-clad Dwarf", Attack(5), 23, "Reduces non-magical damage dealt to him by X\n(X = difference in level with opposite creature).\nHird: his ability applies to neighbors as well.", reaction = new ArmourReaction),
+    armourClad,
     runesmith,
     ballista,
     berserker,
@@ -135,6 +136,28 @@ class MoutainKing {
     }
   }
 
+  class ArmourReaction extends Reaction {
+      final override def selfProtect(d : Damage, slot : SlotUpdate) = protectFromOpp(d, slot)
+
+      final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
+        import d._
+        d.target match {
+          case Some(num) if selected.get.data == Hird && selected.get.card != armourClad
+            && math.abs(selected.num - num) == 1 =>
+              protectFromOpp(damage, player.slots(num))
+          case _ => d.damage
+        }
+      }
+
+      def protectFromOpp(d : Damage, slot : SlotUpdate) = {
+        val oppSlot = slot.slots.player.otherPlayer.getSlots.get(slot.num)
+        val levelDiff = oppSlot.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
+        if (!d.isEffect && levelDiff != 0){
+          d.copy(amount = math.max(0, d.amount - levelDiff))
+        } else d
+      }
+  }
+
   class BallistaReaction extends Reaction {
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
       import summoned._
@@ -244,6 +267,9 @@ class MoutainKing {
     }
     def onAdd(slot : SlotUpdate){
       if (slot.playerId == player.id){
+        if (slot.value.isEmpty){
+          println(slot.num + " is empty in " + slot.slots.value)
+        }
         if (slot.get.card.houseId == moutainHouseId){
           if (slot.filledAdjacents.count{ s =>
             if (s.get.card.houseId == moutainHouseId){
@@ -335,26 +361,5 @@ class CrossbowReaction extends Reaction {
   }
 }
 
-class ArmourReaction extends Reaction {
-  final override def selfProtect(d : Damage, slot : SlotUpdate) = protectFromOpp(d, slot)
-
-  final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
-    import d._
-    d.target match {
-      case Some(num) if selected.get.data == Hird
-        && math.abs(selected.num - num) == 1 =>
-          protectFromOpp(damage, player.slots(num))
-      case _ => d.damage
-    }
-  }
-
-  def protectFromOpp(d : Damage, slot : SlotUpdate) = {
-    val oppSlot = slot.slots.player.otherPlayer.getSlots.get(slot.num)
-    val levelDiff = oppSlot.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
-    if (!d.isEffect && levelDiff != 0){
-      d.copy(amount = math.max(0, d.amount - levelDiff))
-    } else d
-  }
-}
 
 case object Hird

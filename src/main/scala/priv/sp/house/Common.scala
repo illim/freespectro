@@ -14,6 +14,9 @@ class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
   }
 }
 
+// hack for warp
+trait UniqueAttack
+
 //crap
 case class UnMod(mod : DescMod) extends Function[Env, Unit] {
   def apply(env : Env){

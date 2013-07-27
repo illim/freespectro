@@ -182,6 +182,7 @@ class Reaction {
   def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
   def onSpawnOver(slot : SlotUpdate) : Option[SlotMod] = { slot.destroy(); None }
   def onOverwrite(c : Creature, slot : SlotUpdate) {}
+  def cleanUp(player : PlayerUpdate){} // bs for warp
 
   /**
    * Events that needs to be broadcasted manually in a house listener

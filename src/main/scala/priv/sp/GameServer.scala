@@ -12,6 +12,8 @@ import scala.util.Random
 /**
  * Player plays against game server hiding that it can be local(ai) or remote.
  * In remote play, the master shuffle the cards and send to the slave.
+ *
+ * TODO clean the code(release sockets...)
  */
 trait GameServer {
   def initState() : GameState
@@ -116,7 +118,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
 }
 
 
-class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
+class MasterBoot(k: Option[GameServer] => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp.houses)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.resolveChoices)
   def initState = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
@@ -135,16 +137,44 @@ class MasterBoot(k: GameServer => Unit, resources : GameResources)   {
     val cs = resources.clientSocket(serverSocket.accept())
     val peer = new PeerInterface[SlaveInterface](cs, this)
     peer.proxy.init(initState, desc, seed)
-    k(new CommonGameServer(opponent, cs.getInetAddress().toString, initState, desc, startingPlayer, seed, peer))
+    k(Some(new CommonGameServer(opponent, cs.getInetAddress().toString, initState, desc, startingPlayer, seed, peer)))
   }
 }
 
-class SlaveBoot(k: GameServer => Unit, address : InetAddress, resources : GameResources) {
-  val socket = new Socket(address, 4444)
-  val peer = new PeerInterface[MasterInterface](socket, this)
+class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources : GameResources) {
+  resources.multi.release() // BS FIXME
+  val socketAddress = new InetSocketAddress(address, 4444)
+  val socketOption = connect()
+  val peerOption = socketOption.map{ socket =>
+    new PeerInterface[MasterInterface](socket, this)
+  }
 
   def init(state : GameState, desc : GameDesc, seed : Long) = {
-    k(new CommonGameServer(owner, socket.getInetAddress().toString, state, desc, owner, seed, peer))
+    peerOption.foreach{ peer =>
+      k(Some(new CommonGameServer(owner, socketAddress.toString, state, desc, owner, seed, peer)))
+    }
+  }
+
+  def connect(i : Int = 3) : Option[Socket] = {
+    val socket = new Socket()
+    try {
+      socket.connect(socketAddress, 10 * 3000)
+      Some(socket)
+    } catch {
+      case t :SocketTimeoutException if i > 0 =>
+        println(t.getMessage + " retrying...")
+        connect(i -1)
+      case t : Throwable =>
+        if (i > 0){
+          println(t.getMessage + " retrying in 3s...")
+          Thread.sleep(3 * 1000)
+          connect(i -1)
+        } else {
+          t.printStackTrace()
+          k(None)
+          None
+        }
+    }
   }
 }
 
@@ -198,7 +228,7 @@ class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : refle
 
   def release(){
     ended = true
-    socket.close()
+    socket.close() // BS TODO use holder in resources
   }
 }
 

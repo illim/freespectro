@@ -73,6 +73,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
       val s = get
       val event = Dead(num, s, player, None)
       remove(Some(event))
+      s.card.reaction.cleanUp(player)
       slots.onDead(event)
     }
   }
@@ -96,6 +97,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val s = get
     val event = Dead(num, s, player, Some(d))
     remove(Some(event))
+    s.card.reaction.cleanUp(player)
     slots.log(event)
   }
 }

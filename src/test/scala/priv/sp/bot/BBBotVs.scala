@@ -14,11 +14,11 @@ import org.scalatest.matchers._
 class BBBotVs extends FlatSpec with ShouldMatchers {
   val houses = HouseSingleton
   import houses._
-
+/**
   "bot" should "win" in {
     var player = playerIds(scala.util.Random.nextInt(2))
     val shuffle = new CardShuffle(houses)
-    val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(List(trooper.Trooper, trooper.Trooper), player)
+    val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(List(moutainKing.MoutainKing, warp.Warp), player)
 
     var state = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
     val desc = GameDesc(Vector(p1Desc, p2Desc))
@@ -64,13 +64,14 @@ class BBBotVs extends FlatSpec with ShouldMatchers {
     //slotOccupation(s)
 //    rewardDefaultWeight(s)
     //boost(s)
-    attack(s)
     //kill(s)
     //power(s)
     //oppPower(s)
+    noEffectMalus(s)
   }
 
-  val simBlock   = Mutate({(s, v) => s.simBlockedSlotWeight = v}, _.simBlockedSlotWeight, (0.5f, 0.9f))
+  val noEffectMalus = Mutate({(s, v) => s.noEffectMalus = v}, _.noEffectMalus, (0f, 1f))
+  val simBlock = Mutate({(s, v) => s.simBlockedSlotWeight = v}, _.simBlockedSlotWeight, (0.5f, 0.9f))
   val manaPowMut = Mutate({(s, v) => s.manaPow = v}, _.manaPow, (1f, 2f))
   val specialManaPowMut = Mutate({(s, v) => s.specialManaPow = v}, _.specialManaPow, (1f, 2f))
   val slotOccupation    = Mutate({(s, v) => s.slotOccupationBonus = v}, _.slotOccupationBonus, (0f, 1f))
@@ -105,6 +106,6 @@ class BBBotVs extends FlatSpec with ShouldMatchers {
     println(state)
     println(state.players.map(_.life))
     (turns, state)
-  }
+  }*/
 
 }

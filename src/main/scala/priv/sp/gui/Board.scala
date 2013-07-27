@@ -68,7 +68,7 @@ class CommandRecorder(game: Game) {
   }
 
   private def continue(c : Option[Command]) = {
-    cont.get.set(c)
+    cont.foreach(_.set(c))
     cont = None
   }
 

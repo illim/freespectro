@@ -20,7 +20,7 @@ class Warp {
     Creature("Photographer", Attack(3), 17, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
     Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
-    Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
+    Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.(at least try to!)\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
     Creature("Warp Queen", Attack(6), 32, "Opponent creatures lose their ability until end of next owner turn.\nDeals 4 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener(new WarpEventListener(_))))
 
   val photographer = Warp.cards(3)
@@ -72,11 +72,11 @@ class Warp {
   }
   def warp = { env : Env =>
     import env._
-    otherPlayer.slots.slots.collect{ case slot if slot.value.isDefined =>
+    otherPlayer.slots.foreach{ slot =>
       val s = slot.get
       slot.remove()
-      (s, slot)
-    }.foreach{ case (s, slot) => bridle(s, slot) }
+      bridle(s, slot)
+    }
     otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
     player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
       env.otherPlayer.slots.foreach(unbridle)
@@ -94,7 +94,19 @@ class Warp {
         case m : MereMortal =>
           slot.remove()
 
-          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, m.c.attack), s.target, s.data))
+          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.data))
+          // hack to fix attack
+          slot.value.foreach{ s =>
+            val sources = (Vector.empty[AttackSource] /: s.attackSources.sources){ (acc, source) =>
+              if (source.isInstanceOf[UniqueAttack] && acc.contains(source)){
+                acc
+              } else acc :+ source
+            }
+            if (sources.size != s.attackSources.sources.size){
+              slot.attack.write(s.attackSources.copy(sources = sources))
+            }
+          }
+
         case _ =>
       }
     }
@@ -189,8 +201,14 @@ class CloakSlotMod(cloaked : SlotState) extends SlotMod {
   }
 }
 
+class MereMortalReaction(c : Creature) extends Reaction{
+  final override def cleanUp(player : PlayerUpdate){
+    c.reaction.cleanUp(player)
+  }
+}
+
 class MereMortal(val c : Creature)
-extends Creature(c.name, c.attack, c.life, status = c.status){
+extends Creature(c.name, c.attack, c.life, status = c.status, reaction = new MereMortalReaction(c)){
   houseId = c.houseId
   houseIndex = c.houseIndex
   cost = c.cost

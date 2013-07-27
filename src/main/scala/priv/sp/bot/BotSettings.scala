@@ -15,9 +15,10 @@ case class Settings(
  var specialManaPow : Float = 1.4f, // 2
  var killFactor : Float = 1f,
  var powerFactor : Float = 1f,
+ var noEffectMalus : Float = 0f,
  var oppPowerFactor : Float = 1f){
 
-  def getCostPowMana(m : Int, houseIndex : Int) = {
+  def getCostPowMana(m : Float, houseIndex : Int) = {
     if (houseIndex == 4) math.pow(m, specialManaPow) else math.pow(m, manaPow)
   }
 

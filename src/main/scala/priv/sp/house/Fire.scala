@@ -51,24 +51,25 @@ trait Fire {
   }
 }
 
-case object OrcAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 2 }
-case object BullAttackBonus extends AttackFunc { def apply(attack : Int) : Int = attack + 1 }
+case class OrcAttackBonus(orcPos : Int) extends AttackFunc with UniqueAttack { def apply(attack : Int) = attack + 2 }
+case class BullAttackBonus(bullPos : Int) extends AttackFunc with UniqueAttack { def apply(attack : Int) : Int = attack + 1 }
 
 private class OrcSlotReaction extends AttackBonusReaction {
   final def cond(selected : Int, num : Int) = math.abs(selected - num) == 1
-    val bonus = OrcAttackBonus
+  def getBonus(selected : Int) = OrcAttackBonus(selected)
 }
 
 private class BullSlotReaction extends AttackBonusReaction {
   final def cond(selected : Int, num : Int) = selected != num
-  val bonus = BullAttackBonus
+  def getBonus(selected : Int) = BullAttackBonus(selected)
 }
 
 private abstract class AttackBonusReaction extends Reaction {
   def cond(selected : Int, num : Int) : Boolean
-  val bonus : AttackSource
+  def getBonus(selected : Int) : AttackSource
 
   final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    val bonus = getBonus(selected.num)
     if (selected.num == slot.num){
       slot.slots.foreach{ s =>
         if (cond(s.num, slot.num)) s.attack.add(bonus)
@@ -79,6 +80,7 @@ private abstract class AttackBonusReaction extends Reaction {
   }
 
   final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) = {
+    val bonus = getBonus(slot.num)
     slot.slots.foreach{ s =>
       if (cond(s.num, slot.num)) {
         s.attack.removeFirst(bonus)

@@ -27,14 +27,16 @@ trait HeuristicHelper extends Heuris {
   def init(st : GameState){
     initState = st
     start = new HeurisValue(st)
-    // BS lower power of card without turn effects (for orc, spider) supposing the value of the card is impacted elsewhere
-    st.players(botPlayerId).desc.get.houses.foreach{ h =>
-      h.cards.foreach{ cardDesc =>
-        val c = cardDesc.card
-        val cardValue = if (c.effects(CardSpec.OnTurn).isEmpty && c.effects(CardSpec.OnEndTurn).isEmpty){
-          settings.getCostPowMana(math.max(1, c.cost - 2), c.houseIndex)
-        } else settings.getCostPowMana(c.cost, c.houseIndex)
-        cardBoardValues += (c -> cardValue)
+    if (cardBoardValues.isEmpty){
+      // BS lower power of card without turn effects (for orc, spider) supposing the value of the card is impacted elsewhere
+      st.players(botPlayerId).desc.get.houses.foreach{ h =>
+        h.cards.foreach{ cardDesc =>
+          val c = cardDesc.card
+          val cardValue = if (c.effects(CardSpec.OnTurn).isEmpty && c.effects(CardSpec.OnEndTurn).isEmpty){
+            settings.getCostPowMana(math.max(1, c.cost - settings.noEffectMalus), c.houseIndex)
+          } else settings.getCostPowMana(c.cost, c.houseIndex)
+          cardBoardValues += (c -> cardValue)
+        }
       }
     }
   }
@@ -122,7 +124,7 @@ class MultiRatioHeuris(
         negToPos((h.lifeDelta - start.lifeDelta) / maxAbs(h.bot.life, start.bot.life))
       case None => negToPos(h.lifeDelta / h.bot.life.toFloat)
       case _ => negToPos((start.human.life - h.human.life) / maxAbs(h.human.life, start.human.life))
-    }) +1 ) / turns
+    }) / turns)
     var res = lifeRatio
     lifeRatioLog.log(lifeRatio)
 

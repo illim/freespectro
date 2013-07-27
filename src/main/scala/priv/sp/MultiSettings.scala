@@ -42,15 +42,17 @@ class MultiSettings(
     }
   }
 
-  def newServer(boot : ((GameServer => Unit) => Any)) {
+  def newServer(boot : ((Option[GameServer] => Unit) => Any)) {
     reset {
-      val gameServer = shift { k: (GameServer => Unit) =>
+      val gameServerOpt = shift { k: (Option[GameServer] => Unit) =>
         setEnable(false)
         boot(k)
       }
       setEnable(true)
-      world.doInRenderThread {
-        resetGame(gameServer)
+      gameServerOpt.foreach{ gameServer =>
+        world.doInRenderThread {
+          resetGame(gameServer)
+        }
       }
     }
   }

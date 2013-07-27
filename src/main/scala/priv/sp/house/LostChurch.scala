@@ -17,8 +17,8 @@ object LostChurch {
   val darkMonk = Creature("Dark monk", Attack(2), 13, "Decrease opponent fire mana by 2\nand increase cost of them by 1 when alive.",
     effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
   val preacher = Creature("Preacher", Attack(4), 13, "When in play normal cards cost 1 more mana.\nIncrease growth of special mana by 1.\nAdd 1 attack to prisoner",
-      effects = effects(OnTurn -> addMana(1, 4), Direct -> preach), reaction = new PreacherReaction)
-  val falseProphet : Creature = Creature("false prophet", Attack(4), 18, "When in play normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
+      effects = effects(OnTurn -> addMana(1, 4)), reaction = new PreacherReaction)
+  val falseProphet : Creature = Creature("false prophet", Attack(4), 18, "Until his death, normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
       reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize))
   val astralEscape = Creature("Astral escape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction)
   val scarecrow : Creature = Creature("Scarecrow", Attack(8), 28, "Stuns&Deals 5 damage to opposite creature\nWhen dying heal opposite creature by 5.",
@@ -71,7 +71,6 @@ object LostChurch {
   }
   def guardFire = { env : Env =>
     env.otherPlayer.houses.incrMana(-2 , 0)
-    env.otherPlayer.addDescMod(IncrFireCostMod)
   }
   def weaken : Effect = { env : Env =>
     import env._
@@ -88,20 +87,22 @@ object LostChurch {
       }
     }
   }
-  def preach = { env : Env =>
-    import env._
-    player.addDescMod(IncrBasicCostMod)
-    giveHope(player)
-  }
   class PreacherReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
-      import dead.player
-      player.slots.findCard(prisoner).foreach{ slot =>
-        if (player.slots.findCard(preacher).isEmpty){
+    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+      if (selected.num == slot.num){
+        val player = selected.slots.player
+        player.addDescMod(IncrBasicCostMod)
+        giveHope(player)
+      }
+    }
+    final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
+      val slots = slot.slots
+      slots.findCard(prisoner).foreach{ slot =>
+        if (slots.findCard(preacher).isEmpty){
           slot.attack.removeAny(PreacherAttackBonus)
         }
       }
-      player.removeDescMod(IncrBasicCostMod)
+      slots.player.removeDescMod(IncrBasicCostMod)
     }
   }
   def prophetize = { env : Env =>
@@ -133,11 +134,13 @@ object LostChurch {
   }
   class ScarecrowReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
-      dead.player.removeDescMod(scarecrowAbility)
       val slot = dead.player.otherPlayer.slots(dead.num)
       if (slot.value.isDefined){
         slot.heal(5)
       }
+    }
+    final override def cleanUp(player : PlayerUpdate){
+      player.removeDescMod(scarecrowAbility)
     }
   }
 
@@ -243,12 +246,17 @@ object LostChurch {
 }
 
 class DarkMonkReaction extends Reaction {
-  final override def onMyDeath(dead : Dead){
-    dead.otherPlayer.removeDescMod(IncrFireCostMod)
+  final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    if (selected.num == slot.num){
+      slot.slots.player.otherPlayer.addDescMod(IncrFireCostMod)
+    }
+  }
+  final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
+    slot.slots.player.otherPlayer.removeDescMod(IncrFireCostMod)
   }
 }
 class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
-object PreacherAttackBonus extends OneAttackBonus
+object PreacherAttackBonus extends OneAttackBonus with UniqueAttack
 case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = math.max(0, attack + half) }
 case object IncrBasicCostMod extends DescMod {
   def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
@@ -266,8 +274,10 @@ case object IncrFireCostMod extends DescMod {
 case class LCAttackBonus(player : PlayerId) extends AttackFunc { def apply(attack : Int) = attack + 1 }
 
 class FalseProphetReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
-      dead.player.removeDescMod(IncrBasicCostMod)
-      dead.player.houses.incrMana(-1, 0, 1, 2, 3)
-    }
+  final override def onMyDeath(dead : Dead){
+    dead.player.houses.incrMana(-1, 0, 1, 2, 3)
+  }
+  final override def cleanUp(player : PlayerUpdate){
+    player.removeDescMod(IncrBasicCostMod)
+  }
 }
