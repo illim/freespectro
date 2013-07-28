@@ -51,7 +51,7 @@ class MoutainKing {
 
   class SoldierReaction extends Reaction {
     override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
-      val otherPlayer = slot.slots.player.otherPlayer
+      val otherPlayer = slot.otherPlayer
       otherPlayer.getSlots.get(slot.num) match {
         case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) =>
           otherPlayer.slots(slot.num).attack.removeFirst(SoldierLowerAttack)
@@ -100,7 +100,7 @@ class MoutainKing {
 
   case object SoldierLowerAttack extends AttackSlotStateFunc {
     def apply(attack : Int, slot : SlotUpdate) = {
-      val oppSlots = slot.slots.player.otherPlayer.getSlots
+      val oppSlots = slot.otherPlayer.getSlots
       oppSlots.get(slot.num) match {
         case Some(s) if s.card == soldier && s.data == Hird =>
           val nbSoldier = oppSlots.count(_._2.card == soldier)
@@ -150,8 +150,8 @@ class MoutainKing {
       }
 
       def protectFromOpp(d : Damage, slot : SlotUpdate) = {
-        val oppSlot = slot.slots.player.otherPlayer.getSlots.get(slot.num)
-        val levelDiff = oppSlot.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
+        val oppSlotState = slot.oppositeState
+        val levelDiff = oppSlotState.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
         if (!d.isEffect && levelDiff != 0){
           d.copy(amount = math.max(0, d.amount - levelDiff))
         } else d

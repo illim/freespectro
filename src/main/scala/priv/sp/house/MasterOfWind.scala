@@ -105,10 +105,11 @@ object MasterOfWind {
   }
 
   class SpiritThunderReaction extends Reaction {
-    def onNoCommand(selected : SlotUpdate, player : PlayerUpdate) = {
-      val damage = Damage(3, Context(player.id, Some(spirit), selected.num), isAbility = true)
-      player.otherPlayer.inflict(damage)
-      player.otherPlayer.slots.inflictCreatures(damage)
+    def onNoCommand(selected : SlotUpdate) = {
+      val damage = Damage(3, Context(selected.playerId, Some(spirit), selected.num), isAbility = true)
+      val otherPlayer = selected.otherPlayer
+      otherPlayer.inflict(damage)
+      otherPlayer.slots.inflictCreatures(damage)
     }
   }
 
@@ -127,7 +128,7 @@ object MasterOfWind {
       if (commandOption.isEmpty){
         player.slots.foreach{ s =>
           s.get.card.reaction match {
-            case sr : SpiritThunderReaction => sr.onNoCommand(s, player)
+            case sr : SpiritThunderReaction => sr.onNoCommand(s)
             case _ =>
           }
         }

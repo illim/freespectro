@@ -80,6 +80,7 @@ class Warp {
     otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
     player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
       env.otherPlayer.slots.foreach(unbridle)
+      env.otherPlayer.slots.foreach(fixAttack)
     }))
   }
 
@@ -95,19 +96,21 @@ class Warp {
           slot.remove()
 
           slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.data))
-          // hack to fix attack
-          slot.value.foreach{ s =>
-            val sources = (Vector.empty[AttackSource] /: s.attackSources.sources){ (acc, source) =>
-              if (source.isInstanceOf[UniqueAttack] && acc.contains(source)){
-                acc
-              } else acc :+ source
-            }
-            if (sources.size != s.attackSources.sources.size){
-              slot.attack.write(s.attackSources.copy(sources = sources))
-            }
-          }
-
         case _ =>
+      }
+    }
+  }
+
+  // hack to fix attack
+  def fixAttack(slot : SlotUpdate){
+    slot.value.foreach{ s =>
+      val sources = (Vector.empty[AttackSource] /: s.attackSources.sources){ (acc, source) =>
+        if (source.isInstanceOf[UniqueAttack] && acc.contains(source)){
+          acc
+        } else acc :+ source
+      }
+      if (sources.size != s.attackSources.sources.size){
+        slot.attack.write(s.attackSources.copy(sources = sources))
       }
     }
   }
@@ -116,7 +119,7 @@ class Warp {
 
     override def onAdd(selected : SlotUpdate, slot : SlotUpdate) {
       if (selected.num == slot.num){
-        val oppSlot = slot.slots.player.otherPlayer.slots(selected.num)
+        val oppSlot = selected.oppositeSlot
         oppSlot.value.foreach{ s =>
           oppSlot.remove()
           bridle(s, oppSlot)
@@ -124,7 +127,9 @@ class Warp {
       }
     }
     override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
-      unbridle(slot.slots.player.otherPlayer.slots(slot.num)) // FIXME bugged between schizo and wq
+      val oppSlot = slot.oppositeSlot
+      unbridle(oppSlot)
+      fixAttack(oppSlot)
     }
   }
 

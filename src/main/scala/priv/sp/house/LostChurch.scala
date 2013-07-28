@@ -248,11 +248,11 @@ object LostChurch {
 class DarkMonkReaction extends Reaction {
   final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
     if (selected.num == slot.num){
-      slot.slots.player.otherPlayer.addDescMod(IncrFireCostMod)
+      slot.otherPlayer.addDescMod(IncrFireCostMod)
     }
   }
   final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
-    slot.slots.player.otherPlayer.removeDescMod(IncrFireCostMod)
+    slot.otherPlayer.removeDescMod(IncrFireCostMod)
   }
 }
 class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }

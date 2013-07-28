@@ -56,24 +56,21 @@ class Vampire {
 
   private def bloodTies = { env: Env =>
     import env._
-    val slot = player.slots(selected)
+    val slot = getSelectedSlot()
     val attack = slot.get.attack
     slot.destroy()
-    player.slots(selected).adjacentSlots.foreach{ s =>
-      if (s.value.isDefined){
-        val card = s.get.card
-        if (card.cost < 9 && card.runAttack != MultiTargetAttack) {
-          val bonus = AttackAdd(attack)
-          s.attack.add(bonus)
-        }
+    slot.filledAdjacents.foreach{ s =>
+      val card = s.get.card
+      if (card.cost < 9 && card.runAttack != MultiTargetAttack) {
+        val bonus = AttackAdd(attack)
+        s.attack.add(bonus)
       }
     }
   }
 
   private def aristo = { env: Env =>
     import env._
-    val otherSlots = otherPlayer.slots
-    val slots      = player.slots
+    val slots = player.slots
     otherPlayer.slots.reduce(lowestLife).foreach{ s =>
       if (s.num != selected && !slots(s.num).value.exists(_.card == aristocrat)){
         slots.move(env.selected, s.num)
@@ -83,7 +80,7 @@ class Vampire {
 
   private def ghoulify : Effect = { env: Env =>
     import env._
-    player.slots(selected).adjacentSlots.foreach{ s =>
+    getSelectedSlot().adjacentSlots.foreach{ s =>
       if (s.value.isDefined){
         s.destroy()
         s.add(ghoul)
@@ -141,7 +138,7 @@ private class GhoulAttack extends RunAttack {
         otherPlayer.inflict(d)
       case Some(slotState) =>
         if (slotState.life < 11){
-          slot.destroy
+          slot.inflict(Damage(1000, d.context))
         } else slot.inflict(d)
     }
   }
@@ -158,7 +155,7 @@ class NosferatuReaction extends Reaction {
 class AcolyteReaction extends Reaction {
   override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = {
     if (amount > 8){
-      slot.slots.player.otherPlayer.houses.incrMana(1, card.houseIndex)
+      slot.otherPlayer.houses.incrMana(1, card.houseIndex)
       true
     } else false
   }

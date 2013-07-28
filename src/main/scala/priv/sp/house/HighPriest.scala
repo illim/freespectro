@@ -127,7 +127,7 @@ object HighPriest {
     nearestEmptySlot(selected, player).foreach{ pos =>
       player.slots(pos).add(serpent)
     }
-    player.otherPlayer.addEffect(OnEndTurn -> new SerpentDie(selected))
+    otherPlayer.addEffect(OnEndTurn -> new SerpentDie(selected))
   }
 
   def ra : Effect = { env : Env =>
