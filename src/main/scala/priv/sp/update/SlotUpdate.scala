@@ -8,13 +8,15 @@ import priv.util.FieldUpdate
 class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Some(slots), slots.value.get(num)){
   import slots.{player, updater}
   val playerId = player.id
+  val otherPlayerId = other(playerId)
   private lazy val attackUpdate = new AttackUpdate(this)
   lazy val adjacentSlots : List[SlotUpdate] = adjacents(num).map{ n => slots(n) }
-  lazy val otherHouseListener = updater.houseEventListeners(other(playerId))
+  lazy val otherHouseListener = updater.houseEventListeners(otherPlayerId)
+  def otherPlayer = updater.players(otherPlayerId)
 
-  def oppositeSlot = player.otherPlayer.slots(num)
+  def oppositeSlot = otherPlayer.slots(num)
   def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
-  def oppositeState : Option[SlotState] = player.otherPlayer.getSlots.get(num)
+  def oppositeState : Option[SlotState] = otherPlayer.getSlots.get(num)
 
   @inline def get = value.get
   // some crap

@@ -27,7 +27,7 @@ object HighPriest {
   val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and\nincreases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
   val guardianMummy = Creature("guardian mummy", Attack(4), 20)
   val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
-  val babi = Creature("Babi", Attack(6), 23, "When opponent's power grows, deals the same damage to opposite creature.", effects = effects(Direct -> initBabi), reaction = new BabiReaction)
+  val babi = Creature("Babi", Attack(6), 23, "When opponent's power grows, deals the same damage to opposite creature.", reaction = new BabiReaction)
   val amit = Creature("Ammit", Attack(9), 39, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
 
   val hpSet = List[Card](
@@ -161,13 +161,6 @@ object HighPriest {
     }
   }
 
-  def initBabi = { env : Env =>
-    import env._
-
-    val mana = otherPlayer.getHouses.map(_.mana).sum
-    getSelectedSlot().setData(new Integer(mana))
-  }
-
   def apep = { env : Env =>
     env.player.houses.incrMana(-1, 0, 1, 2, 3)
   }
@@ -232,6 +225,13 @@ object HighPriest {
   }
 
   class BabiReaction extends Reaction {
+    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+      if (selected.num == slot.num){
+        val mana = selected.otherPlayer.getHouses.map(_.mana).sum
+        selected.setData(new Integer(mana))
+      }
+    }
+
     def reactIncrMana(houses : PlayerState.HousesType, selected : SlotUpdate){
       val old = selected.get.data.asInstanceOf[Integer]
       if (old != null){ // not working for stranger
@@ -284,9 +284,8 @@ object HighPriest {
   class HPriestEventListener extends HouseEventListener with AnyDeathEventListener {
     def onOppSubmit(command : Command){
       val data = getData(player.value)
-      // hack for warp
       val cardIdent = (command.card.houseIndex, command.card.cardIndex)
-      if (data != null && !data.revealeds.contains(cardIdent)){
+      if (!data.revealeds.contains(cardIdent)){
         player.updateData[HPriestData](_.copy(revealeds = data.revealeds + cardIdent))
       }
     }
@@ -352,8 +351,8 @@ class BennuReaction extends Reaction {
     // Bullshit ?
     if (slot.get.data != BennuDead && !dead.exists(_.damage.exists(_.context.playerId == slot.playerId))) {
       slot.attack.add(AttackFactor(3f))
-      slot.slots.player.runSlot(slot.num, slot.get)
       slot.setData(BennuDead)
+      slot.slots.player.runSlot(slot.num, slot.get)
     }
   }
 }
