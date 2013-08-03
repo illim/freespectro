@@ -48,7 +48,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   def result = value.copy(slots = getSlots, houses = getHouses)
 
   def runSlots(){
-    getSlots.foreach { case (num, _) =>
+    getSlots.foreach { case (num, s) =>
       getSlots.get(num).foreach{ slot =>
         runSlot(num, slot)
       }
@@ -154,31 +154,39 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     write(value.copy(slotList = value.slotList.filterNot(_ == n)))
   }
 
-  // this is probably bugged due to card moves ...
-  // todo identify slot creature?
+  private val playerEffectEnv = new GameCardEffect.Env(id, updater)
+  private val slotEffectEnv = new GameCardEffect.Env(id, updater)
+
+  // why player effects happen after? (I don't remember)
   def applyEffects(phase : CardSpec.Phase) {
-    getSlots.foreach{ case (num, slot) =>
+    getSlots.foreach{ case (num, s) =>
       if (!ended) {
-        getSlots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
-          if (!slot.has(CardSpec.blockedFlag)){
-            slot.card.effects(phase).map{ f =>
-              val env = new GameCardEffect.Env(id, updater)
-              env.selected = num
-              env.card = Some(slot.card)
-              f(env)
-            }
-            updateListener.refresh(silent = true)
-          }
+        val slots = getSlots
+        slots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
+          if (slot.id != s.id){ // in case of moved creature
+            slots.find(_._2.id == s.id).foreach{ case (num, slot) => applyEffect(phase, slot, num) }
+          } else applyEffect(phase, slot, num)
         }
       }
     }
     value.effects.foreach{ case (p, f) =>
       if (p == phase && ! ended) {
-        val env = new GameCardEffect.Env(id, updater)
-        f(env)
+        f(playerEffectEnv)
       }
     }
   }
+
+  @inline def applyEffect(phase : CardSpec.Phase, slot : SlotState, num : Int){
+    if (!slot.has(CardSpec.blockedFlag)){
+      slot.card.effects(phase).map{ f =>
+        slotEffectEnv.selected = num
+        slotEffectEnv.card = Some(slot.card)
+        f(slotEffectEnv)
+      }
+      updateListener.refresh(silent = true)
+    }
+  }
+
 
   def prepareNextTurn(){
     houses.incrMana()

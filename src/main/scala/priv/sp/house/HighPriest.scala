@@ -352,7 +352,9 @@ class BennuReaction extends Reaction {
     if (slot.get.data != BennuDead && !dead.exists(_.damage.exists(_.context.playerId == slot.playerId))) {
       slot.attack.add(AttackFactor(3f))
       slot.setData(BennuDead)
-      slot.slots.player.runSlot(slot.num, slot.get)
+      val slots = slot.slots
+      slots.updater.updateListener.refresh()
+      slots.player.runSlot(slot.num, slot().get)
     }
   }
 }

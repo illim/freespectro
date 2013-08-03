@@ -24,7 +24,7 @@ case class PlayerState(
   def isInSlotRange(n : Int) = slotList.contains(n)
 }
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, target : Option[Int], data : AnyRef = null){
+case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, target : Option[Int], id : Int, data : AnyRef = null){
 
   def inflict(damage : Damage) : Option[SlotState] = {
     if (has(CardSpec.invincibleFlag)) Some(this)
@@ -72,6 +72,7 @@ object SlotState {
   @inline def addLife(slot : SlotState, amount : Int) = {
     slot.copy(life = math.min(slot.card.life, slot.life + amount))
   }
+  val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 
 import scalaz._

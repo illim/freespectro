@@ -66,7 +66,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
         }
         val slotDest = slots(dest)
         slotDest.add(
-          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(slotDest, s.card.attack) , Some(dest), s.data))
+          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(slotDest, s.card.attack) , Some(dest), s.id, s.data))
       }
     }
   }
@@ -77,7 +77,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
     dead.card.reaction.onMyDeath(dead)
   })
 
-  def buildSlotState(slot : SlotUpdate, card : Creature) = SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), Some(slot.num), card.data)
+  def buildSlotState(slot : SlotUpdate, card : Creature, id : Int = SlotState.currentId.incrementAndGet) = SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), Some(slot.num), id, card.data)
   def getAttack(slot : SlotUpdate, attackSources : AttackSources) = {
     (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>
       s match {

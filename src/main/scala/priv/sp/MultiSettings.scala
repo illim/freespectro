@@ -10,11 +10,8 @@ class MultiSettings(
   world : World,
   resources : GameResources, resetGame : GameServer => Unit)
  extends JPanel with ActionListener {
-  val ipTxts = (0 to 3).map{ _ =>
-    val t = new JTextField(3)
-    add(t)
-    t
-  }
+  val ipTxt = new JTextField(15)
+  add(ipTxt)
   val connectBtn = addBtn("connect", this)
   val serveBtn = addBtn("serve", this)
   val connectLocalBtn = addBtn("connectLocal", this)
@@ -32,13 +29,13 @@ class MultiSettings(
       case "serve" =>
         newServer(k => new MasterBoot(k, resources))
       case cmd @ ("connect" | "connectLocal") =>
-        val address = java.net.InetAddress.getByAddress(
+        val address = java.net.InetAddress.getByName(
           if (cmd == "connect") {
-            ipTxts.map{_.getText().toByte}.toArray
+            ipTxt.getText().trim()
           } else {
-            Array("127", "0", "0", "1").map(_.toByte)
+            "127.0.0.1"
           })
-        newServer(k => new SlaveBoot(k, address, resources))
+        newServer(k => thread("connectserver") { new SlaveBoot(k, address, resources) })
     }
   }
 

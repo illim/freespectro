@@ -67,9 +67,9 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         else acc
     }
     //last.tree.draw(Show.showFromToString[Node]).foreach(println _)
-    // cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
+    //cardStats.foreach(c => println("stats=" + c.stats.toList.sortBy(_._2.score).mkString("\n")))
     result.flatMap { node =>
-      log(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${perfStat} , ${i} iterations")
+      log(s"ai spent ${(System.currentTimeMillis() - startTime)}, numSim : ${node.numSim}, ${node.nbWin}/${node.nbLoss}, ${perfStat} , ${i} iterations")
       node.commandOpt
     }
   }
@@ -132,6 +132,8 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
   case class Node(initState: GameState, transition : Transition, path : List[Node], commandOpt: Option[Command], depth : Int = 0) extends LeafableNode {
     var numSim = 0.1f
     var rewards = 0f
+    var nbLoss = 0
+    var nbWin = 0
     def playerId = transition.playerId
     def isFairOnly : Boolean = playerId == other(botPlayerId)
     def isRoot = depth == 0
@@ -139,7 +141,7 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
     def parent = path.headOption
     def getAvgReward : Float = rewards/numSim
     def getUct : Float =  parent.map{ p =>
-      getAvgReward + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
+      (getAvgReward / 5f) + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue  // HACK to try to have reward in [0, 1], it goes rarely up to 10
     }.getOrElse(0f)
     def getFair = parent.map{ p =>
       math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
@@ -157,7 +159,8 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
       leafed = true
       if (p == other(botPlayerId)){ // FIXME decrease sim time if we aim short time survival
         defaultPolicyMaxTurn = 2
-      }
+        nbLoss += 1
+      } else nbWin += 1
       updateStatsFrom(state, Some(p), boost = settings.boostFactor * (1 + expansionTreeMaxDepth - depth)) // FIXME not great
     }
 
@@ -169,15 +172,22 @@ class BoundedBotAI(botPlayerId: PlayerId, start : GameState, bot : Bot, heuris :
         playerStats.map(_(i) + s).getOrElse(s)
       }
       val h = heuris(st, stats, depth)
-      val reward = (boost * end.map{p => if (p == botPlayerId) h else {
+      val reward = (boost * end.map{p => if (p == botPlayerId) {
+        nbWin += 1
+        h
+      } else {
+        nbLoss += 1
         if (h <= 0) h else - 1/ h
       } }.getOrElse(settings.rewardDefaultWeightFactor * h))
       rewards += reward
-      backPropagate(reward)
+      backPropagate(reward, end)
       reward
     }
-    private def backPropagate(reward : Float){
+    private def backPropagate(reward : Float, end : Option[PlayerId]){
       path.foreach{ node =>
+        end.foreach{ p =>
+          if (p == botPlayerId) { node.nbWin += 1  } else { node.nbLoss += 1 }
+        }
         node.numSim += 1
         node.rewards += reward
       }

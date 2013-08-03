@@ -41,7 +41,7 @@ class Warp {
       val slot = player.slots(selected)
       val s = slot.get
       slot.destroy()
-      slot.add(SlotState(new MergeStranger(s.card , opp.card), s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.data))
+      slot.add(SlotState(new MergeStranger(s.card , opp.card), s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, s.data))
     }
   }
   def photo : Effect = { env : Env =>
@@ -54,7 +54,7 @@ class Warp {
         player.slots.slots.foreach{ s =>
           if (s.value.isEmpty){
             backup.get(s.num).foreach{ b =>
-              s.add(SlotState(b.card, b.life, b.status, b.card.attack, player.slots.getAttack(s, b.card.attack), b.target, b.data))
+              s.add(SlotState(b.card, b.life, b.status, b.card.attack, player.slots.getAttack(s, b.card.attack), b.target, b.id, b.data))
             }
           }
         }
@@ -87,7 +87,7 @@ class Warp {
   private val cache = collection.mutable.Map.empty[Card, MereMortal]
 
   def bridle(s : SlotState, slot : SlotUpdate){
-    slot.write(Some(SlotState(cache.getOrElseUpdate(s.card, new MereMortal(s.card)), s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.data)))
+    slot.write(Some(SlotState(cache.getOrElseUpdate(s.card, new MereMortal(s.card)), s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, s.data)))
   }
   def unbridle(slot : SlotUpdate) {
     slot.value.foreach{ s =>
@@ -95,7 +95,7 @@ class Warp {
         case m : MereMortal =>
           slot.remove()
 
-          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.data))
+          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, s.data))
         case _ =>
       }
     }
@@ -195,7 +195,7 @@ class CloakReaction extends Reaction {
     if (cloaked != null){
       val slot = player.slots(num)
       val card = cloaked.card
-      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), Some(slot.num), card.data))
+      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), Some(slot.num), cloaked.id, card.data))
     }
   }
 }
