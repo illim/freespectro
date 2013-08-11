@@ -126,12 +126,12 @@ class MasterBoot(k: Option[GameServer] => Unit, resources : GameResources)   {
   val desc = GameDesc(Vector(p1Desc, p2Desc))
   val seed = System.currentTimeMillis
 
-  val serverSocketAddr = new InetSocketAddress(4444)
+  val serverSocketAddr = resources.getAddr(resources.port)
   val serverSocket = resources.serverSocket(new ServerSocket())
   serverSocket.setReuseAddress(true)
   serverSocket.setSoTimeout(3 * 60 * 1000)
   serverSocket.bind(serverSocketAddr)
-  println("Listening, waiting for client ...")
+  println("Listening ("+serverSocketAddr+"), waiting for client ...")
 
   thread("waitclient") {
     val cs = resources.clientSocket(serverSocket.accept())
@@ -143,7 +143,7 @@ class MasterBoot(k: Option[GameServer] => Unit, resources : GameResources)   {
 
 class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources : GameResources) {
   resources.multi.release() // BS FIXME
-  val socketAddress = new InetSocketAddress(address, 4444)
+  val socketAddress = new InetSocketAddress(address, resources.port)
   val socketOption = connect()
   val peerOption = socketOption.map{ socket =>
     new PeerInterface[MasterInterface](socket, this)
@@ -156,24 +156,29 @@ class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources 
   }
 
   def connect(i : Int = 3) : Option[Socket] = {
-    val socket = new Socket()
-    try {
-      socket.connect(socketAddress, 10 * 3000)
-      Some(socket)
-    } catch {
-      case t :SocketTimeoutException if i > 0 =>
-        println(t.getMessage + " retrying...")
-        connect(i -1)
-      case t : Throwable =>
-        if (i > 0){
-          println(t.getMessage + " retrying in 3s...")
-          Thread.sleep(3 * 1000)
+    if (resources.ended) None else {
+      val addr = resources.getAddr(0)
+      val socket = new Socket()
+      socket.bind(addr)
+      try {
+        println("Bound to "+addr+", connect to " + socketAddress)
+        socket.connect(socketAddress, 10 * 3000)
+        Some(socket)
+      } catch {
+        case t :SocketTimeoutException if i > 0 =>
+          println(t.getMessage + " retrying...")
           connect(i -1)
-        } else {
-          t.printStackTrace()
-          k(None)
-          None
-        }
+        case t : Throwable =>
+          if (i > 0){
+            println(t.getMessage + " retrying in 3s...")
+            Thread.sleep(3 * 1000)
+            connect(i -1)
+          } else {
+            t.printStackTrace()
+            k(None)
+            None
+          }
+      }
     }
   }
 }

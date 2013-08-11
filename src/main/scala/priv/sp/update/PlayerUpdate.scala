@@ -49,8 +49,11 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
 
   def runSlots(){
     getSlots.foreach { case (num, s) =>
-      getSlots.get(num).foreach{ slot =>
-        runSlot(num, slot)
+      val slots = getSlots
+      slots.get(num).foreach{ slot =>
+        if (slot.id != s.id) { // in case of a move
+          slots.find(_._2.id == s.id).foreach{ case (num, slot) => runSlot(num, slot)  }
+        } else runSlot(num, slot)
       }
     }
   }

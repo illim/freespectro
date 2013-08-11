@@ -12,9 +12,15 @@ class MultiSettings(
  extends JPanel with ActionListener {
   val ipTxt = new JTextField(15)
   add(ipTxt)
+  val portTxt = new JTextField(4)
+  add(portTxt)
   val connectBtn = addBtn("connect", this)
   val serveBtn = addBtn("serve", this)
   val connectLocalBtn = addBtn("connectLocal", this)
+
+  val combo = new JComboBox(resources.networkInterfaces.map(_.getName).toArray)
+  add(combo)
+  combo.addActionListener(this)
 
   setSize(1024, 200)
 
@@ -25,6 +31,10 @@ class MultiSettings(
   }
 
   def actionPerformed(e : ActionEvent){
+    val port = portTxt.getText.trim
+    if (!port.isEmpty){
+      resources.port = port.toInt
+    }
     e.getActionCommand() match {
       case "serve" =>
         newServer(k => new MasterBoot(k, resources))
@@ -36,6 +46,8 @@ class MultiSettings(
             "127.0.0.1"
           })
         newServer(k => thread("connectserver") { new SlaveBoot(k, address, resources) })
+      case _ =>
+        resources.networkInterface = resources.networkInterfaces.find(_.getName == combo.getSelectedItem())
     }
   }
 

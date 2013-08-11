@@ -18,6 +18,18 @@ class GameResources {
   val multi = new Resources
   val serverSocket = multi(new ClosableOne[ServerSocket])
   val clientSocket = multi(new ClosableOne[Socket])
+  var port = 4443
+  var ended = false
+
+  import java.net._
+  import scala.collection.JavaConversions._
+  val networkInterfaces = NetworkInterface.getNetworkInterfaces.toList.filter{_.isUp()}
+  var networkInterface = networkInterfaces.headOption
+  def getAddr(port : Int = 0) = networkInterface.flatMap{ n =>
+    n.getInetAddresses.toList.headOption.map{ a =>
+      new InetSocketAddress(a, port)
+    }
+  }.get
 
   var heurisChoice = 3
   var playerChoices : List[Option[House]] = List(None, None)
@@ -26,6 +38,7 @@ class GameResources {
   }
 
   def release(){
+    ended = true
     println("releasing resources")
     multi.release()
     sp.clean()
