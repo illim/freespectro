@@ -8,7 +8,7 @@ import priv.World
 
 class MultiSettings(
   world : World,
-  resources : GameResources, resetGame : GameServer => Unit)
+  resources : GameResources, abort : () => Unit, resetGame : GameServer => Unit)
  extends JPanel with ActionListener {
   val ipTxt = new JTextField(15)
   add(ipTxt)
@@ -52,6 +52,7 @@ class MultiSettings(
   }
 
   def newServer(boot : ((Option[GameServer] => Unit) => Any)) {
+    abort()
     reset {
       val gameServerOpt = shift { k: (Option[GameServer] => Unit) =>
         setEnable(false)
@@ -59,9 +60,7 @@ class MultiSettings(
       }
       setEnable(true)
       gameServerOpt.foreach{ gameServer =>
-        world.doInRenderThread {
-          resetGame(gameServer)
-        }
+        resetGame(gameServer)
       }
     }
   }

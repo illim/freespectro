@@ -170,6 +170,7 @@ object Reaction {
 }
 class Reaction {
   def onAdd(selected : SlotUpdate, slot : SlotUpdate){}
+  def onRemove(selected : SlotUpdate, slot : SlotUpdate){}
 
   // used by stone golem and archphoenix where overriding inflict doesn't suffice, because needs to know the context => TODO remove overrided inflict
   def selfProtect(d : Damage, slot : SlotUpdate) = d

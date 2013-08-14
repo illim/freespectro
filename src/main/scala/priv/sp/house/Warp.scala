@@ -73,14 +73,11 @@ class Warp {
   def warp = { env : Env =>
     import env._
     otherPlayer.slots.foreach{ slot =>
-      val s = slot.get
-      slot.remove()
-      bridle(s, slot)
+      bridle(slot.remove(), slot)
     }
     otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
     player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
       env.otherPlayer.slots.foreach(unbridle)
-      env.otherPlayer.slots.foreach(fixAttack)
     }))
   }
 
@@ -93,24 +90,14 @@ class Warp {
     slot.value.foreach{ s =>
       s.card match {
         case m : MereMortal =>
-          slot.remove()
+          val removed = slot.remove()
 
-          slot.add(SlotState(m.c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, s.data))
+          slot.add(
+            SlotState(
+              m.c, removed.life, removed.status,
+              removed.attackSources, slot.slots.getAttack(slot, removed.attackSources),
+              removed.target, removed.id, removed.data))
         case _ =>
-      }
-    }
-  }
-
-  // hack to fix attack
-  def fixAttack(slot : SlotUpdate){
-    slot.value.foreach{ s =>
-      val sources = (Vector.empty[AttackSource] /: s.attackSources.sources){ (acc, source) =>
-        if (source.isInstanceOf[UniqueAttack] && acc.contains(source)){
-          acc
-        } else acc :+ source
-      }
-      if (sources.size != s.attackSources.sources.size){
-        slot.attack.write(s.attackSources.copy(sources = sources))
       }
     }
   }
@@ -129,7 +116,6 @@ class Warp {
     override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
       val oppSlot = slot.oppositeSlot
       unbridle(oppSlot)
-      fixAttack(oppSlot)
     }
   }
 

@@ -38,9 +38,12 @@ object Main extends JFrame with App {
     })
     doInDispatch {
       settingsPanel.tabs.addTab("houses", new GameSettings(r.resources))
-      settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { gameServer =>
-        r.currentGame.server.abort()
-        r.currentGame = r.createGame(gameServer)
+      settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { () => r.currentGame.server.abort() }, { gameServer =>
+        r.resources.aiExecutor.submit(runnable{ // shitty wait ai finish :S (doesn't ensure player will do something just after)
+          r.world.doInRenderThread {
+            r.currentGame = r.createGame(gameServer)
+          }
+        })
       }))
       settingsPanel.tabs.addTab("debug", new GameDebug(r.currentGame))
     }

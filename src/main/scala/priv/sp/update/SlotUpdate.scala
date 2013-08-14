@@ -80,11 +80,14 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     }
   }
 
-  def remove(deadOpt : Option[Dead] = None){
+  def remove(deadOpt : Option[Dead] = None) : SlotState = {
     val slotState = get
     slotState.card.reaction.onMyRemove(this, deadOpt)
+    slots.reactRemove(this)
+    val result = apply().get
     attackUpdate.invalidate() // FIXME hack?
     write(None)
+    result
   }
 
   def focus(blocking : Boolean = true){

@@ -60,13 +60,16 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
       val slot = slots(num)
       slot.value.foreach{ s =>
         updateListener.move(num, dest, id)
-        slot.remove()
+        val removed = slot.remove()
         if (slots(dest).value.isDefined){
           move(dest, num)
         }
         val slotDest = slots(dest)
         slotDest.add(
-          SlotState(s.card, s.life, s.status, s.card.attack, getAttack(slotDest, s.card.attack) , Some(dest), s.id, s.data))
+          SlotState(
+            removed.card, removed.life, removed.status,
+            removed.attackSources, getAttack(slotDest, removed.attackSources) ,
+            Some(dest), removed.id, removed.data))
       }
     }
   }
@@ -97,6 +100,9 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
   def reactAdd(slot : SlotUpdate) = foreach { s =>
     s.get.card.reaction.onAdd(s, slot)
+  }
+  def reactRemove(slot : SlotUpdate) = foreach { s =>
+    s.get.card.reaction.onRemove(s, slot)
   }
   def log(evt : BoardEvent){ logs = evt :: logs }
   def foreach(f : SlotUpdate => Unit) = slots.foreach{ s =>
