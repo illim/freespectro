@@ -139,7 +139,7 @@ object LostChurch {
         slot.heal(5)
       }
     }
-    final override def cleanUp(player : PlayerUpdate){
+    final override def cleanUp(selected : Int, player : PlayerUpdate){
       player.removeDescMod(scarecrowAbility)
     }
   }
@@ -255,8 +255,7 @@ class DarkMonkReaction extends Reaction {
     slot.otherPlayer.removeDescMod(IncrFireCostMod)
   }
 }
-class OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
-object PreacherAttackBonus extends OneAttackBonus with UniqueAttack
+object PreacherAttackBonus extends AttackAdd(1) with UniqueAttack
 case class LCAttack(half : Int) extends AttackFunc { def apply(attack : Int) = math.max(0, attack + half) }
 case object IncrBasicCostMod extends DescMod {
   def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
@@ -277,7 +276,7 @@ class FalseProphetReaction extends Reaction {
   final override def onMyDeath(dead : Dead){
     dead.player.houses.incrMana(-1, 0, 1, 2, 3)
   }
-  final override def cleanUp(player : PlayerUpdate){
+  final override def cleanUp(selected : Int, player : PlayerUpdate){
     player.removeDescMod(IncrBasicCostMod)
   }
 }

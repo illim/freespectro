@@ -190,7 +190,7 @@ class MoutainKing {
       }
     }
     private def runSlot(slot : SlotUpdate) = {
-      slot.slots.player.runSlot(slot.num, slot.get)
+      slot.player.runSlot(slot.num, slot.get)
     }
     override def selfProtect(d : Damage, slot : SlotUpdate) = {
       if (slot.get.data == Hird){
@@ -210,7 +210,7 @@ class MoutainKing {
   class MountainReaction extends Reaction {
     final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]) {
       if (slot.get.data == Hird){
-        setHird(false, slot.slots.player)
+        setHird(false, slot.player)
       }
     }
     final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
@@ -356,7 +356,7 @@ class CrossbowReaction extends Reaction {
   final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
     if (slot.get.data == Hird){
       slot.setData(null)
-      slot.slots.player.runSlot(slot.num, slot.get)
+      slot.player.runSlot(slot.num, slot.get)
     }
   }
 }

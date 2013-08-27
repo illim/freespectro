@@ -210,6 +210,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
 
   def addDescMod(dmods : DescMod*)   { write(value.copy(desc = value.desc.add(dmods : _*))) }
+  def insertDescMod(dmod : DescMod) { write(value.copy(desc = value.desc.insert(dmod))) }
   def removeDescMod(dmod : DescMod){ write(value.copy(desc = value.desc.remove(dmod))) }
 
   // sub optimal?

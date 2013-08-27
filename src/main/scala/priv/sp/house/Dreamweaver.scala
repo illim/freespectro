@@ -122,7 +122,7 @@ case object EtherealAttackSource extends AttackStateFunc {
 
 case object RocAttackSource extends AttackSlotStateFunc {
   def apply(attack : Int, slot : SlotUpdate) = {
-    if (slot.slots.player.otherPlayer.getSlots.isDefinedAt(slot.num)) {
+    if (slot.otherPlayer.getSlots.isDefinedAt(slot.num)) {
       attack
     } else {
       attack / 2

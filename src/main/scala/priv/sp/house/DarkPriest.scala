@@ -192,7 +192,7 @@ class DarkHydraAttack extends RunAttack {
     player.heal(d.amount)
     val slot = player.slots(num)
     if (slot.value.isDefined){
-      slot.attack.add(new OneAttackBonus) // TODO refactor
+      slot.attack.add(OneAttackBonus) // TODO refactor
     }
   }
 }

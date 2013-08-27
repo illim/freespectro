@@ -6,7 +6,8 @@ import priv.util.FieldUpdate
 
 // crap most functions suppose value is tested if well defined
 class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Some(slots), slots.value.get(num)){
-  import slots.{player, updater}
+  val updater = slots.updater
+  val player = slots.player
   val playerId = player.id
   val otherPlayerId = other(playerId)
   private lazy val attackUpdate = new AttackUpdate(this)
@@ -75,7 +76,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
       val s = get
       val event = Dead(num, s, player, None)
       remove(Some(event))
-      s.card.reaction.cleanUp(player)
+      s.card.reaction.cleanUp(num, player)
       slots.onDead(event)
     }
   }
@@ -102,7 +103,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val s = get
     val event = Dead(num, s, player, Some(d))
     remove(Some(event))
-    s.card.reaction.cleanUp(player)
+    s.card.reaction.cleanUp(num, player)
     slots.log(event)
   }
 }

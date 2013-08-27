@@ -115,7 +115,7 @@ object MasterOfWind {
 
   class WindEventListener extends HouseEventListener {
     def onAdd(slot : SlotUpdate){
-      val slotPlayer = slot.slots.player
+      val slotPlayer = slot.player
       if (slotPlayer.id == player.id){
         val data = player.value.data.asInstanceOf[WindState]
         if (data.winged){

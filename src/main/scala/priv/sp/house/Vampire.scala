@@ -103,7 +103,7 @@ class Vampire {
   class VampireEventListener extends HouseEventListener with AnyDeathEventListener {
     // broadcast enemy damage
     override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {
-      if (slot.slots.playerId != player.id){
+      if (slot.playerId != player.id){
         player.slots.foreach{ s =>
           val sc = s.get.card
           if (sc == acolyte && sc.reaction.onDamaged(card, amount, slot)){

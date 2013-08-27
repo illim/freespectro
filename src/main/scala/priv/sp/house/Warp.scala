@@ -193,8 +193,8 @@ class CloakSlotMod(cloaked : SlotState) extends SlotMod {
 }
 
 class MereMortalReaction(c : Creature) extends Reaction{
-  final override def cleanUp(player : PlayerUpdate){
-    c.reaction.cleanUp(player)
+  final override def cleanUp(selected : Int, player : PlayerUpdate){
+    c.reaction.cleanUp(selected, player)
   }
 }
 

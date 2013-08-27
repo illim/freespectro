@@ -1,3 +1,4 @@
+
 package priv.sp.house
 
 import priv.sp._
@@ -5,6 +6,7 @@ import priv.sp.update._
 import CardSpec._
 import GameCardEffect._
 
+case object OneAttackBonus extends AttackFunc { def apply(attack : Int) = attack + 1 }
 case class AttackAdd(bonus : Int) extends AttackFunc { def apply(attack : Int) = attack + bonus }
 
 class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
@@ -97,6 +99,19 @@ trait DamageAttack {
         val oldl = otherPlayer.value.life
         otherPlayer.inflict(d)
         oldl - otherPlayer.value.life
+      case Some(slotState) =>
+        val oldl = slotState.life
+        slot.inflict(d)
+        val newl = slot.value.map(_.life) getOrElse 0
+        oldl - newl
+    }
+  }
+
+  def damageCreatureAndGet(num : Int, d : Damage, player : PlayerUpdate) = {
+    val otherPlayer = player.otherPlayer
+    val slot = otherPlayer.slots(num)
+    slot.value match {
+      case None => 0
       case Some(slotState) =>
         val oldl = slotState.life
         slot.inflict(d)
