@@ -9,18 +9,19 @@ object Shaman {
 
   val wolf = Creature("ghost wolf", Attack(2), 18, reaction = new WolfReaction, runAttack = new WolfAttack,
                       effects = effects(Direct -> disableWolf))
-  val shadow = Creature("Wolf shadow", Attack(4), 50, "all cards which affect wolf affect wolf shadow as well.\nWhen enters the game, its neighbours attack immediately.",
+  val shadow = Creature("Wolf shadow", AttackSources(Some(4)).add(new ShadowAttack), 45, "all cards which affect wolf affect wolf shadow as well.\nWhen enters the game, its neighbours attack immediately.",
+                        reaction = new WolfShadowReaction,
                         effects = effects(Direct -> shade),
                         runAttack = new WolfAttack)
 
-  val Shaman : House = House("Shaman", List(
+  val Shaman : House = House("BuggedShaman", List(
     Spell("Unappeasable Hunger", "wolf receives +X attack (X - attack of target creature) for 1 turn.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> hunger)),
     Creature("Spirit of rage", Attack(2), 10, "when enters the game, permanently increases attack of neighbours by 1.", effects = effects(Direct -> rage)),
     Spell("Power of full moon", "permanently decreases damage dealt to wolf by 1 and\nheals 8 life to his neighbours and owner.", effects = effects(Direct -> fullMoon)),
     Spell("Phantom fury", "Deals 8 damage to all enemy creatures and\n permanently increases wolf attack by 1\nfor each creature died this turn.", effects = effects(Direct -> phantomFury)),
-    Creature("Spirit protector", Attack(4), 23, "while protector remains in the game, all damage received by owner\nwill be decreased by 2,\nand enemy spells will heal wolf instead of damaging.", reaction = new ProtectorReaction),
+    Creature("Spirit protector", Attack(4), 20, "while protector remains in the game, all damage received by owner\nwill be decreased by 2,\nand enemy spells will heal wolf instead of damaging.", reaction = new ProtectorReaction),
     Creature("Spirit hunter", Attack(6), 34, "while hunter remains in the game, wolf gets +2 attack and\nheals himself on the dealt damage when attacks.",
              reaction = new HunterReaction,
              effects = effects(Direct -> hunt)),
@@ -31,6 +32,10 @@ object Shaman {
     effects = List(OnStart -> initWolf),
     data = WolfState(), eventListener = Some(new CustomListener(new ShamanEventListener)))
 
+  val additionalCards = List(wolf)
+  wolf.cost = 2
+  wolf.houseIndex = 4
+  wolf.houseId = Shaman.houseId
   Shaman.initCards(Houses.basicCostFunc)
 
   def initWolf = { env : Env =>
@@ -52,6 +57,15 @@ object Shaman {
       if (isWolf(card)){
         s :: acc
       } else acc
+    }
+  }
+
+  class ShadowAttack extends AttackStateFunc {
+    def apply(attack : Int, player : PlayerUpdate) : Int = {
+      player.slots.findCard(wolf) match {
+        case Some(s) => attack + s.get.attack - 2
+        case None => attack
+      }
     }
   }
 
@@ -78,7 +92,7 @@ object Shaman {
 
   def phantomFury = { env : Env =>
     import env._
-    val damage = Damage(8, Context(env.playerId, None, selected), isSpell = true)
+    val damage = Damage(7, Context(env.playerId, None, selected), isSpell = true)
     otherPlayer.slots.inflictCreatures(damage)
     val wolves = findWolves(player.slots).map(_.num)
     env.player.updateData[WolfState](_.copy(furyWolves = wolves))
@@ -126,7 +140,7 @@ object Shaman {
       override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
         import d._
         if (target.isEmpty){
-          damage.copy(amount = math.ceil(damage.amount / 2.0).intValue)
+          damage.copy(amount = math.max(0, damage.amount - 2).intValue)
         } else {
           if (d.damage.isSpell){
             val slot = selected.slots(d.target.get)
@@ -142,17 +156,19 @@ object Shaman {
       }
   }
 
-  class WolfReaction extends Reaction {
+  class WolfShadowReaction extends Reaction {
       override def selfProtect(d : Damage, slot : SlotUpdate) = {
         val wolfState = slot.player.value.data.asInstanceOf[WolfState]
         if (wolfState.protection != 0){
           d.copy(amount = math.max(0, d.amount - wolfState.protection))
         } else d
       }
+  }
 
-      override def cleanUp(selected : Int, player : PlayerUpdate) {
-        player.insertDescMod(WolfMod)
-      }
+  class WolfReaction extends WolfShadowReaction {
+    override def cleanUp(selected : Int, player : PlayerUpdate) {
+      player.insertDescMod(WolfMod)
+    }
   }
 
   val wolfDesc = CardDesc(wolf, 2, true)
@@ -199,6 +215,7 @@ class RemoveFury extends Function[Env, Unit]{
     env.player.updateData[WolfState](_.copy(furyWolves = Nil))
   }
 }
+
 
 private class WolfAttack extends RunAttack with DamageAttack {
 

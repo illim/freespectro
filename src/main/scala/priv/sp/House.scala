@@ -84,6 +84,7 @@ class Houses
   private val allHouses = base ++ special
   private val allCards = {
     (allHouses.flatMap(_.cards)
+    ++ shaman.additionalCards
     ++ lostChurch.additionalCards
     ++ highPriest.additionalCards)
   }
