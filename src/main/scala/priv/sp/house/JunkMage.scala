@@ -14,18 +14,18 @@ class JunkMage {
   import CardSpec._
   import GameCardEffect._
 
-  private val trashCyborg = Creature("Trash Cyborg", Attack(3), 30, "Fill the board with trash 2/11 and one cyborg.\nEvery turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
+  private val trashCyborg = new Creature("Trash Cyborg", Attack(3), 30, "Fill the board with trash 2/11 and one cyborg.\nEvery turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
 
   val Junk : House = House("Junk", List(
-    Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
+    new Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
     Spell("Poison flower", "Deals 5 damage to target and creatures around.\nDeals -1 mana for opponent ones.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> poisonFlower)),
-    Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
-    Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
-    Creature("Roaming assassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\nIf mirror position is blocked, heal factory by 5", reaction = new FactoryReaction),
-    Creature("Recycling Bot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
+    new Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = Boolean.box(false)),
+    new Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
+    new Creature("Roaming assassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
+    new Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\nIf mirror position is blocked, heal factory by 5", reaction = new FactoryReaction),
+    new Creature("Recycling Bot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg), eventListener = Some(new CustomListener(new JunkEventListener)))
 
   val jf = Junk.cards(2).asCreature
@@ -106,7 +106,7 @@ class JunkMage {
   }
 
   private class ScreamerReaction extends Reaction {
-    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    final override def onAdd(slot : SlotUpdate) = {
       if (slot.get.card == screamer){
         setScreamerDirty(slot.slots)
       }
@@ -135,7 +135,7 @@ class JunkMage {
       player.slots.foldl(damage) { (acc, s) =>
         val sc = s.get.card
         if (sc == jf){
-          s.get.card.reaction.onProtect(s, DamageEvent(acc, Some(slot.num), player))
+          s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
         } else acc
       }
     }
@@ -150,7 +150,7 @@ class JunkMage {
 }
 
 class JFReaction extends Reaction {
-  final override def onProtect(selected : SlotUpdate, d : DamageEvent) = {
+  final override def onProtect(d : DamageEvent) = {
     import d._
     if (!selected.get.data.asInstanceOf[Boolean]
         && (d.target.isEmpty || player.slots(d.target.get).get.card.cost < 4)){
@@ -164,20 +164,20 @@ class JFReaction extends Reaction {
 trait MirrorSummon extends Reaction {
   def maxCost : Int
   var healIfNoMirror = 0
-  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {
+  final override def onSummon(summoned : SummonEvent) {
     import summoned._
-    val step = selected - num
-    if (selectedPlayerId == player.id
+    val step = selected.num - num
+    if (selected.playerId == player.id
         && math.abs(step) == 1
         && card.cost < maxCost + 1){
-      val pos = selected + step
+      val pos = selected.num + step
       if (player.value.isInSlotRange(pos)){
         val slot = player.slots(pos)
         if (slot.value.isEmpty){
-          player.updater.focus(selected, player.id)
+          selected.focus()
           slot.add(card)
         } else if (healIfNoMirror != 0){
-          player.slots(selected).heal(healIfNoMirror)
+          selected.heal(healIfNoMirror)
         }
       }
     }
@@ -185,9 +185,9 @@ trait MirrorSummon extends Reaction {
 }
 class ChainControllerReaction extends MirrorSummon {
   val maxCost = 3
-  final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
+  final override def onDeath(dead : Dead){
     import dead._
-    val step = num - selected
+    val step = num - selected.num
     if (card.cost < 6 && math.abs(step) == 1){
       def getAt(n : Int) = {
         if (player.value.isInSlotRange(n)){
@@ -198,8 +198,8 @@ class ChainControllerReaction extends MirrorSummon {
         } else None
       }
 
-      (getAt(num + step) orElse getAt(selected - step)).foreach{ dest =>
-        player.updater.focus(selected, player.id)
+      (getAt(num + step) orElse getAt(selected.num - step)).foreach{ dest =>
+        selected.focus()
         player.slots.move(dest, num)
       }
     }
@@ -212,15 +212,14 @@ class FactoryReaction extends MirrorSummon {
 }
 
 class RecyclingBotReaction extends Reaction {
-  final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
+  final override def onDeath(dead : Dead){
     import dead._
-    val selectedSlot = player.slots(selected)
-    selectedSlot.value.foreach{ botSlot =>
-      player.updater.focus(selected, player.id)
+    selected.value.foreach{ botSlot =>
+      selected.focus()
       if (botSlot.life == botSlot.card.life) {
         player.heal(2)
       } else {
-        selectedSlot.heal(10)
+        selected.heal(10)
       }
     }
   }

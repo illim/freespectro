@@ -13,10 +13,10 @@ import CardSpec._
  */
 object MasterOfWind {
 
-  val spirit = Creature("The spirit of thunderstorm", Attack(2), 30, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
+  val spirit = new Creature("The spirit of thunderstorm", Attack(2), 30, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
 
   val Wind : House = House("Wind", List(
-    Creature("Winged Warrior", Attack(4), 9, "next creature summoned will attack on the same turn as summoned.", effects = effects(Direct -> winge)),
+    new Creature("Winged Warrior", Attack(4), 9, "next creature summoned will attack on the same turn as summoned.", effects = effects(Direct -> winge)),
     Spell("Simoom", "Stuns target elemental creature, gives X mana\nX = half of cost of that creature\n(it will be rounded down).",
       inputSpec = Some(SelectTarget(nonSpecial)),
       effects = effects(Direct -> simoom)),
@@ -105,7 +105,7 @@ object MasterOfWind {
   }
 
   class SpiritThunderReaction extends Reaction {
-    def onNoCommand(selected : SlotUpdate) = {
+    def onNoCommand = {
       val damage = Damage(3, Context(selected.playerId, Some(spirit), selected.num), isAbility = true)
       val otherPlayer = selected.otherPlayer
       otherPlayer.inflict(damage)
@@ -127,8 +127,8 @@ object MasterOfWind {
     override def interceptSubmit(commandOption : Option[Command]) : (Boolean, Option[Command]) = {
       if (commandOption.isEmpty){
         player.slots.foreach{ s =>
-          s.get.card.reaction match {
-            case sr : SpiritThunderReaction => sr.onNoCommand(s)
+          s.get.reaction match {
+            case sr : SpiritThunderReaction => sr.onNoCommand
             case _ =>
           }
         }
@@ -151,3 +151,4 @@ object MasterOfWind {
 }
 
 case class WindState(winged : Boolean = false, vortex : Boolean = false)
+

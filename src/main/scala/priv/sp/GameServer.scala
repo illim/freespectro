@@ -27,7 +27,7 @@ trait GameServer {
   // None implies surrender
   def waitNextCommand(c : TVar[Option[Option[Command]]], state : GameState)
   def submitCommand(commandOption : Option[Command])
-  def resetSeed(){  println("RESET " + seed); Random.setSeed(seed) }
+  def resetSeed(){ Random.setSeed(seed) }
   def reset(){ }
   def surrender(){ }
   var abort = { () => }

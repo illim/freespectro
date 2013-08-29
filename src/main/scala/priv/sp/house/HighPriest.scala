@@ -19,34 +19,34 @@ import CardSpec._
  */
 object HighPriest {
 
-  val apis = Creature("Apis", Attack(4), 20, "Every turn gives to owner 1 special power and\n3 hp for each other apis on the board.", effects = effects(OnTurn -> apisEffect))
-  val sphynx =  Creature("Sphinx", Attack(8), 24, "When dies, leaves puzzle 0/6.\nIf puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new SphinxReaction)
-  val puzzle = Creature("puzzle", Attack(0), 6, "If puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new PuzzleReaction)
-  val ouroboros = Creature("Ouroboros", Attack(6), 38, "At the beginning of owner's turn summons in nearest empty slot\nserpent of eternity.", effects = effects(OnTurn -> ouro))
-  val serpent = Creature("serpent of eternity", Attack(2), 8, "At the end of opponent's turn serpent dies and heals X hp to owner and Ouroboros (X = its remaining hp).")
-  val sunStone = Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and\nincreases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
-  val guardianMummy = Creature("guardian mummy", Attack(4), 20)
-  val dragonOfRa = Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
-  val babi = Creature("Babi", Attack(6), 23, "When opponent's power grows, deals the same damage to opposite creature.", reaction = new BabiReaction)
-  val amit = Creature("Ammit", Attack(9), 39, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
+  val apis = new Creature("Apis", Attack(4), 20, "Every turn gives to owner 1 special power and\n3 hp for each other apis on the board.", effects = effects(OnTurn -> apisEffect))
+  val sphynx =  new Creature("Sphinx", Attack(8), 24, "When dies, leaves puzzle 0/6.\nIf puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new SphinxReaction)
+  val puzzle = new Creature("puzzle", Attack(0), 6, "If puzzle was destroyed by enemy creature, sphinx reborns with halved hp.\nIf puzzle was destroyed by enemy spell or ability,\nopponent loses 3 power of highest element.", reaction = new PuzzleReaction)
+  val ouroboros = new Creature("Ouroboros", Attack(6), 38, "At the beginning of owner's turn summons in nearest empty slot\nserpent of eternity.", effects = effects(OnTurn -> ouro))
+  val serpent = new Creature("serpent of eternity", Attack(2), 8, "At the end of opponent's turn serpent dies and heals X hp to owner and Ouroboros (X = its remaining hp).")
+  val sunStone = new Creature("sun stone", Attack(0), 22, "increases damage from owner spells by 2 and\nincreases Ra's attack by 1 every turn", mod = Some(new SpellMod(x => x + 2)), effects = effects(OnTurn -> incrRaAttack))
+  val guardianMummy = new Creature("guardian mummy", Attack(4), 20)
+  val dragonOfRa = new Creature("Winged dragon of Ra", Attack(6), 45, "When enters the game, summons sun stone in nearest empty slot.", effects = effects(Direct -> ra))
+  val babi = new Creature("Babi", Attack(6), 23, "When opponent's power grows, deals the same damage to opposite creature.", reaction = new BabiReaction)
+  val amit = new Creature("Ammit", Attack(9), 39, "When any creature dies, deals to its owner damage equal to his power\nof that element and gives 1 special power to owner.", reaction = new AmitReaction)
 
   val hpSet = List[Card](
-    Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
-    Creature("Serpopard", Attack(4), 18, "When owner summons special creature, moves in nearest unblocked slot\nand doubles attack for 1 turn.", reaction = new SerpoReaction),
-    Creature("Anubite", Attack(5), 20, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
+    new Creature("Ancient crocodile", Attack(8), 15, "when attacks, skips next turn (digestion).", runAttack = new CrocodileAttack),
+    new Creature("Serpopard", Attack(4), 18, "When owner summons special creature, moves in nearest unblocked slot\nand doubles attack for 1 turn.", reaction = new SerpoReaction),
+    new Creature("Anubite", Attack(5), 20, "When kills creature, summon in nearest empty slot guarding mummy.", runAttack = new AnubiteAttack),
     babi,
     Spell("Curse of chaos", "Deals to target creature and its neighbors damage equal to their total attack.",
           inputSpec = Some(SelectTargetCreature),
           effects = effects(Direct -> curse)),
     Spell("Simooom", "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
     amit,
-    Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep, OnEndTurn -> apepOpp), runAttack = MultiTargetAttack))
+    new Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep, OnEndTurn -> apepOpp), runAttack = MultiTargetAttack))
 
   val HighPriest = House("High Priest", List(
-    Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
-    Creature("Sun priest", Attack(3), 16, "When attacks, deals to all enemy creatures damage equal to\nowner's lowest power.", runAttack = new SunPriestAttack),
+    new Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),
+    new Creature("Sun priest", Attack(3), 16, "When attacks, deals to all enemy creatures damage equal to\nowner's lowest power.", runAttack = new SunPriestAttack),
     apis,
-    Creature("Bennu", Attack(5), 21, "If killed by enemy card, attacks opposite slot with tripled attack\nbefore death.", reaction = new BennuReaction),
+    new Creature("Bennu", Attack(5), 21, "If killed by enemy card, attacks opposite slot with tripled attack\nbefore death.", reaction = new BennuReaction),
     Spell("Eye of wajet", "heals to owner and his creatures 1 hp for each revealed enemy card and\ndeals the same damage to all enemies.", effects = effects(Direct -> wajet)),
     sphynx,
     ouroboros,
@@ -225,7 +225,7 @@ object HighPriest {
   }
 
   class BabiReaction extends Reaction {
-    final override def onAdd(selected : SlotUpdate, slot : SlotUpdate) = {
+    final override def onAdd(slot : SlotUpdate) = {
       if (selected.num == slot.num){
         val mana = selected.otherPlayer.getHouses.map(_.mana).sum
         selected.setData(new Integer(mana))
@@ -249,11 +249,11 @@ object HighPriest {
   }
 
   class AmitReaction extends Reaction {
-    final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
+    final override def onDeath(dead : Dead){
       val power = dead.player.getHouses(dead.card.houseIndex).mana
-      dead.player.inflict(Damage(power, Context(playerId, Some(amit), selected), isAbility = true))
+      dead.player.inflict(Damage(power, Context(selected.playerId, Some(amit), selected.num), isAbility = true))
       dead.player.houses.incrMana(1, 4)
-      dead.player.slots(selected).focus()
+      selected.focus()
     }
   }
 
@@ -300,7 +300,7 @@ object HighPriest {
       }
       p.otherPlayer.houses.update.after{ houses =>
         player.slots.foreach{ s => // crap
-          s.get.card.reaction match {
+          s.get.reaction match {
             case br : BabiReaction => br.reactIncrMana(houses, s)
             case _ =>
           }
@@ -312,9 +312,9 @@ object HighPriest {
 }
 
 class ScarabReaction extends Reaction {
-  override def selfProtect(d : Damage, slot : SlotUpdate) = {
+  override def selfProtect(d : Damage) = {
     if (d.isSpell) d else {
-      val nbAdjs = slot.adjacentSlots.count(_.value.isDefined)
+      val nbAdjs = selected.adjacentSlots.count(_.value.isDefined)
       if (nbAdjs != 0){
         d.copy(amount = math.max(0, d.amount - 2 * nbAdjs))
       } else d
@@ -347,24 +347,24 @@ class CrocodileAttack extends RunAttack {
 // hack for zen guard
 case object BennuDead
 class BennuReaction extends Reaction {
-  final override def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){
+  final override def onMyRemove(dead : Option[Dead]){
     // Bullshit ?
-    if (slot.get.data != BennuDead && !dead.exists(_.damage.exists(_.context.playerId == slot.playerId))) {
-      slot.attack.add(AttackFactor(3f))
-      slot.setData(BennuDead)
-      slot.updater.updateListener.refresh()
-      slot.player.runSlot(slot.num, slot().get)
+    if (selected.get.data != BennuDead && !dead.exists(_.damage.exists(_.context.playerId == selected.playerId))) {
+      selected.attack.add(AttackFactor(3f))
+      selected.setData(BennuDead)
+      selected.updater.updateListener.refresh()
+      selected.player.runSlot(selected.num, selected().get)
     }
   }
 }
 
 class SerpoReaction extends Reaction {
-  final override def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) = {
+  final override def onSummon(summoned : SummonEvent) = {
     import summoned._
-    if (selected != num && card.houseIndex == 4 && selectedPlayerId == player.id){
-      nearestSlotOpposed(selected, player, opposed = false).foreach{ n =>
+    if (selected.num != num && card.houseIndex == 4 && selected.playerId == player.id){
+      nearestSlotOpposed(selected.num, player, opposed = false).foreach{ n =>
         val slots = player.slots
-        slots.move(selected, n)
+        slots.move(selected.num, n)
         val bonus = AttackFactor(2f)
         slots(n).attack.add(bonus)
         player.addEffect(OnEndTurn -> { env : Env =>
@@ -379,3 +379,4 @@ class SerpoReaction extends Reaction {
 }
 
 case class HPriestData(revealeds : Set[(Int, Int)] = Set.empty, numTurn : Int = 0)
+

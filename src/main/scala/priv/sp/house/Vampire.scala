@@ -15,22 +15,22 @@ class Vampire {
     Spell("Dark flock", "Moves owner's creature with lowest hp in target slot\nand makes it invulnerable for 1 turn if its level is not higher than 9.",
           inputSpec = Some(SelectOwnerSlot),
           effects = effects(Direct -> darkFlock)),
-    Creature("Noctule", Attack(5), 17, "When deals damage to opponent, heals owner the same amount of life.", runAttack = new NoctuleAttack),
-    Creature("Ghoul", Attack(4), 20, "If opposite creature has less than 11 life, kills it at one blow.", runAttack = new GhoulAttack),
-    Creature("Acolyte", Attack(3), 21, "When enemy creature receives more than 8 damage,\ngives owner 1 mana of the same element.", reaction = new AcolyteReaction),
+    new Creature("Noctule", Attack(5), 17, "When deals damage to opponent, heals owner the same amount of life.", runAttack = new NoctuleAttack),
+    new Creature("Ghoul", Attack(4), 20, "If opposite creature has less than 11 life, kills it at one blow.", runAttack = new GhoulAttack),
+    new Creature("Acolyte", Attack(3), 21, "When enemy creature receives more than 8 damage,\ngives owner 1 mana of the same element.", reaction = new AcolyteReaction),
     Spell("Blood ties", "destroys owner's creature and permanently increases attack of\nits neighbors by its attack\n(doesn't affect creatures with mass attack and creatures of level > 9)",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> bloodTies)),
-    Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2.", reaction = new NosferatuReaction),
-    Creature("Aristocrat", Attack(7), 36, "At the beginning of turn moves in slot opposite to opponent's creature with\nlowest hp(can switch places with friendly creature).\nWhen kills creature deals opponent damage equal to its attack.", runAttack = new AristoAttack, effects = effects(OnTurn -> aristo)),
-    Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", reaction = new MansionReaction, effects = effects(Direct -> ghoulify))), eventListener = Some(new CustomListener(new VampireEventListener)))
+    new Creature("Nosferatu", Attack(5), 34, "When creature dies, heals owner by 3 and himself by 2.", reaction = new NosferatuReaction),
+    new Creature("Aristocrat", Attack(7), 36, "At the beginning of turn moves in slot opposite to opponent's creature with\nlowest hp(can switch places with friendly creature).\nWhen kills creature deals opponent damage equal to its attack.", runAttack = new AristoAttack, effects = effects(OnTurn -> aristo)),
+    new Creature("Mansion", Attack(0), 40, "When owner's non-special creature dies, replaces it with neophyte 5/14.\nOn entering the game turns its neighbors into ghouls.", reaction = new MansionReaction, effects = effects(Direct -> ghoulify))), eventListener = Some(new CustomListener(new VampireEventListener)))
 
   val ghoul      = Vampire.cards(2).asCreature
   val acolyte    = Vampire.cards(3).asCreature
   val aristocrat = Vampire.cards(6).asCreature
   Vampire.initCards(Houses.basicCostFunc)
 
-  val neophyte = Creature("Neophyte", Attack(5), 14, "Heals himself half of damage dealt to enemies.", runAttack = new NeophyteAttack)
+  val neophyte = new Creature("Neophyte", Attack(5), 14, "Heals himself half of damage dealt to enemies.", runAttack = new NeophyteAttack)
 
   neophyte.houseIndex = Vampire.houseIndex
   neophyte.houseId = Vampire.houseId
@@ -92,9 +92,9 @@ class Vampire {
   }
 
   class MansionReaction extends Reaction {
-    final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
+    final override def onDeath(dead : Dead){
       import dead._
-      if (playerId == player.id && card.houseIndex < 4){
+      if (selected.playerId == player.id && card.houseIndex < 4){
         player.slots(num).add(neophyte)
       }
     }
@@ -106,7 +106,7 @@ class Vampire {
       if (slot.playerId != player.id){
         player.slots.foreach{ s =>
           val sc = s.get.card
-          if (sc == acolyte && sc.reaction.onDamaged(card, amount, slot)){
+          if (sc == acolyte && s.get.reaction.onDamaged(card, amount)){
             s.focus(blocking = false)
           }
         }
@@ -148,17 +148,16 @@ private class GhoulAttack extends RunAttack {
 }
 
 class NosferatuReaction extends Reaction {
-  final override def onDeath(selected : Int, playerId : PlayerId, dead : Dead){
-    val p = dead.player.updater.players(playerId)
-    p.slots(selected).heal(2)
-    p.heal(3)
+  final override def onDeath(dead : Dead){
+    selected.heal(2)
+    selected.player.heal(3)
   }
 }
 
 class AcolyteReaction extends Reaction {
-  override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = {
+  override def onDamaged(card : Creature, amount : Int) = {
     if (amount > 8){
-      slot.otherPlayer.houses.incrMana(1, card.houseIndex)
+      selected.otherPlayer.houses.incrMana(1, card.houseIndex)
       true
     } else false
   }

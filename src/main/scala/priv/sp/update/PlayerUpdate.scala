@@ -216,7 +216,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   // sub optimal?
   private def guard(damage : Damage) = {
     slots.foldl(damage) { case (acc, slot) =>
-      slot.get.card.reaction.onProtect(slot, DamageEvent(acc, None, this))
+      slot.get.reaction.onProtect(DamageEvent(acc, None, this))
     }
   }
 
@@ -242,7 +242,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     def updateElementals(){
       if (getSlots.exists(_._2.card.attack.base.isEmpty)){ // bs
         slots.foreach { slot =>
-          if (slot.attack.value.base.isEmpty){
+          if (slot.attack.get.base.isEmpty){
             slot.attack.setDirty() // force reeval
           }
         }

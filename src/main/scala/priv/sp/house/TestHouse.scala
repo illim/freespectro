@@ -1,4 +1,4 @@
-package priv.sp.house
+/**package priv.sp.house
 
 import priv.sp._
 import priv.sp.update._
@@ -38,3 +38,4 @@ class TestMage {
   }
 }
 
+*/

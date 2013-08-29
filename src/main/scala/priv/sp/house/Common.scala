@@ -57,7 +57,7 @@ trait OwnerDeathEventListener extends HouseEventListener {
           if (s.num != dead.num) {
             val card = s.get.card
             if (card.isSpecial){
-              card.reaction.onDeath(s.num, player.id, dead)
+              s.get.reaction.onDeath(dead)
             }
           }
         }
@@ -75,7 +75,7 @@ trait AnyDeathEventListener extends HouseEventListener {
         if (dead.player.id != player.id || s.num != dead.num){
           val card = s.get.card
           if (card.isSpecial){
-            card.reaction.onDeath(s.num, player.id, dead)
+            s.get.reaction.onDeath(dead)
           }
         }
       }

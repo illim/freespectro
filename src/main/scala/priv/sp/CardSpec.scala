@@ -42,21 +42,23 @@ sealed abstract class Card extends Externalizable {
   protected def readResolve() : Object = HouseSingleton.getCardById(id)  // this is not great(dunno if i can plug somewhere a serializer for this type)
 }
 
-case class Creature(
-  name : String,
-  attack : AttackSources,
-  life : Int,
-  description : String = "",
-  inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
+class Creature(
+  val name : String,
+  val attack : AttackSources,
+  val life : Int,
+  val description : String = "",
+  val inputSpec   : Option[CardInputSpec] = Some(SelectOwnerSlot),
   var effects : Array[Option[CardSpec.Effect]] = CardSpec.noEffects,
-  mod         : Option[Mod] = None,
-  var reaction: Reaction = CardSpec.defaultReaction,
-  data        : AnyRef = null, // initialize slot custom data
-  runAttack   : RunAttack = SingleTargetAttack,
-  isAltar     : Boolean = false,
-  status      : Int = 0) extends Card {
+  val mod         : Option[Mod] = None,
+  reaction        : => Reaction = new Reaction,
+  val data        : AnyRef = null, // initialize slot custom data
+  val runAttack   : RunAttack = SingleTargetAttack,
+  val isAltar     : Boolean = false,
+  val status      : Int = 0) extends Card {
 
   def this() = this(null, AttackSources(), 0)
+
+  def newReaction = reaction
 
   final def inflict(damage : Damage, life : Int) = life - damage.amount
 
@@ -141,7 +143,7 @@ object CardSpec {
       effects.foreach(_(env))
     }
   }
-  val defaultReaction = new Reaction
+  val defaultReaction = () => new Reaction
 }
 
 trait Mod
@@ -165,34 +167,42 @@ trait SlotMod {
   def apply(slotState : SlotState) : SlotState
 }
 
+// some crap
+trait Actions {
+  protected var selected : SlotUpdate = null
+  def use(s : SlotUpdate){ selected = s }
+  def heal(amount : Int) {  selected.write(Some(SlotState.addLife(selected.get, amount)))  }
+  def inflict(damage : Damage){ selected.damageSlot(damage)  }
+  def destroy() { selected.privDestroy() }
+  def stun()    { selected.toggle(CardSpec.stunFlag) }
+}
 object Reaction {
   val falseNone = (false, None)
 }
-class Reaction {
-  def onAdd(selected : SlotUpdate, slot : SlotUpdate){}
-  def onRemove(selected : SlotUpdate, slot : SlotUpdate){}
+class Reaction extends Actions {
+  def onAdd(slot : SlotUpdate){}
+  def onRemove(slot : SlotUpdate){}
 
   // used by stone golem and archphoenix where overriding inflict doesn't suffice, because needs to know the context => TODO remove overrided inflict
-  def selfProtect(d : Damage, slot : SlotUpdate) = d
+  def selfProtect(d : Damage) = d
   // used by black monk to heal by the amount even when dying, and by errant to wakeup
-  def onMyDamage(amount : Int, slot : SlotUpdate){}
+  def onMyDamage(amount : Int){}
   // /!\ the slot is not yet empty but is about to (used for f5, f7, schizo, crossbow)
-  def onMyRemove(slot : SlotUpdate, dead : Option[Dead]){}
+  def onMyRemove(dead : Option[Dead]){}
   def onMyDeath(dead : Dead) {}
   // TODO call this from house listener?
-  def onSummon(selected : Int, selectedPlayerId : PlayerId, summoned : SummonEvent) {}
-  def onSpawnOver(slot : SlotUpdate) : Option[SlotMod] = { slot.destroy(); None }
-  def onOverwrite(c : Creature, slot : SlotUpdate) {}
-  def cleanUp(selected : Int, player : PlayerUpdate){} // bs for warp
+  def onSummon(summoned : SummonEvent) {}
+  def onSpawnOver : Option[SlotMod] = { selected.destroy(); None }
+  def onOverwrite(c : Creature) {}
+  def cleanUp(){} // bs for warp
 
   /**
    * Events that needs to be broadcasted manually in a house listener
    */
   // broadcast is already done for player target (for ice guard)
-  def onProtect(selected : SlotUpdate, d : DamageEvent) = d.damage
-  // playerId allow to specify which player is notified, in case we need death event from both players.
-  def onDeath(selected : Int, playerId : PlayerId, dead : Dead) {}
-  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = false
+  def onProtect(d : DamageEvent) = d.damage
+  def onDeath(dead : Dead) {}
+  def onDamaged(card : Creature, amount : Int) = false
 }
 
 trait RunAttack {
