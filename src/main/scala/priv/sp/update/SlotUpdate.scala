@@ -31,6 +31,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   def toggle(flag : Int)      { write(value.map(x => x.copy(status = x.status | flag))) }
   def toggleOff(flag : Int)   { write(value.map(x => x.copy(status = x.status & (~ flag)))) }
   def setData(data : AnyRef)  { write(value.map(_.copy( data = data))) }
+  def setTarget(target : List[Int]) { write(value.map(_.copy( target = target))) }
 
   // -- code horror to intercept heal/inflict
   def heal(amount : Int)      { if (value.isDefined) get.reaction.heal(amount) }
@@ -58,6 +59,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slots.reactAdd(this)
   })
 
+  // /!\ don't call it directly (use inflict)
   def damageSlot(damage : Damage) = {
     if (value.isDefined) {
       val slotState = get
@@ -84,7 +86,6 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val s = get
     val event = Dead(num, s, player, None)
     remove(Some(event))
-    s.reaction.cleanUp()
     slots.onDead(event)
   }
 
@@ -94,6 +95,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slots.reactRemove(this)
     val result = apply().get
     attackUpdate.invalidate() // FIXME hack?
+    slotState.reaction.cleanUp()
     write(None)
     result
   }
@@ -106,7 +108,6 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val s = get
     val event = Dead(num, s, player, Some(d))
     remove(Some(event))
-    s.reaction.cleanUp()
     slots.log(event)
   }
 }

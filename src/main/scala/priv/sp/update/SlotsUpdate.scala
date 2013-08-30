@@ -37,7 +37,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
 
   def inflictCreatures(damage : Damage) {
     val d = mod(damage)
-    foreach( _.damageSlot(d))
+    foreach( _.get.reaction.inflict(d))
   }
 
   def summon(num : Int, card : Creature) {
@@ -72,7 +72,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
           SlotState(
             removed.card, removed.life, removed.status,
             removed.attackSources, getAttack(slotDest, removed.attackSources) ,
-            Some(dest), removed.id, removed.reaction, removed.data))
+            List(dest), removed.id, removed.reaction, removed.data))
         removed.reaction.use(slotDest)
       }
     }
@@ -87,7 +87,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   def buildSlotState(slot : SlotUpdate, card : Creature, id : Int = SlotState.currentId.incrementAndGet) = {
     val reaction = card.newReaction
     reaction.use(slot)
-    SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), Some(slot.num), id, reaction, card.data)
+    SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), List(slot.num), id, reaction, card.data)
   }
   def getAttack(slot : SlotUpdate, attackSources : AttackSources) = {
     (attackSources.base.getOrElse(0) /: attackSources.sources){ (acc, s) =>

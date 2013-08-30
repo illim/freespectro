@@ -214,7 +214,7 @@ object HighPriest {
   }
 
   class AnubiteAttack extends RunAttack {
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
       if (SingleTargetAttack.attack(target, d, player)){
         nearestEmptySlot(d.context.selected, player).foreach{ pos =>
           player.updater.focus(d.context.selected, player.id)
@@ -325,7 +325,7 @@ class ScarabReaction extends Reaction {
 class SunPriestAttack extends RunAttack {
   isMultiTarget = true
 
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
     SingleTargetAttack.apply(target, d, player)
     val massD = d.copy(amount = player.getHouses.minBy(_.mana).mana)
     player.otherPlayer.slots.inflictCreatures(massD)
@@ -335,7 +335,7 @@ class SunPriestAttack extends RunAttack {
 
 class CrocodileAttack extends RunAttack {
 
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
     SingleTargetAttack.apply(target, d, player)
     player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
     player.addEffect(OnTurn -> new CountDown(2, { env : Env =>

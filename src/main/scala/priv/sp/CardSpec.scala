@@ -207,34 +207,38 @@ class Reaction extends Actions {
 
 trait RunAttack {
   var isMultiTarget = false
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate)
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate)
 }
 object SingleTargetAttack extends RunAttack {
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
-    target match {
-      case Some(num) =>
+    if (target.isEmpty){
+      otherPlayer.inflict(d)
+    } else {
+      val hits = target.count{ num =>
         val slot = otherPlayer.slots(num)
-        if (slot.value.isEmpty) {
-          otherPlayer.inflict(d)
-        } else {
+        val test = slot.value.isDefined
+        if (test) {
           slot.inflict(d)
         }
-      case _ => otherPlayer.inflict(d)
+        test
+      }
+      if (hits < target.size) otherPlayer.inflict(d)
     }
   }
 
   // BS todo refactor
-  def attack(target : Option[Int], d : Damage, player : PlayerUpdate) = {
+  // return true if killed a creature
+  def attack(target : List[Int], d : Damage, player : PlayerUpdate) = {
     val otherSlots = player.otherPlayer.slots
-    val targetExists = target.exists{ num => otherSlots(num).value.isDefined}
+    val targetExists = target.filter{ num => otherSlots(num).value.isDefined}
     apply(target, d, player)
-    targetExists && otherSlots(target.get).value.isEmpty
+    targetExists.nonEmpty && targetExists.exists(num => otherSlots(num).value.isEmpty)
   }
 }
 object MultiTargetAttack extends RunAttack {
   isMultiTarget = true
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)
     otherPlayer.slots.inflictCreatures(d)

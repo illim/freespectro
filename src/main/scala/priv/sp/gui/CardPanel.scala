@@ -42,6 +42,11 @@ class CardPanel(playerId: PlayerId, game: Game) {
   })
   setEnabled(false)
 
+  var visibleCards = Set.empty[Card]
+  def addVisibleCard(c : Card){
+    visibleCards = visibleCards + c
+  }
+
   def getPositionOf(card : Card) = {
     val someCard = Some(card)
     cardButtons.find(_.card == someCard).map{ cardButton =>
@@ -52,6 +57,9 @@ class CardPanel(playerId: PlayerId, game: Game) {
   def refresh(silent : Boolean) {
     houseLabels.foreach(_.mana.refresh(silent))
     cardButtons.foreach(_.refresh())
+    cardButtons.foreach{ cb =>
+      cb.visible = playerId == game.myPlayerId || (cb.card.isDefined && visibleCards.contains(cb.card.get))
+    }
   }
   def setEnabled(flag: Boolean) {
     cardButtons.foreach{ btn =>

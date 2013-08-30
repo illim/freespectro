@@ -49,7 +49,7 @@ object MasterOfWind {
     val slot = otherPlayer.slots(selected)
     val card = slot.get.card
     if (card.houseIndex != 4) {
-      slot.toggle(stunFlag)
+      slot.stun()
       player.houses.incrMana(card.cost / 2 , card.houseIndex)
     }
   }
@@ -95,11 +95,11 @@ object MasterOfWind {
   def storm = { env : Env =>
     import env._
     player.slots.foreach{ s =>
-      s.write(s.value.map(_.copy(target = None)))
+      s.write(s.value.map(_.copy(target = Nil)))
     }
     player.addEffect(OnEndTurn -> { env : Env =>
       env.player.slots.foreach{ s =>
-        s.write(s.value.map(_.copy(target = Some(s.num))))
+        s.write(s.value.map(_.copy(target = List(s.num))))
       }
     })
   }

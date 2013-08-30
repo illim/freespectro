@@ -33,28 +33,11 @@ class ZenMage {
     houseId = Zen.houseId
   }
 
-  private class ElemAttack extends RunAttack {
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      val num = target.get
-      val otherPlayer = player.otherPlayer
-      otherPlayer.getSlots.get(num) match {
-        case None => otherPlayer.inflict(d)
-        case Some(oppositeSlot) =>
-          val h = oppositeSlot.card.houseIndex
-          otherPlayer.slots.foreach{ s =>
-            if (s.get.card.houseIndex == h){
-              s.inflict(d)
-            }
-          }
-      }
-    }
-  }
-
   private class RedlightAttack extends RunAttack {
     isMultiTarget = true
 
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      val num = target.get
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.head
       val otherPlayer = player.otherPlayer
       val bonus       = player.slots(num).adjacentSlots.count(_.value.isDefined)
       val targets     = if (bonus == 0) List(num) else (num -1 to num +1)
@@ -77,8 +60,8 @@ class ZenMage {
   private class SpiralAttack extends RunAttack {
     isMultiTarget = true
 
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      val num = target.get
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.head
       val otherPlayer = player.otherPlayer
 
       slotInterval(num - 2, num +2).foreach{ n =>
@@ -211,3 +194,19 @@ class ZenMage {
 
 object DreamCommandFlag extends CommandFlag
 
+class ElemAttack extends RunAttack {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.head
+    val otherPlayer = player.otherPlayer
+    otherPlayer.getSlots.get(num) match {
+      case None => otherPlayer.inflict(d)
+      case Some(oppositeSlot) =>
+        val h = oppositeSlot.card.houseIndex
+        otherPlayer.slots.foreach{ s =>
+          if (s.get.card.houseIndex == h){
+            s.inflict(d)
+          }
+        }
+    }
+  }
+}

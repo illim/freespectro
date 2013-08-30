@@ -158,8 +158,8 @@ object DarkPriest {
 
   class BlackAngelAttack extends RunAttack {
 
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-      val num = target.get
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+      val num = target.head
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
@@ -183,8 +183,8 @@ class BlackMonkReaction extends Reaction {
 
 class DarkHydraAttack extends RunAttack {
   isMultiTarget = true
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-    val num = target.get
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.head
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)
     otherPlayer.slots.inflictCreatures(d)

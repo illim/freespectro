@@ -85,10 +85,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
            nextCommandOpt match {
              case None => endGame(myPlayerId)
              case Some(nextCommand) =>
-               for{
-                 c <- nextCommand
-                 b <- cardPanels(player).cardButtons.find(_.card == Some(c.card))
-               } b.visible = true
+               nextCommand.foreach{ c =>
+                 cardPanels(player).addVisibleCard(c.card)
+               }
                submit(nextCommand, player)
            }
          }

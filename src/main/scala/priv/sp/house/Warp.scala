@@ -86,7 +86,9 @@ class Warp {
 
   def bridle(s : SlotState, slot : SlotUpdate){
     val c = cache.getOrElseUpdate(s.card, new MereMortal(s.card))
-    slot.write(Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, c.newReaction, s.data)))
+    val reaction = c.newReaction
+    reaction.use(slot)
+    slot.write(Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data)))
   }
   def unbridle(slot : SlotUpdate) {
     slot.value.foreach{ s =>
@@ -147,7 +149,7 @@ class Warp {
 
 class ErrantAttack extends RunAttack {
 
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
     if (SingleTargetAttack.attack(target, d, player)){
       player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
     }
@@ -183,7 +185,7 @@ class CloakReaction extends Reaction {
     if (cloaked != null){
       val slot = player.slots(num)
       val card = cloaked.card
-      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), Some(slot.num), cloaked.id, cloaked.reaction, card.data))
+      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), List(slot.num), cloaked.id, cloaked.reaction, card.data))
     }
   }
 }

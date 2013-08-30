@@ -24,7 +24,7 @@ case class PlayerState(
   def isInSlotRange(n : Int) = slotList.contains(n)
 }
 class HouseState(val mana: Int) extends AnyVal with Serializable
-case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, target : Option[Int], id : Int, reaction : Reaction, data : AnyRef = null){
+case class SlotState(card: Creature, life: Int, status : Int, attackSources: AttackSources, attack : Int, target : List[Int], id : Int, reaction : Reaction, data : AnyRef = null){
 
   def inflict(damage : Damage) : Option[SlotState] = {
     if (has(CardSpec.invincibleFlag)) Some(this)

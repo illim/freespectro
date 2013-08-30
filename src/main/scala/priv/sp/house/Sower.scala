@@ -71,7 +71,7 @@ class Sower {
   }
 
   private class MonsterPlantAttack extends RunAttack {
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
       if (SingleTargetAttack.attack(target, d, player)) {
         // FIXME maybe not good at all and should add source in damage?
         player.slots.foreach{ slot =>
@@ -105,8 +105,8 @@ class Sower {
 // code horror
 private class BloodSundewAttack extends RunAttack with DamageAttack {
 
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-    val num = target.get
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.head
     val healAmount = damageAndGet(num, d, player)
     player.slots(num).heal(healAmount)
   }
@@ -114,8 +114,8 @@ private class BloodSundewAttack extends RunAttack with DamageAttack {
 
 private class PredatorPlantAttack extends RunAttack {
 
-  def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
-    val num = target.get
+  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+    val num = target.head
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {

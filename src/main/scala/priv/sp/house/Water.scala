@@ -29,8 +29,8 @@ trait Water {
     }))), houseIndex = 1)
 
   class GolemReaction extends Reaction {
-    override def selfProtect(d : Damage) = {
-      if (d.isEffect) d.copy(amount = 0) else d
+    override def inflict(damage : Damage){
+      if (!damage.isEffect){  super.inflict(damage)  }
     }
   }
 

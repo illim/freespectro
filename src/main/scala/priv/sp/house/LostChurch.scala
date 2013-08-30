@@ -116,7 +116,7 @@ object LostChurch {
     if (slot.value.isDefined){
       env.focus()
       slot.inflict(Damage(5, env, isAbility = true))
-      slot.toggle(stunFlag)
+      slot.stun()
     }
     env.player.addDescMod(scarecrowAbility)
   }

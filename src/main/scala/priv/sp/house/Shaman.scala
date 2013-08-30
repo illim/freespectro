@@ -221,9 +221,9 @@ object Shaman {
 
   private class WolfAttack extends RunAttack with DamageAttack {
 
-    def apply(target : Option[Int], d : Damage, player : PlayerUpdate) {
+    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
       val wolfState = getData(player)
-      val num = target.get
+      val num = target.head
       var healAmount = damageAndGet(num, d, player)
       if (wolfState.mates.size > 0) {
         wolfState.mates.foreach{ n =>

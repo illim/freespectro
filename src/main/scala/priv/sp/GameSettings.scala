@@ -39,6 +39,7 @@ class GameSettings(resources : GameResources) extends JPanel  {
 
 class GameDebug(game : => Game) extends JPanel with ActionListener {
   val showCards = addBtn("showCards", this)
+  val dump = addBtn("dump", this)
   val gimmeMana = addBtn("gimmeMana", this)
 
   def actionPerformed(e : ActionEvent){
@@ -47,6 +48,8 @@ class GameDebug(game : => Game) extends JPanel with ActionListener {
         game.cardPanels(game.otherPlayerId).cardButtons.foreach(_.visible = true)
       case "gimmeMana" =>
         game.giveMeMana()
+      case "dump" =>
+        println(game.state)
     }
   }
 }
