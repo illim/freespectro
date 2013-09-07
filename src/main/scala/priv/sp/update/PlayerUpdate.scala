@@ -73,8 +73,11 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
    * before being killed by his effect. (alternative is to create a phase beforeadd, afteradd)
    */
   def submit(c : Option[Command]){
-    val (test, newComand) = houseEventListener.interceptSubmit(c)
-    (if (!test) c else newComand).foreach(submitCommand)
+    val (test, newCommand) = houseEventListener.interceptSubmit(c)
+    (if (test) newCommand else {
+      val (test2, newCommand2) = otherHouseEventListener.interceptSubmit(c)
+      if (test2) newCommand2 else c
+    }).foreach(submitCommand)
   }
 
   val submitCommand = new priv.util.ObservableFunc1({ command : Command =>

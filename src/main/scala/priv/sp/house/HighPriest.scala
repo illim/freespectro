@@ -40,7 +40,7 @@ object HighPriest {
           effects = effects(Direct -> curse)),
     Spell("Simooom", "Reduces attack of all enemy creatures to 1.\nThey restore 3 attack per turn since next turn.", effects = effects(Direct -> simoom)),
     amit,
-    new Creature("Apep", Attack(5), 50, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep, OnEndTurn -> apepOpp), runAttack = MultiTargetAttack))
+    new Creature("Apep", Attack(5), 42, "Attacks all enemies.\nEvery turn decreases elemental powers of both players by 1.", effects = effects(OnTurn -> apep, OnEndTurn -> apepOpp), runAttack = MultiTargetAttack))
 
   val HighPriest = House("High Priest", List(
     new Creature("Sacred scarab", Attack(3), 15, "decreases non-magical damage received by it by 2X\nX = number of its neighbors.", reaction = new ScarabReaction),

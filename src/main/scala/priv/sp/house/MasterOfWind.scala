@@ -13,7 +13,7 @@ import CardSpec._
  */
 object MasterOfWind {
 
-  val spirit = new Creature("The spirit of thunderstorm", Attack(2), 30, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
+  val spirit = new Creature("The spirit of thunderstorm", Attack(2), 28, "gives 1 special mana per turn.\nDeals 4 damage to all enemies when owner skips turn.", reaction = new SpiritThunderReaction, effects = effects(OnTurn -> addMana(1, 4)))
 
   val Wind : House = House("Wind", List(
     new Creature("Winged Warrior", Attack(4), 9, "next creature summoned will attack on the same turn as summoned.", effects = effects(Direct -> winge)),

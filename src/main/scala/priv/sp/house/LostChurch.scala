@@ -11,6 +11,8 @@ object LostChurch {
   import CardSpec._
   import GameCardEffect._
 
+  val liberatorLife = 15
+
   val prisoner = new Creature("Prisoner", Attack(2), 10, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
   val enragedPrisoner = new Creature("Enraged Prisoner", Attack(7), 35, "Immune to spell & ability when liberator is alive.", reaction = new PrisonerReaction)
   val windOfOppression = Spell("wind of oppression", "Stun scarecrow's opposite creature and its neighbours. Deals 5 damage to them", effects = effects(Direct -> oppress))
@@ -23,7 +25,7 @@ object LostChurch {
   val astralEscape = new Creature("Astral escape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction)
   val scarecrow : Creature = new Creature("Scarecrow", Attack(8), 28, "Stuns&Deals 5 damage to opposite creature\nWhen dying heal opposite creature by 5.",
       effects = effects(Direct -> scare), reaction = new ScarecrowReaction)
-  val liberator = new Creature("Liberator", Attack(3), 15, "Turns prisoner into Enraged prisoner.\n When dying inflict 15 damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))
+  val liberator = new Creature("Liberator", Attack(3), liberatorLife, "Turns prisoner into Enraged prisoner.\n When dying inflict " + liberatorLife +" damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))
 
   val LostChurch = new House("Lost Church", List(
     Spell("Speed drug", "Add +1 attack to owner creatures, deals to them 4 damage.\nEffect disappear when prisoner die.",
@@ -198,7 +200,7 @@ object LostChurch {
   class LiberatorReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
       dead.player.slots.findCard(enragedPrisoner).foreach{ slot =>
-        slot.inflict(Damage(15, Context(dead.player.id)))
+        slot.inflict(Damage(liberatorLife, Context(dead.player.id)))
       }
     }
 

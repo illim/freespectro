@@ -43,7 +43,7 @@ object Shaman {
 
   def initWolf = { env : Env =>
     val openSlots = env.player.slots.getOpenSlots
-    val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
+    val slot = openSlots(5)
     slot.add(wolf)
     slot.focus(blocking = false)
   }
@@ -122,7 +122,9 @@ object Shaman {
   def shade = { env : Env =>
     env.player.updateData[WolfState](x => x.copy(shadows = x.shadows + env.selected))
     env.getSelectedSlot.filledAdjacents.foreach{ slot =>
-      slot.player.runSlot(slot.num, slot.get)
+      slot.value.foreach{ s =>
+        slot.player.runSlot(slot.num, s)
+      }
     }
   }
 

@@ -17,7 +17,7 @@ trait BotTestHelper extends FlatSpec with ShouldMatchers {
   def houseStates(ms : Int*) = ms.to[Vector].map(m => new HouseState(m))
   def toSlot(pos : Int, h : House, i : Int, attack: Int = 0, life : Int = -1) = {
     val card = h.cards(i -1).asCreature
-    (pos -> SlotState(card, if (life != -1) life else card.life, 1, card.attack, card.attack.base.getOrElse(attack), Some(pos), card.data))
+    (pos -> SlotState(card, if (life != -1) life else card.life, 1, card.attack, card.attack.base.getOrElse(attack), List(pos), SlotState.currentId.incrementAndGet, card.newReaction, card.data))
   }
   def slots(ss : (Int, SlotState)*) = PlayerState.emptySlots ++ ss.toList
   def pstate(id: Int, hs : Vector[HouseState], slots : PlayerState.SlotsType, life : Int) = PlayerState(hs, new DescReader(desc.players(id)), slots, life = life)

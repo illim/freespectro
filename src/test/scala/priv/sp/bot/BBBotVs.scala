@@ -14,11 +14,11 @@ import org.scalatest.matchers._
 class BBBotVs extends FlatSpec with ShouldMatchers {
   val houses = HouseSingleton
   import houses._
-/**
+
   "bot" should "win" in {
     var player = playerIds(scala.util.Random.nextInt(2))
     val shuffle = new CardShuffle(houses)
-    val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(List(moutainKing.MoutainKing, warp.Warp), player)
+    val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(List(trooper.Trooper, trooper.Trooper), player)
 
     var state = GameState(List(PlayerState.init(p1State, p1Desc), PlayerState.init(p2State, p2Desc)))
     val desc = GameDesc(Vector(p1Desc, p2Desc))
@@ -67,7 +67,6 @@ class BBBotVs extends FlatSpec with ShouldMatchers {
     //kill(s)
     //power(s)
     //oppPower(s)
-    noEffectMalus(s)
   }
 
   val noEffectMalus = Mutate({(s, v) => s.noEffectMalus = v}, _.noEffectMalus, (0f, 1f))
@@ -106,6 +105,6 @@ class BBBotVs extends FlatSpec with ShouldMatchers {
     println(state)
     println(state.players.map(_.life))
     (turns, state)
-  }*/
+  }
 
 }

@@ -147,9 +147,9 @@ class CountDown(val count : Int, f : Env => Unit, val id : Int = PlayerTask.curr
   override def hashCode() = id
 }
 
-trait ReactionWithData[A] extends Reaction {
-  def updateData[A <: AnyRef](f : A => A) {
+trait ReactionWithData[A <: AnyRef] extends Reaction {
+  def updateData(f : A => A) {
     selected.write(selected.value.map(x => x.copy(data = f(x.data.asInstanceOf[A]))))
   }
-  def getData[A <: AnyRef] = selected.get.data.asInstanceOf[A]
+  def getData = selected.get.data.asInstanceOf[A]
 }

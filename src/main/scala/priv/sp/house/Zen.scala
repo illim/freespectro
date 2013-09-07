@@ -177,8 +177,7 @@ class ZenMage {
   class ZenEventListener extends HouseEventListener {
     override def interceptSubmit(commandOption : Option[Command]) : (Boolean, Option[Command]) = {
       commandOption match {
-        case None => (false, None)
-        case Some(c) =>
+        case Some(c) if (c.player == player.id) =>
           player.slots.foldl((false, Option.empty[Command])) { (acc, s) =>
             if (acc._1) acc else {
               s.get.reaction match {
@@ -187,6 +186,7 @@ class ZenMage {
               }
             }
           }
+        case _ => (false, None)
       }
     }
   }

@@ -17,7 +17,7 @@ class Warp {
     new Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to their mana", effects = effects(Direct -> quake)),
     new Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    new Creature("Photographer", Attack(3), 17, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
+    new Creature("Photographer", Attack(3), 19, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
     new Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     new Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     new Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.(at least try to!)\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
@@ -42,7 +42,7 @@ class Warp {
       val s = slot.get
       slot.destroy()
       val merged = new MergeStranger(s.card , opp.card)
-      slot.add(SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, s.data))
+      slot.add(SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, merged.data))
     }
   }
   def photo : Effect = { env : Env =>
@@ -113,13 +113,24 @@ class Warp {
         val oppSlot = selected.oppositeSlot
         oppSlot.value.foreach{ s =>
           oppSlot.remove()
+          selected.setData(new Integer(s.id))
           bridle(s, oppSlot)
         }
       }
     }
     override def onMyRemove(dead : Option[Dead]) {
-      val oppSlot = selected.oppositeSlot
-      unbridle(oppSlot)
+      selected.value.foreach{ s =>
+        if (s.data != null) {
+          selected.otherPlayer.slots.slots.find{ t =>  // in case he has moved !
+            t.value.exists{ y =>
+              if (y.id == s.data.asInstanceOf[Integer].intValue){
+                unbridle(t)
+                true
+              } else false
+            }
+          }
+        }
+      }
     }
   }
 
@@ -205,7 +216,7 @@ class MereMortalReaction(c : Creature) extends Reaction{
 }
 
 class MereMortal(val c : Creature)
-extends Creature(c.name, c.attack, c.life, status = c.status, reaction = new MereMortalReaction(c)){
+extends Creature(c.name, c.attack, c.life, status = c.status, reaction = new MereMortalReaction(c), data = c.data){
   houseId = c.houseId
   houseIndex = c.houseIndex
   cost = c.cost

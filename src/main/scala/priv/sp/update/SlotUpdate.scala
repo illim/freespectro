@@ -93,7 +93,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     val slotState = get
     slotState.reaction.onMyRemove(deadOpt)
     slots.reactRemove(this)
-    val result = apply().get
+    val result = apply().getOrElse(slotState) // ??? in case MK attack on die and die again against zen guard?
     attackUpdate.invalidate() // FIXME hack?
     slotState.reaction.cleanUp()
     write(None)
