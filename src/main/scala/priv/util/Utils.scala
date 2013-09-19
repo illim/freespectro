@@ -14,6 +14,29 @@ import scalaz._
 
 object Utils {
 
+  def toBytes(o : AnyRef) = {
+    val bos = new ByteArrayOutputStream()
+    val out =  new ObjectOutputStream(bos)
+    try {
+      out.writeObject(o)
+      bos.toByteArray()
+    } finally {
+      out.close()
+      bos.close()
+    }
+  }
+
+  def fromBytes(arr : Array[Byte]) = {
+    val bis = new ByteArrayInputStream(arr);
+    val in = new ObjectInputStream(bis);
+    try {
+      in.readObject()
+    } finally {
+      bis.close()
+      in.close()
+    }
+  }
+
   trait Bufferable[A] {
     def bufferData(target: Int, data: Array[A], usage: Int)
   }

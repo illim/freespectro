@@ -15,7 +15,7 @@ class Warp {
 
   val Warp = House("Warp", List(
     new Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
-    Spell("EarthQuake", "Deals to opponent creatures damage equals to their mana", effects = effects(Direct -> quake)),
+    Spell("EarthQuake", "Deals to opponent creatures damage equals to\ndifference between owner and opponent mana", effects = effects(Direct -> quake)),
     new Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
     new Creature("Photographer", Attack(3), 19, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
     new Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
@@ -29,11 +29,16 @@ class Warp {
 
   def quake = { env : Env =>
     import env._
+    val houses = player.value.houses
     otherPlayer.slots.foreach{ slot =>
-      val d = Damage(otherPlayer.getHouses(slot.get.card.houseIndex).mana, env, isSpell = true)
+      val hidx = slot.get.card.houseIndex
+      val d = Damage(
+        math.abs(houses(hidx).mana - otherPlayer.getHouses(slot.get.card.houseIndex).mana),
+        env, isSpell = true)
       slot.inflict(d)
     }
   }
+
   def merge = { env : Env =>
     import env._
     val oppSlot = otherPlayer.slots(selected)

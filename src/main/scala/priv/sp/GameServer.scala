@@ -2,11 +2,15 @@ package priv.sp
 
 import java.io._
 import java.net._
+import java.nio.channels._
+import java.nio._
 import priv.sp.bot._
 import priv.util.Utils._
+import priv.util.GBufferUtils._
 import priv.util.TVar
 import collection.JavaConversions._
 import java.util.concurrent.atomic.AtomicInteger
+import java.lang.reflect.{Proxy, Method, InvocationHandler}
 import scala.util.Random
 
 /**
@@ -32,6 +36,7 @@ trait GameServer {
   def surrender(){ }
   var abort = { () => }
 }
+
 
 class Local(resources : GameResources) extends GameServer {
   Random.setSeed(System.currentTimeMillis)
@@ -67,11 +72,24 @@ class Local(resources : GameResources) extends GameServer {
   }
 }
 
+trait CommonInterface {
+  def submit(turnId : Int, c: Option[Command])
+  def end()
+}
+
+trait SlaveInterface extends CommonInterface {
+  def init(state : GameState, desc : GameDesc, seed : Long)
+}
+
+trait MasterInterface extends CommonInterface {
+  def start()
+}
+
 // remote game server common for master or slave
 // retarded code, assuming that the continuation is set before receiving the message
 // todo use something like a syncvar
 class CommonGameServer(val playerId : PlayerId, val name : String, val initState : GameState, val desc : GameDesc, val startingPlayer : PlayerId, val seed : Long, peer : PeerInterface[CommonInterface]) extends GameServer {
-  peer.updateImpl(this)
+  peer.delegate.updateImpl(this)
 
   val currentTurnId = new AtomicInteger
   @volatile private var ended = false
@@ -90,6 +108,7 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   }
 
   def end(){
+    surrender()
     peer.release()
     this.synchronized{
       ended = true
@@ -117,7 +136,6 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
   }
 }
 
-
 class MasterBoot(k: Option[GameServer] => Unit, resources : GameResources)   {
   private val shuffle = new CardShuffle(resources.sp.houses)
   private val List((p1Desc, p1State), (p2Desc, p2State)) = shuffle.get(resources.resolveChoices)
@@ -127,17 +145,46 @@ class MasterBoot(k: Option[GameServer] => Unit, resources : GameResources)   {
   val seed = System.currentTimeMillis
 
   val serverSocketAddr = resources.getAddr(resources.port)
-  val serverSocket = resources.serverSocket(new ServerSocket())
-  serverSocket.setReuseAddress(true)
-  serverSocket.setSoTimeout(3 * 60 * 1000)
-  serverSocket.bind(serverSocketAddr)
-  println("Listening ("+serverSocketAddr+"), waiting for client ...")
+  val serverChannel = resources.serverSocket(ServerSocketChannel.open())
+  val server = new Server(serverSocketAddr, serverChannel, resources.ended, {
+    case (c , m) =>
+    if (m.name == "start"){
+      c.peer.proxy.init(initState, desc, seed)
+      k(Some(new CommonGameServer(opponent, c.address, initState, desc, startingPlayer, seed, c.peer)))
+    } else {
+      c.peer.delegate.send(m)
+    }
+  })
+}
 
-  thread("waitclient") {
-    val cs = resources.clientSocket(serverSocket.accept())
-    val peer = new PeerInterface[SlaveInterface](cs, this)
-    peer.proxy.init(initState, desc, seed)
-    k(Some(new CommonGameServer(opponent, cs.getInetAddress().toString, initState, desc, startingPlayer, seed, peer)))
+trait PeerInterface[+O] {
+  def proxy : O
+  def release()
+  def delegate : Delegate
+  var ended = false
+}
+
+class MasterPeerInterface[+O](channel : SocketChannel)(implicit co : reflect.ClassTag[O]) extends PeerInterface[O]{
+  val proxy = Proxy.newProxyInstance(
+    getClass.getClassLoader(),
+		Array(co.erasure),
+		new MasterPeerOut(channel)).asInstanceOf[O]
+  val delegate = new Delegate(this)
+
+  def release(){
+    channel.shutdownInput()
+    channel.shutdownOutput()
+  }
+}
+
+class MasterPeerOut(channel : SocketChannel) extends InvocationHandler {
+
+  def invoke(obj : Any, m : Method, args : Array[Object]) = {
+    val bytes = ByteBuffer.wrap(toBytes(new Message(m.getName, args)))
+    channel.write(bytes)
+    println("server send " + m.getName)
+    assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
+    null
   }
 }
 
@@ -146,7 +193,9 @@ class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources 
   val socketAddress = new InetSocketAddress(address, resources.port)
   val socketOption = connect()
   val peerOption = socketOption.map{ socket =>
-    new PeerInterface[MasterInterface](socket, this)
+    val interface = new SlavePeerInterface[MasterInterface](socket, this)
+    interface.proxy.start()
+    interface
   }
 
   def init(state : GameState, desc : GameDesc, seed : Long) = {
@@ -163,6 +212,8 @@ class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources 
       try {
         println("Bound to "+addr+", connect to " + socketAddress)
         socket.connect(socketAddress, 10 * 3000)
+        resources.clientSocket(socket)
+        println("Connected")
         Some(socket)
       } catch {
         case t :SocketTimeoutException if i > 0 =>
@@ -183,68 +234,50 @@ class SlaveBoot(k: Option[GameServer] => Unit, address : InetAddress, resources 
   }
 }
 
-trait CommonInterface {
-  def submit(turnId : Int, c: Option[Command])
-  def end()
-}
-
-trait SlaveInterface extends CommonInterface {
-  def init(state : GameState, desc : GameDesc, seed : Long)
-}
-
-trait MasterInterface extends CommonInterface
-
-
-import java.lang.reflect.{Proxy, Method, InvocationHandler}
-
-class PeerInterface[+O](val socket : Socket, impl : AnyRef) (implicit co : reflect.ClassTag[O]){
-  private var currentImpl : AnyRef = impl
+class Delegate(private var impl : AnyRef) {
   private var methods = impl.getClass.getMethods.toList
-  val in = socket.getInputStream
+
+  def send(message : Message) {
+    println("received " + message.name + "/" + Option(message.args).toList.flatten)
+    val m = methods.find{ m => m.getName == message.name  }.getOrElse(sys.error(message.name + " method not found"))
+    val res = m.invoke(impl, message.args : _*)
+    assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
+  }
+
+  def updateImpl(newImpl : AnyRef){
+    impl = newImpl
+    methods = impl.getClass.getMethods.toList
+  }
+}
+
+class SlavePeerInterface[+O](val socket : Socket, impl : AnyRef)(implicit co : reflect.ClassTag[O]) extends PeerInterface[O] {
   val out = socket.getOutputStream
   val oos = new ObjectOutputStream(out)
-  val ois = new ObjectInputStream(in)
-  var ended = false
+  val delegate = new Delegate(impl)
 
   val proxy = Proxy.newProxyInstance(
     getClass.getClassLoader(),
 		Array(co.erasure),
-		new PeerOut(ois, oos)).asInstanceOf[O]
+		new ClientPeerOut(out)).asInstanceOf[O]
 
   thread("listenpeer") { // /!\ blocking thread
+    val in = socket.getInputStream
+    var ois = new ObjectInputStream(in)
     var obj = ois.readObject()
     while ( obj != null && !ended) {
-      val message = obj.asInstanceOf[Message]
-      println("received " + message.name + "/" + Option(message.args).toList.flatten)
-      val m = methods.find{ m => m.getName == message.name  }.getOrElse(sys.error(message.name + " method not found"))
-      val res = m.invoke(currentImpl, message.args : _*)
-      assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
+      delegate send obj.asInstanceOf[Message]
       if (!ended){
+        ois = new ObjectInputStream(in) // I'm just soo bored
         obj = ois.readObject()
       }
     }
     println("stop reading stream")
   }
 
-  def updateImpl(impl : AnyRef){
-    currentImpl = impl
-    methods = currentImpl.getClass.getMethods.toList
-  }
+  println("listening")
 
   def release(){
     ended = true
     socket.close() // BS TODO use holder in resources
   }
 }
-
-class PeerOut(in : ObjectInputStream, out : ObjectOutputStream) extends InvocationHandler {
-
-  def invoke(obj : Any, m : Method, args : Array[Object]) = {
-    out.writeObject(new Message(m.getName, args))
-    out.flush()
-    assert(m.getReturnType() == classOf[Unit], "not managing return value for "+m.getName)
-    null
-  }
-}
-
-class Message(val name : String, val args : Array[Object]) extends java.io.Serializable

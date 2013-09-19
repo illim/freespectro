@@ -358,6 +358,7 @@ class BennuReaction extends Reaction {
   }
 }
 
+object SerpoBonus extends AttackFactor(2f)
 class SerpoReaction extends Reaction {
   final override def onSummon(summoned : SummonEvent) = {
     import summoned._
@@ -365,14 +366,16 @@ class SerpoReaction extends Reaction {
       nearestSlotOpposed(selected.num, player, opposed = false).foreach{ n =>
         val slots = player.slots
         slots.move(selected.num, n)
-        val bonus = AttackFactor(2f)
-        slots(n).attack.add(bonus)
-        player.addEffect(OnEndTurn -> { env : Env =>
-          val s = env.player.slots(n)
-          if (s.value.isDefined){
-            s.attack.removeFirst(bonus)
-          }
-        })
+        val att = slots(n).attack
+        if (!att.has[SerpoBonus.type]){
+          att.add(SerpoBonus)
+          player.addEffect(OnEndTurn -> { env : Env =>
+            val s = env.player.slots(n)
+            if (s.value.isDefined){
+              s.attack.removeFirst(SerpoBonus)
+            }
+          })
+        }
       }
     }
   }

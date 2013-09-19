@@ -2,6 +2,7 @@ package priv.sp
 
 import java.util.concurrent._
 import java.net._
+import java.nio.channels._
 import priv.util.Utils._
 
 // bullcrap :)
@@ -16,7 +17,7 @@ class GameResources {
   val aiExecutor = Executors.newSingleThreadExecutor
   val gameExecutor = Executors.newSingleThreadExecutor
   val multi = new Resources
-  val serverSocket = multi(new ClosableOne[ServerSocket])
+  val serverSocket = multi(new ClosableOne[ServerSocketChannel])
   val clientSocket = multi(new ClosableOne[Socket])
   var port = 4443
   var ended = false

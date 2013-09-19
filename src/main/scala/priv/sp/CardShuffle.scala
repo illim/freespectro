@@ -182,6 +182,7 @@ class ManaShuffler(model : ManaModel, isFirst : Boolean){
       val s = sum(manas)
       cp.add(s == total)
       manaGen.foreach{ case (idx, cost) =>
+        cp.add(manas(idx) < 7)
         cp.add(manas(idx) >= (if (isFirst) cost else (cost -1)))
       }
     } exploration {
