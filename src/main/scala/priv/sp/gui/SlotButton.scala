@@ -10,7 +10,7 @@ import priv.GuiElem
 
 // total crap
 class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotState], Boolean), game : Game) extends GuiElem with Damagable {
-  import game.sp.baseTextures.{slotTex, stunTex, shieldTex, crystalTex, hirdTex, mortalTex}
+  import game.sp.baseTextures._
 
   val direction = if (playerId == game.myPlayerId) -1 else 1
   val size = slotTex.size
@@ -137,6 +137,8 @@ class SlotButton(val num: Int, playerId : PlayerId, getInfo : => (Option[SlotSta
       tex.drawAt(stunPos, stunTex.id, stunTex.size)
     } else if (s.has(CardSpec.invincibleFlag)) {
       tex.draw(shieldTex)
+    } else if (s.has(CardSpec.cursedFlag)) {
+      tex.draw(deathTex)
     }
   }
 

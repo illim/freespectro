@@ -132,4 +132,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   def findCard(card : Card) : Option[SlotUpdate] = {
     slots.find(s => s.value.isDefined && s.get.card == card)
   }
+  def findSlot(id : Int) : Option[SlotUpdate] = {
+    slots.find(s => s.value.isDefined && s.get.id == id)
+  }
 }

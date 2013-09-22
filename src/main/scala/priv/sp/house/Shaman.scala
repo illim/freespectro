@@ -107,7 +107,7 @@ object Shaman {
 
   def phantomFury = { env : Env =>
     import env._
-    val damage = Damage(7, Context(env.playerId, None, selected), isSpell = true)
+    val damage = Damage(7, Context(env.playerId, None), isSpell = true)
     otherPlayer.slots.inflictCreatures(damage)
     env.player.updateData[WolfState](_.copy(furyWolf = player.slots.findCard(wolf).map(_.num)))
     player.addEffect(OnEndTurn -> new RemoveFury)

@@ -111,6 +111,7 @@ object CardSpec {
   val invincibleFlag = 4
   val blockedFlag = 8
   val pausedFlag = 16
+  val cursedFlag = 32
 
   val onHold = stunFlag + blockedFlag + pausedFlag
 
