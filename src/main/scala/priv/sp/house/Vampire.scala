@@ -48,14 +48,6 @@ class Vampire {
     }
   }
 
-  case class RemoveInvincible(slotId : Int) extends Function[Env, Unit]{
-    def apply(env : Env){ // /!\ aristocrat may have moved
-      env.player.slots.slots.find(s => s.value.isDefined && s.get.id == slotId).foreach{ s =>
-        s.toggleOff(CardSpec.invincibleFlag)
-      }
-      env.player.removeEffect(_ == this)
-    }
-  }
 
   private def bloodTies = { env: Env =>
     import env._

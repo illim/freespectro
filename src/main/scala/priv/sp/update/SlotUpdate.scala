@@ -78,6 +78,22 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     }
   }
 
+  def drain(damage : Damage) {
+    if (value.isDefined) {
+      val slot = get
+      val newslot = slot.copy(life = slot.life - damage.amount)
+      val amount = if (newslot.life <1) {
+        delayedDestroy(damage)
+        slot.life
+      } else {
+        write(Some(newslot))
+        slot.life - newslot.life
+      }
+      slot.reaction.onMyDamage(amount)
+      slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
+    }
+  }
+
   val protect = new priv.util.InterceptableFunc1({d : Damage =>
     d
   })

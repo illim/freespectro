@@ -58,12 +58,18 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def runSlot(numSlot: Int, slot: SlotState) = {
+  def runSlot(numSlot: Int, slot: SlotState) {
     if (slot.attack > 0 && slot.isRunnable && !ended){
       val d = Damage(slot.attack, Context(id, Some(slot.card), numSlot))
       updateListener.runSlot(numSlot, id)
       slot.card.runAttack(slot.target, d, this)
       updateListener.refresh()
+    }
+  }
+
+  def runSlot(s : SlotUpdate) {
+    s.value.foreach{ slot =>
+      runSlot(s.num, slot)
     }
   }
 

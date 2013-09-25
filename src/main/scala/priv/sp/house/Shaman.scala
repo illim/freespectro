@@ -120,11 +120,10 @@ object Shaman {
   }
 
   def shade = { env : Env =>
-    env.player.updateData[WolfState](x => x.copy(shadows = x.shadows + env.selected))
-    env.getSelectedSlot.filledAdjacents.foreach{ slot =>
-      slot.value.foreach{ s =>
-        slot.player.runSlot(slot.num, s)
-      }
+    import env._
+    player.updateData[WolfState](x => x.copy(shadows = x.shadows + env.selected))
+    getSelectedSlot.filledAdjacents.foreach{ slot =>
+      player.runSlot(slot)
     }
   }
 

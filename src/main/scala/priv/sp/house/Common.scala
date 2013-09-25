@@ -16,6 +16,16 @@ class RemoveAttack(attack : AttackSource) extends Function[Env, Unit]{
   }
 }
 
+
+case class RemoveInvincible(slotId : Int) extends Function[Env, Unit]{
+  def apply(env : Env){
+    env.player.slots.slots.find(s => s.value.isDefined && s.get.id == slotId).foreach{ s =>
+      s.toggleOff(CardSpec.invincibleFlag)
+    }
+    env.player.removeEffect(_ == this)
+  }
+}
+
 // hack for warp
 trait UniqueAttack
 
@@ -39,6 +49,16 @@ case object HideSpecialMod extends DescMod {
     else cards.map(_.copy(enabled = false))
   }
 }
+
+case object HideSpellMod extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    cards.map{ c =>
+      if (c.card.isSpell) c.copy(enabled = false)
+      else c
+    }
+  }
+}
+
 
 case class AttackFactor(fact : Float) extends AttackFunc {
   def apply(attack : Int) : Int = math.ceil(attack * fact).toInt
