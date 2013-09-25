@@ -25,7 +25,7 @@ Kojiro attack the turn he is summoned
 Each turn deals 2 damage to opposite&aligned creatures.""", status = runFlag, effects = effects(OnTurn -> kojiro), inputSpec = Some(SelectOwnerCreature)),
     new Creature("War guide", Attack(5), 26,
 """When next owner creature is summoned,
-deals damage equals to his attack to opponent and his creatures.
+deals damage equals to his attack to opponent creatures.
 Heal 1 life to aligned creatures when a creature is summoned in the pack""", reaction = new GuideReaction, data = java.lang.Boolean.FALSE),
     new Creature("Janus", Attack(7), 33,
 """each turn drain 2 life from other side of the board.

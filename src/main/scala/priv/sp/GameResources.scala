@@ -33,9 +33,10 @@ class GameResources {
   }.get
 
   var heurisChoice = 3
-  var playerChoices : List[Option[House]] = List(None, None)
+  var playerChoices : List[List[House]] = List(sp.houses.sinist, sp.houses.sinist)
   def resolveChoices = playerChoices.map{ o =>
-    o.getOrElse(sp.houses.special(scala.util.Random.nextInt(sp.houses.special.size)))
+    val l = (if (o.isEmpty) sp.houses.special else o)
+    l(scala.util.Random.nextInt(l.size))
   }
 
   def release(){
