@@ -7,6 +7,7 @@ import GameCardEffect._
 
 class SB {
 
+  val bounty =  new Creature("Bounty hunter", Attack(5), 20, "when kill opposite creature, get 1/3 mana of his cost round up", reaction = new BountyHunterReaction)
   val deathLetter = new Creature("Death letter", Attack(0), 3, "reduce damage to 1. When die deals 20 damage to opposite creature", reaction = new DLReaction)
   val maiko = new Creature("Maiko", Attack(3), 13,
 """Decrease by 1 attack of all creatures on board.
@@ -14,7 +15,7 @@ class SB {
 
   val SB = House("Snowblood", List(
     new Creature("Tracker", Attack(4), 14, "When alive, next summoned creature is invincible one turn.", reaction = new TrackerReaction, data = java.lang.Boolean.FALSE),
-    new Creature("Bounty hunter", Attack(5), 20, "when opposite creature die give 1/3 mana of his cost round up", reaction = new BountyHunterReaction),
+    bounty,
     maiko,
     Spell("Echo",
 """Each owner creature either triggers his 'each turn' effects
@@ -24,14 +25,14 @@ or deals damage equal to his attack/2 if he doesn't have any""", effects = effec
 Kojiro attack the turn he is summoned
 Each turn deals 2 damage to opposite&aligned creatures.""", status = runFlag, effects = effects(OnTurn -> kojiro), inputSpec = Some(SelectOwnerCreature)),
     new Creature("War guide", Attack(5), 26,
-"""When next owner creature is summoned,
-deals damage equals to his attack to opponent creatures.
+"""When alive, next summoned creature deals damage equals to his attack to
+opponent creatures.
 Heal 1 life to aligned creatures when a creature is summoned in the pack""", reaction = new GuideReaction, data = java.lang.Boolean.FALSE),
     new Creature("Janus", Attack(7), 33,
 """each turn drain 2 life from other side of the board.
-For each life drained, give one mana of the creature
-if there is a symetric creature heal him by 1
-or else heal the owner by 1""", effects = effects(OnTurn -> janus)),
+For each creature drained, give one mana of the creature
+if there is a symetric creature heal him by 2
+or else heal the owner by 2""", effects = effects(OnTurn -> janus)),
     new Creature("Amaterasu", Attack(7), 32, """When summoned, and when a creature is summoned apply Amaterasu rules
 if fire deals 4 damage to opposite creature
 if water increase lowest mana by 2
@@ -49,13 +50,26 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
   deathLetter.cost = 3
   val maikoAbility = Ability(maiko, deathLetter)
 
+  val someBounty = Some(bounty)
+  class BountyHunterReaction extends Reaction {
+      final override def onDeath(dead : Dead){
+        if (dead.player.id != selected.playerId && dead.num == selected.num){
+          dead.damage.foreach{ d =>
+            if (d.context.selected == selected.num && d.context.card == someBounty){
+              selected.player.houses.incrMana(math.ceil(dead.card.cost / 3f).toInt, dead.card.houseIndex)
+            }
+          }
+        }
+      }
+  }
+
   private def echo = { env: Env =>
     import env._
     player.slots.foreach{ s =>
       val c = s.get.card
       c.effects(CardSpec.OnTurn) match {
         case None =>
-          s.oppositeSlot.inflict(Damage(math.ceil(s.get.attack/2f).toInt, env, isSpell = true))
+          s.oppositeSlot.inflict(Damage(math.ceil(s.get.attack/2f).toInt, Context(playerId, Some(c), s.num), isSpell = true))
         case Some(f) =>
           val env = new GameCardEffect.Env(playerId, updater)
           env.card = Some(c)
@@ -132,7 +146,7 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
   }
 
   class GuideReaction extends Reaction {
-      final override def onAdd(slot : SlotUpdate) = {
+      final def onSummoned(slot : SlotUpdate) = {
         if (selected != slot){
           if(!selected.get.data.asInstanceOf[Boolean]){
             val d = Damage(slot.get.attack, Context(slot.playerId, Some(slot.get.card), slot.num), isAbility = true)
@@ -164,8 +178,8 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
       player.houses.incrMana(1, s.get.card.houseIndex)
       s.drain(d)
       healeds.find(_.num == 5 - s.num) match {
-        case Some(h) => h.heal(1)
-        case None => player.heal(1)
+        case Some(h) => h.heal(2)
+        case None => player.heal(2)
       }
     }
   }
@@ -195,7 +209,7 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
   }
 
   class AmaterasuReaction extends Reaction {
-      final override def onAdd(slot : SlotUpdate) = {
+      final def onSummoned(slot : SlotUpdate) = {
         applyAmaterasuRules(selected, slot)
       }
   }
@@ -210,19 +224,28 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
       }
     }
 
+    def onSummon(slot : SlotUpdate){
+      player.slots.foreach { s =>
+        s.get.reaction match {
+          case gr : GuideReaction => gr.onSummoned(slot)
+          case ar : AmaterasuReaction => ar.onSummoned(slot)
+          case _ => ()
+        }
+      }
+    }
+
     override def init(p : PlayerUpdate){
       super.init(p)
       p.otherPlayer.slots.slots.foreach{ slot =>
         slot.add.after{ _ => onEnemyAdd(slot) }
       }
-    }
-  }
-}
-
-class BountyHunterReaction extends Reaction {
-  final override def onDeath(dead : Dead){
-    if (dead.player.id != selected.playerId && dead.num == selected.num){
-      selected.player.houses.incrMana(math.ceil(dead.card.cost / 3f).toInt, dead.card.houseIndex)
+      p.submitCommand.after{ c =>
+        c.card match {
+          case creature : Creature =>
+            c.input foreach{ i => onSummon(player.slots(i.num)) }
+          case _ =>
+        }
+      }
     }
   }
 }

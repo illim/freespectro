@@ -93,7 +93,8 @@ class Houses
     (allHouses.flatMap(_.cards)
     ++ shaman.additionalCards
     ++ lostChurch.additionalCards
-    ++ highPriest.additionalCards)
+    ++ highPriest.additionalCards
+    ++ sb.additionalCards)
   }
 
   val getHouseById = allHouses.map(h => h.houseId -> h).toMap

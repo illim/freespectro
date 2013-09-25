@@ -100,12 +100,14 @@ class Warp {
       s.card match {
         case m : MereMortal =>
           val removed = slot.remove()
+          val reaction = m.c.newReaction
+          reaction.use(slot)
 
           slot.add(
             SlotState(
               m.c, removed.life, removed.status,
               removed.attackSources, slot.slots.getAttack(slot, removed.attackSources),
-              removed.target, removed.id, removed.reaction, removed.data))
+              removed.target, removed.id, reaction, removed.data))
         case _ =>
       }
     }
@@ -124,18 +126,18 @@ class Warp {
       }
     }
     override def onMyRemove(dead : Option[Dead]) {
-      selected.value.foreach{ s =>
-        if (s.data != null) {
-          selected.otherPlayer.slots.slots.find{ t =>  // in case he has moved !
-            t.value.exists{ y =>
-              if (y.id == s.data.asInstanceOf[Integer].intValue){
-                unbridle(t)
-                true
-              } else false
-            }
+      val s = selected.get
+      if (s.data != null) {
+        selected.otherPlayer.slots.slots.find{ t =>  // in case he has moved !
+          t.value.exists{ y =>
+            if (y.id == s.data.asInstanceOf[Integer].intValue){
+              unbridle(t)
+              true
+            } else false
           }
         }
       }
+      selected.get
     }
   }
 

@@ -131,7 +131,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
 class AttackUpdate(slot : SlotUpdate) extends FieldUpdate(Some(slot), slot.value.map(_.attackSources)) {
   private val some0 = Option(0)
 
-  @inline def get = value.get
+  @inline def get = value.getOrElse(error("can't get attack of empty slot " + slot.num))
   def add(source : AttackSource)        { if (get.base != some0) write(Some(get.add(source)))  }
   def removeFirst(source : AttackSource){ write(Some(get.removeFirst(source)))  }
   def removeAny(source : AttackSource)  { write(Some(get.removeAny(source)))  }
