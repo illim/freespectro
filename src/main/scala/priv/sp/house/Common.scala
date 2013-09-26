@@ -107,6 +107,21 @@ trait AnyDeathEventListener extends HouseEventListener {
   }
 }
 
+trait OppDeathEventListener extends HouseEventListener {
+  def reactDead(dead : Dead){
+      player.slots.foreach{ s =>
+        val card = s.get.card
+        if (card.isSpecial){
+          s.get.reaction.onDeath(dead)
+        }
+      }
+  }
+  override def init(p : PlayerUpdate){
+    super.init(p)
+    p.otherPlayer.slots.onDead.after(reactDead)
+  }
+}
+
 
 trait DamageAttack {
 

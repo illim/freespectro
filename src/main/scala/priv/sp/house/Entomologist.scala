@@ -23,8 +23,7 @@ object Entomologist {
     new Creature("Insect Hive", Attack(2), 30, "At the end of each owner's turn Insect Hive summons a 4/10 Insect Warrior*\ninto a random owner's slot.", effects = effects(OnEndTurn -> hive)),
     new Creature("Red Mantis", Attack(7), 47, "When summoned, Red Mantis reduces all opponent's powers by 1.\nRed Mantis lowers by 1 the growth of opponent's power of\nit's opposite creature's power type.\nWhen Red Mantis dies it deals 5 damage to it's opposite creature.", effects = effects(Direct -> { env : Env =>
       env.otherPlayer.houses.incrMana(-1 , 0, 1, 2, 3, 4)
-    }, OnTurn -> mantis), reaction = new MantisReaction)
-))
+    }, OnTurn -> mantis), reaction = new MantisReaction)),  data = EntoState(), eventListener = Some(new CustomListener(new EntoEventListener)))
 
   Entomologist.initCards(Houses.basicCostFunc)
 
@@ -38,6 +37,8 @@ object Entomologist {
     c.houseIndex = Entomologist.houseIndex
     c.houseId = Entomologist.houseId
   }
+
+  def getData(p : PlayerUpdate) = p.value.data.asInstanceOf[EntoState]
 
   def beetle : Effect = { env : Env =>
     val selected = env.getSelectedSlot()
@@ -62,14 +63,28 @@ object Entomologist {
 
   def hivemind = { env : Env =>
     import env._
+    val target = otherPlayer.slots(selected).get
+    player.updateData[EntoState](x => x.copy(hivemind = Some(target.id)))
     player.slots.foreach{ s =>
       s.write(s.value.map(_.copy(target = List(selected))))
     }
-    player.addEffect(OnEndTurn -> { env : Env =>
-      env.player.slots.foreach{ s =>
-        s.write(s.value.map(_.copy(target = List(s.num))))
+    player.addEffect(OnEndTurn -> new RecoverHiveMind )
+  }
+
+  class RecoverHiveMind extends Function[Env, Unit]{
+    def apply(env : Env){
+      if (getData(env.player).hivemind.isDefined){
+        recoverTarget(env.player)
       }
-    })
+      env.player.removeEffect(_ == this)
+    }
+  }
+
+  def recoverTarget(player : PlayerUpdate) {
+    player.slots.foreach{ s =>
+      s.write(s.value.map(_.copy(target = List(s.num))))
+    }
+    player.updateData[EntoState](x => x.copy(hivemind = None))
   }
 
   def locust = { env : Env =>
@@ -166,6 +181,19 @@ object Entomologist {
     }
   }
 
+  class EntoEventListener extends HouseEventListener {
+    def reactDead(dead : Dead) {
+      getData(player).hivemind.foreach{ id =>
+        if (id == dead.slot.id){
+          recoverTarget(player)
+        }
+      }
+    }
+    override def init(p : PlayerUpdate){
+      super.init(p)
+      p.otherPlayer.slots.onDead.after(reactDead)
+    }
+  }
 }
 
 case class Locust(id : Int) extends Function[Env, Unit] {
@@ -180,3 +208,5 @@ case class Locust(id : Int) extends Function[Env, Unit] {
     }
   }
 }
+
+case class EntoState(hivemind : Option[Int] = None)

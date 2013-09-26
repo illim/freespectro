@@ -214,7 +214,7 @@ if earth heal 3 life to owner""", effects = effects(Direct -> amaterasu), reacti
       }
   }
 
-  class SBEventListener extends HouseEventListener with AnyDeathEventListener {
+  class SBEventListener extends HouseEventListener with OppDeathEventListener {
     def onEnemyAdd(slot : SlotUpdate) {
       player.slots.foreach{ s =>
         s.get.reaction match {
