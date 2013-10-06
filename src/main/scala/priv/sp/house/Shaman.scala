@@ -43,7 +43,7 @@ object Shaman {
 
   def initWolf = { env : Env =>
     val openSlots = env.player.slots.getOpenSlots
-    val slot = openSlots(5)
+    val slot = openSlots.last
     slot.add(wolf)
     slot.focus(blocking = false)
   }

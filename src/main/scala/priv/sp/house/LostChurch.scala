@@ -23,8 +23,10 @@ object LostChurch {
   val falseProphet : Creature = new Creature("false prophet", Attack(4), 18, "Until his death, normal cards cost 1 more mana.\nGive 2 mana to each basic house.\nTake one mana back when dying",
       reaction = new FalseProphetReaction, effects = effects(Direct -> prophetize))
   val astralEscape = new Creature("Astral escape", Attack(4), 30, "Damage done to prisoner is redirected to Astral escape", reaction = new AstralEscapeReaction)
-  val scarecrow : Creature = new Creature("Scarecrow", Attack(8), 28, "Stuns&Deals 5 damage to opposite creature\nWhen dying heal opposite creature by 5.",
-      effects = effects(Direct -> scare), reaction = new ScarecrowReaction)
+  val scarecrow : Creature = new Creature("Scarecrow", Attack(8), 28,
+"""Stuns&Deals 5 damage to opposite creature
+Can switch with prisoner to nearest empty slot""",
+      effects = effects(Direct -> scare), inputSpec = Some(SelectOwner(openOrPrisoner)),reaction = new ScarecrowReaction)
   val liberator = new Creature("Liberator", Attack(3), liberatorLife, "Turns prisoner into Enraged prisoner.\n When dying inflict " + liberatorLife +" damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))
 
   val LostChurch = new House("Lost Church", List(
@@ -56,6 +58,20 @@ object LostChurch {
 
   val falseProphetAbility = Ability(falseProphet, darkMonk)
   val scarecrowAbility    = Ability(scarecrow, windOfOppression)
+
+  def openOrPrisoner(playerId : PlayerId, state : GameState) : List[Int] = {
+    val p = state.players(playerId)
+    if (p.slots.size == p.slotList.size) Nil
+    else {
+      p.slotList.foldLeft(List.empty[Int]){ case (acc, i) =>
+        p.slots.get(i) match {
+          case None => i :: acc
+          case Some(s) if (s.card == prisoner) => i :: acc
+          case _ => acc
+        }
+      }
+    }
+  }
 
   def spawnPrisoner : Effect = { env : Env =>
     import env._
@@ -135,12 +151,15 @@ object LostChurch {
     }
   }
   class ScarecrowReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
-      val slot = dead.player.otherPlayer.slots(dead.num)
-      if (slot.value.isDefined){
-        slot.heal(5)
+    override def onSpawnOver = {
+      selected.value.foreach{ old =>
+        nearestEmptySlot(selected.num, selected.player).foreach{ n =>
+          selected.slots.move(selected.num, n)
+        }
       }
+      None
     }
+
     final override def cleanUp(){
       selected.player.removeDescMod(scarecrowAbility)
     }

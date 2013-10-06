@@ -26,6 +26,12 @@ object DarkPriest {
   val ghost = DarkPriest.cards(0).asCreature
   DarkPriest.initCards(Houses.basicCostFunc)
 
+  val oppCards = List(restlessSoul, shadowPriest)
+  oppCards.foreach{ c =>
+    c.houseIndex = 4
+    c.houseId = DarkPriest.houseId
+  }
+
   def missionar = { env : Env =>
     import env._
     val weakest = player.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
