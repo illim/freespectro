@@ -88,6 +88,18 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
         }
         if (!isActive) grey.end()
       }
+    } else {
+      if (holder.isDefined){
+        glDisable(GL_TEXTURE_2D)
+        glColor4f(0.1f, 0.1f, 0.1f, 1)
+        glBegin(GL_POLYGON)
+        glVertex2f(0, 0)
+        glVertex2f(85,0)
+        glVertex2f(85, 97)
+        glVertex2f(0, 97)
+        glEnd()
+        glEnable(GL_TEXTURE_2D)
+      }
     }
   }
 

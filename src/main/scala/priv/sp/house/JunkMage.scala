@@ -18,7 +18,7 @@ class JunkMage {
 
   val Junk : House = House("Junk", List(
     new Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
-    Spell("Poison flower", "Deals 5 damage to owner target, his opposite creature then its neighbors.\nDeals -1 mana for opponent ones.",
+    Spell("Poison flower", "Deals 5 damage to owner target creature, his opposite creature, \nthen the opposite neighbors.\nDeals -1 mana for target and opposite creature.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> poisonFlower)),
     new Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
@@ -95,16 +95,18 @@ class JunkMage {
 
     val damage = Damage(5, env, isSpell = true)
     val slot = getSelectedSlot
+    val h = slot.get.card.houseIndex
     slot.inflict(damage)
+    player.houses.incrMana(-1 , h)
     if (slot.oppositeSlot.value.isDefined){
-      val houses = slotInterval(selected-1, selected +1).flatMap{ num =>
+      val hopp = slot.oppositeSlot.get.card.houseIndex
+      slotInterval(selected-1, selected +1).flatMap{ num =>
         val oppSlot = otherPlayer.slots(num)
         oppSlot.value.map { slot =>
           oppSlot.inflict(damage)
-          slot.card.houseIndex
         }
-      }.distinct
-      otherPlayer.houses.incrMana(-1 , houses : _*)
+      }
+      otherPlayer.houses.incrMana(-1 , hopp)
     }
   }
 
