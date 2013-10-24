@@ -66,11 +66,12 @@ class Houses
   val dreamweaver = new Dreamweaver
   val element     = new Elementalist
   val entomologist= Entomologist
+  val fairy       = new FairyKnight
   val highPriest  = HighPriest
   val junkMage    = new JunkMage
   val lostChurch  = LostChurch
   val moutainKing = new MoutainKing
-  val sb        = new SB
+  val sb          = new SB
   val shaman      = Shaman
   val sower       = new Sower
   val trooper     = new Trooper
@@ -81,7 +82,7 @@ class Houses
 //  val test = new TestMage
 
   val base = List(Fire, Water, Air, Earth)
-  val sinist = List(darkPriest.DarkPriest, darksider.Darksider, element.Elementalist, highPriest.HighPriest, moutainKing.MoutainKing, shaman.Shaman, sower.Sower, vampire.Vampire, wind.Wind)
+  val sinist = List(darkPriest.DarkPriest, darksider.Darksider, element.Elementalist, fairy.Fairy, highPriest.HighPriest, moutainKing.MoutainKing, shaman.Shaman, sower.Sower, vampire.Vampire, wind.Wind)
   val others = List(dreamweaver.Dreamweaver, dudeMancer.Dude, entomologist.Entomologist, trooper.Trooper)
   val bs = List(junkMage.Junk, lostChurch.LostChurch, sb.SB, warp.Warp, zenMage.Zen)
   val special = sinist ++ others ++ bs

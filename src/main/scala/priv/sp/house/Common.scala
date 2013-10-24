@@ -188,3 +188,17 @@ trait ReactionWithData[A <: AnyRef] extends Reaction {
   }
   def getData = selected.get.data.asInstanceOf[A]
 }
+
+case class Destroyed(card : Card) extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    if (house.houseIndex != card.houseIndex) cards
+    else cards.filter{ c => c.card != card }
+  }
+}
+
+
+case class Destroyeds(excls : Set[Card]) extends DescMod {
+  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+    cards.filterNot{ c => excls.contains(c.card) }
+  }
+}

@@ -199,7 +199,7 @@ object HighPriest {
     final override def onMyDeath(dead : Dead){
       import dead._
       damage match {
-        case Some(d) if !d.isSpell && d.context.playerId != player.id =>
+        case Some(d) if !d.isEffect && d.context.playerId != player.id =>
           val slot = player.slots(dead.num)
           val slotState = player.slots.buildSlotState(slot, sphynx)
           slot.add(slotState.copy(life = slotState.life/2))

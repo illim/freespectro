@@ -242,6 +242,9 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
         }
       }
     }
+    def triggerAbility(o : AnyRef) {
+
+    }
   }
 
 }

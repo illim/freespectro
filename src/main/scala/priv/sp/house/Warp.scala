@@ -79,7 +79,7 @@ class Warp {
   def warp = { env : Env =>
     import env._
     otherPlayer.slots.foreach{ slot =>
-      bridle(slot.remove(), slot)
+      bridle(slot.remove(None), slot)
     }
     otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
     player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
@@ -90,7 +90,7 @@ class Warp {
   private val cache = collection.mutable.Map.empty[Card, MereMortal]
 
   def bridle(s : SlotState, slot : SlotUpdate){
-    val c = cache.getOrElseUpdate(s.card, new MereMortal(s.card))
+    val c = if (s.card.isInstanceOf[MergeStranger]) new MereMortal(s.card) else cache.getOrElseUpdate(s.card, new MereMortal(s.card)) // hack
     val reaction = c.newReaction
     reaction.use(slot)
     slot.write(Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data)))
@@ -99,7 +99,7 @@ class Warp {
     slot.value.foreach{ s =>
       s.card match {
         case m : MereMortal =>
-          val removed = slot.remove()
+          val removed = slot.remove(None)
           val reaction = m.c.newReaction
           reaction.use(slot)
 
@@ -119,7 +119,7 @@ class Warp {
       if (selected.num == slot.num){
         val oppSlot = selected.oppositeSlot
         oppSlot.value.foreach{ s =>
-          oppSlot.remove()
+          oppSlot.remove(None)
           selected.setData(new Integer(s.id))
           bridle(s, oppSlot)
         }
@@ -193,7 +193,7 @@ class StrangerAttack extends AttackStateFunc {
 class CloakReaction extends Reaction {
   override def onSpawnOver = {
     val s = selected.get
-    selected.remove()
+    selected.remove(None)
     Some(new CloakSlotMod(s))
   }
 

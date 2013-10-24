@@ -1,9 +1,7 @@
 package priv
 
 import collection.JavaConversions._
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.IntBuffer
+import java.nio._
 import org.lwjgl.LWJGLException
 import org.lwjgl.input.Keyboard
 import org.lwjgl.opengl._
@@ -12,6 +10,7 @@ import org.lwjgl.opengl.GL11._
 import org.lwjgl.opengl.GL12._
 import org.lwjgl.util.glu.GLU._
 import javax.swing._
+import util.GBufferUtils._
 
 object InitDisplay {
 
@@ -43,11 +42,38 @@ object InitDisplay {
     glEnable(GL_ALPHA_TEST)
     glEnable(GL_BLEND)
     glEnable(GL_TEXTURE_2D)
+
+    initLights()
+
     glClearColor(0f, 0f, 0f, 0.5f) //set clear color to black
     glOrtho(0, 1024, 768, 0, -1, 1)
     glViewport(0, 0, mode.getWidth(), mode.getHeight)
     org.lwjgl.opengl.Util.checkGLError()
   }
+
+  def initLights() {
+		val matSpecular = createFloatBuffer(4)
+		matSpecular.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
+		val lightPosition = createFloatBuffer(4)
+		lightPosition.put(0.0f).put(0.0f).put(-1.0f).put(0.0f).flip()
+		val whiteLight = createFloatBuffer(4)
+		whiteLight.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
+		val lModelAmbient = createFloatBuffer(4)
+		lModelAmbient.put(0.5f).put(0.5f).put(0.5f).put(1.0f).flip()
+
+    glMaterial(GL_FRONT, GL_SPECULAR, matSpecular)
+		glMaterialf(GL_FRONT, GL_SHININESS, 50.0f)
+
+		glLight(GL_LIGHT0, GL_POSITION, lightPosition)
+		glLight(GL_LIGHT0, GL_SPECULAR, whiteLight)
+		glLight(GL_LIGHT0, GL_DIFFUSE, whiteLight)
+		glLightModel(GL_LIGHT_MODEL_AMBIENT, lModelAmbient)
+
+		glEnable(GL_LIGHTING)
+		glEnable(GL_LIGHT0)
+    glEnable(GL_COLOR_MATERIAL)
+		glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
+	}
 }
 
 case class DisplayConf(val width: Int, val height: Int) {

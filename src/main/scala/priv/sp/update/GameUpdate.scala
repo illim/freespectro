@@ -54,6 +54,7 @@ trait UpdateListener {
   def die(num : Int, playerId : PlayerId)
   def refresh(silent : Boolean = false) // this is not great to have some gui code here
   def spellPlayed(c : Command)
+  def triggerAbility(o : AnyRef)
 }
 
 class DefaultUpdateListener extends UpdateListener {
@@ -64,6 +65,7 @@ class DefaultUpdateListener extends UpdateListener {
   def die(num : Int, playerId : PlayerId){}
   def refresh(silent : Boolean){}
   def spellPlayed(c : Command){}
+  def triggerAbility(o : AnyRef){}
 }
 
 // broadcast crap
@@ -89,3 +91,4 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
     inner.init(p)
   }
 }
+

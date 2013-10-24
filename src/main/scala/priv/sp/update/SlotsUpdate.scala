@@ -63,7 +63,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
       val slot = slots(num)
       slot.value.foreach{ s =>
         updateListener.move(num, dest, id)
-        val removed = slot.remove()
+        val removed = slot.remove(None)
         if (slots(dest).value.isDefined){
           move(dest, num)
         }
@@ -79,7 +79,7 @@ class SlotsUpdate(val player : PlayerUpdate) extends FieldUpdate(Some(player), p
   }
 
   // If observed , because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
-  val onDead = new priv.util.ObservableFunc1({dead : Dead =>
+  val onDead = new priv.util.ObservableFunc1Unit({dead : Dead =>
     updateListener.die(dead.num, playerId)
     dead.slot.reaction.onMyDeath(dead)
   })

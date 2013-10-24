@@ -18,8 +18,8 @@ class JunkMage {
 
   val Junk : House = House("Junk", List(
     new Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
-    Spell("Poison flower", "Deals 5 damage to target and creatures around.\nDeals -1 mana for opponent ones.",
-          inputSpec = Some(SelectTargetCreature),
+    Spell("Poison flower", "Deals 5 damage to owner target, his opposite creature then its neighbors.\nDeals -1 mana for opponent ones.",
+          inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> poisonFlower)),
     new Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
     new Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
@@ -94,15 +94,18 @@ class JunkMage {
     import env._
 
     val damage = Damage(5, env, isSpell = true)
-    val houses = slotInterval(selected-1, selected +1).flatMap{ num =>
-      player.slots(num).inflict(damage)
-      val oppSlot = otherPlayer.slots(num)
-      oppSlot.value.map { slot =>
-        oppSlot.inflict(damage)
-        slot.card.houseIndex
-      }
-    }.distinct
-    otherPlayer.houses.incrMana(-1 , houses : _*)
+    val slot = getSelectedSlot
+    slot.inflict(damage)
+    if (slot.oppositeSlot.value.isDefined){
+      val houses = slotInterval(selected-1, selected +1).flatMap{ num =>
+        val oppSlot = otherPlayer.slots(num)
+        oppSlot.value.map { slot =>
+          oppSlot.inflict(damage)
+          slot.card.houseIndex
+        }
+      }.distinct
+      otherPlayer.houses.incrMana(-1 , houses : _*)
+    }
   }
 
   private class ScreamerReaction extends Reaction {

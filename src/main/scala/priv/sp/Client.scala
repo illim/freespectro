@@ -19,7 +19,11 @@ class Client(out : OutputStream) {
     b.putInt(bytes.length)
     b.flip()
     channel.write(b)
-    out.write(bytes)
+    try {
+      out.write(bytes)
+    } catch {
+      case t : Throwable => t.printStackTrace
+    }
   }
 }
 

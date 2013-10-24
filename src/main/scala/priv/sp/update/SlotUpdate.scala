@@ -53,7 +53,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
   }
 
   def add(card : Creature) {  add(slots.buildSlotState(this, card)) }
-  val add = new priv.util.ObservableFunc1({ slot : SlotState =>
+  val add = new priv.util.ObservableFunc1Unit({ slot : SlotState =>
     write(Some(slot))
     slot.reaction.use(this)
     slots.reactAdd(this)
@@ -105,7 +105,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slots.onDead(event)
   }
 
-  def remove(deadOpt : Option[Dead] = None) : SlotState = {
+  val remove = new priv.util.ObservableFunc1[Option[Dead], SlotState]({ deadOpt : Option[Dead] =>
     val slotState = get
     slotState.reaction.onMyRemove(deadOpt)
     slots.reactRemove(this)
@@ -114,7 +114,7 @@ class SlotUpdate(val num : Int, val slots : SlotsUpdate) extends FieldUpdate(Som
     slotState.reaction.cleanUp()
     write(None)
     result
-  }
+  })
 
   def focus(blocking : Boolean = true){
     slots.updateListener.focus(num, playerId, blocking)

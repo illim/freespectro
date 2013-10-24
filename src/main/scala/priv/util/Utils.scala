@@ -233,7 +233,7 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
   var dirty = 0
   var value = getValue
   var valuedirty = 0 // if dirty is set by children value is out of sync
-  val update = new ObservableFunc1(setValue(_ : A))
+  val update = new ObservableFunc1Unit(setValue(_ : A))
 
   def initNewUpdate(value : A) : this.type = {
     write(value)
@@ -279,7 +279,7 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
 
 }
 
-class ObservableFunc1[A](f : A => Unit) extends Function[A, Unit] {
+class ObservableFunc1Unit[A](f : A => Unit) extends Function[A, Unit] {
   private var inner = f
 
   def apply(x : A) = inner(x)
@@ -291,8 +291,38 @@ class ObservableFunc1[A](f : A => Unit) extends Function[A, Unit] {
       g(x)
     }
   }
+
+  def before(g : A => Unit) {
+    val old = inner
+    inner = { x : A =>
+      g(x)
+      old(x)
+    }
+  }
 }
 
+class ObservableFunc1[A, B](f : A => B) extends Function[A, B] {
+  private var inner = f
+
+  def apply(x : A) = inner(x)
+
+  def after(g : A => Unit) {
+    val old = inner
+    inner = { x : A =>
+      val res = old(x)
+      g(x)
+      res
+    }
+  }
+
+  def before(g : A => Unit) {
+    val old = inner
+    inner = { x : A =>
+      g(x)
+      old(x)
+    }
+  }
+}
 
 class InterceptableFunc1[A](f : A => A) extends Function[A, A] {
   private var inner = f

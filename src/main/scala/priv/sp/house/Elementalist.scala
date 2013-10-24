@@ -135,11 +135,3 @@ class Elementalist {
     }
   }
 }
-
-
-case class Destroyed(card : Card) extends DescMod {
-  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
-    if (house.houseIndex != card.houseIndex) cards
-    else cards.filter{ c => c.card != card }
-  }
-}

@@ -19,9 +19,8 @@ When summoned, heal owner by 2*(number of opposed creatures)
     bounty,
     maiko,
     Spell("Echo",
-"""Each owner creature either triggers his 'each turn' effects
-and heal 2 life to opponent,
-or deals to opposite creature attack/2 damage if he doesn't have any""", effects = effects(Direct -> echo)),
+"""Each owner creature triggers his 'each turn' effects to both players
+and deals to opposite creature damage equals to its attack""", effects = effects(Direct -> echo)),
     new Creature("Kojiro", Attack(5), 27,
 """Can only be summoned onto an existing creature.
 Kojiro attack the turn he is summoned
@@ -30,8 +29,8 @@ Each turn deals 2 damage to opposite&aligned creatures.""", status = runFlag, ef
 """When alive, next summoned creature deals damage equals to his attack to
 opponent creatures.
 Heal 1 life to aligned creatures when a creature is summoned in the pack""", reaction = new GuideReaction, data = java.lang.Boolean.FALSE),
-    new Creature("Janus", Attack(7), 29,
-"""each turn drain 2 life from other side of the board.
+    new Creature("Janus", Attack(6), 29,
+"""each turn drain (1/10maxlife) life from other side of the board.
 For each creature drained, give one mana of the creature
 if there is a symetric creature heal him by 2
 or else heal the owner by 2""", effects = effects(OnTurn -> janus)),
@@ -70,14 +69,20 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     player.slots.foreach{ s =>
       val c = s.get.card
       c.effects(CardSpec.OnTurn) match {
-        case None =>
-          s.oppositeSlot.inflict(Damage(math.ceil(s.get.attack/2f).toInt, Context(playerId, Some(c), s.num), isSpell = true))
         case Some(f) =>
-          otherPlayer.heal(2)
           val env = new GameCardEffect.Env(playerId, updater)
           env.card = Some(c)
           env.selected = s.num
           f(env)
+
+          val env2 = new GameCardEffect.Env(other(playerId), updater)
+          env2.card = Some(c)
+          env2.selected = s.num
+          f(env2)
+        case None =>
+      }
+      s.value.foreach{ x =>
+        s.oppositeSlot.inflict(Damage(x.attack, Context(playerId, Some(c), s.num), isSpell = true))
       }
     }
   }
@@ -175,12 +180,12 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     } else {
       filleds.partition(_.num > 2)
     }
-    val d = Damage(2, env, isAbility = true)
     if (draineds.nonEmpty){
       getSelectedSlot.focus()
     }
     draineds.foreach{ s =>
       player.houses.incrMana(1, s.get.card.houseIndex)
+      val d = Damage(math.ceil(s.get.card.life / 10f).intValue, env, isAbility = true)
       s.drain(d)
       healeds.find(_.num == 5 - s.num) match {
         case Some(h) => h.heal(2)
