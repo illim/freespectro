@@ -30,10 +30,9 @@ Each turn deals 2 damage to opposite&aligned creatures.""", status = runFlag, ef
 opponent creatures.
 Heal 1 life to aligned creatures when a creature is summoned in the pack""", reaction = new GuideReaction, data = java.lang.Boolean.FALSE),
     new Creature("Janus", Attack(6), 29,
-"""each turn drain (1/10maxlife) life from other side of the board.
-For each creature drained, give one mana of the creature
-if there is a symetric creature heal him by 2
-or else heal the owner by 2""", effects = effects(OnTurn -> janus)),
+"""each turn drain (1/10maxlife) life from other side of the board
+if there is a symetric creature to heal him by 2
+For each creature drained, give one mana of the creature""", effects = effects(OnTurn -> janus)),
     new Creature("Amaterasu", Attack(7), 32, """When summoned, and when a creature is summoned apply Amaterasu rules
 if fire deals 4 damage to opposite creature
 if water increase lowest mana by 1
@@ -180,17 +179,18 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     } else {
       filleds.partition(_.num > 2)
     }
-    if (draineds.nonEmpty){
-      getSelectedSlot.focus()
-    }
+    var hasDrained = false
     draineds.foreach{ s =>
-      player.houses.incrMana(1, s.get.card.houseIndex)
-      val d = Damage(math.ceil(s.get.card.life / 10f).intValue, env, isAbility = true)
-      s.drain(d)
-      healeds.find(_.num == 5 - s.num) match {
-        case Some(h) => h.heal(2)
-        case None => player.heal(2)
+      healeds.find(_.num == 5 - s.num) foreach { h =>
+        player.houses.incrMana(1, s.get.card.houseIndex)
+        val d = Damage(math.ceil(s.get.card.life / 10f).intValue, env, isAbility = true)
+        s.drain(d)
+        hasDrained = true
+        h.heal(2)
       }
+    }
+    if (hasDrained){
+      getSelectedSlot.focus()
     }
   }
 

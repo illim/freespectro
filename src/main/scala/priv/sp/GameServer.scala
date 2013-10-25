@@ -131,8 +131,10 @@ class CommonGameServer(val playerId : PlayerId, val name : String, val initState
     cont = None
   }
   override def surrender(){
-    peer.proxy.end()
-    peer.ended = true
+    if (!peer.ended){
+      peer.ended = true
+      peer.proxy.end()
+    }
   }
 }
 
@@ -164,7 +166,7 @@ trait PeerInterface[+O] {
   var ended = false
 }
 
-class MasterPeerInterface[+O](channel : SocketChannel)(implicit co : reflect.ClassTag[O]) extends PeerInterface[O]{
+class MasterPeerInterface[+O](channel : SocketChannel, server : Server)(implicit co : reflect.ClassTag[O]) extends PeerInterface[O]{
   val proxy = Proxy.newProxyInstance(
     getClass.getClassLoader(),
 		Array(co.erasure),
@@ -172,8 +174,8 @@ class MasterPeerInterface[+O](channel : SocketChannel)(implicit co : reflect.Cla
   val delegate = new Delegate(this)
 
   def release(){
-    channel.shutdownInput()
-    channel.shutdownOutput()
+    server.serverUp = false
+    println("master interface released")
   }
 }
 
@@ -263,15 +265,20 @@ class SlavePeerInterface[+O](val socket : Socket, impl : AnyRef)(implicit co : r
   thread("listenpeer") { // /!\ blocking thread
     val in = socket.getInputStream
     var ois = new ObjectInputStream(in)
-    var obj = ois.readObject()
-    while ( obj != null && !ended) {
-      delegate send obj.asInstanceOf[Message]
-      if (!ended){
+    try {
+      var obj = ois.readObject()
+      while ( obj != null) {
+        delegate send obj.asInstanceOf[Message]
         ois = new ObjectInputStream(in) // I'm just soo bored
         obj = ois.readObject()
       }
+    } catch { case t : Throwable =>
+      if (ended){
+        println("stop reading stream " + t)
+      } else {
+        t.printStackTrace
+      }
     }
-    println("stop reading stream")
   }
 
   println("listening")

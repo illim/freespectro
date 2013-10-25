@@ -24,9 +24,10 @@ class Server(serverSocketAddr : InetSocketAddress, serverChannel : ServerSocketC
   println("Listening ("+serverSocketAddr+"), waiting for client ...")
   val selector = Selector.open()
   serverChannel.register(selector, SelectionKey.OP_ACCEPT)
+  var serverUp = true
 
   thread("select") {
-    while (selector.select(timeout) > 0 && !ended) {
+    while (selector.select(timeout) > 0 && !ended && (serverUp || selector.keys.isEmpty)) {
       val i = selector.selectedKeys().iterator
       while (i.hasNext) {
         val key = i.next()
@@ -46,7 +47,7 @@ class Server(serverSocketAddr : InetSocketAddress, serverChannel : ServerSocketC
               val client = key.channel().asInstanceOf[SocketChannel]
               if (client.isConnected){
                 val c = getOrAttach(key){
-                  new Connection(client)
+                  new Connection(client, this)
                 }
                 println("init read "+c.buffer.remaining)
                 var count = -1
@@ -94,9 +95,13 @@ class Server(serverSocketAddr : InetSocketAddress, serverChannel : ServerSocketC
         }
       }
     }
-  }
+    println("close selector")
+    selector.close()
+    serverSocket.close()
+   }
 
   def close(key : SelectionKey){
+    println("close key")
     key.attach(null)
     key.channel().close()
   }
@@ -118,21 +123,24 @@ class Server(serverSocketAddr : InetSocketAddress, serverChannel : ServerSocketC
   }
 }
 
-class Connection(channel : SocketChannel){
+class Connection(channel : SocketChannel, server : Server){
   val maxSize = 8192
   val address = channel.socket.getInetAddress().toString
   val headBuff = ByteBuffer.allocateDirect(4).order(ByteOrder.BIG_ENDIAN) // network byte order
+
+  // WTF IS THAT
+  val junk = ByteBuffer.allocateDirect(4).order(ByteOrder.BIG_ENDIAN)
   val buffer = createByteBuffer(maxSize)
   var expectedLength = Option.empty[Int]
-  val peer = new MasterPeerInterface[SlaveInterface](channel)
+  val peer = new MasterPeerInterface[SlaveInterface](channel, server)
   println("Server init connection with " + address)
 
   def readHeader() = {
     var count = 0L
     if (expectedLength.isEmpty){
-      count = channel.read(Array(headBuff, buffer))
+      count = channel.read(Array(junk, headBuff, buffer))
       if (count == 4) {
-        headBuff.clear() // WTF IS THAT
+        println("skip crap?")
       } else {
         println("read header"+ count)
         if (headBuff.position == 4){
@@ -142,6 +150,8 @@ class Connection(channel : SocketChannel){
             expectedLength = Some(l)
             println("expected length "+ expectedLength)
             buffer.limit(l)
+          } else {
+            println("unknown length" + l)
           }
         }
       }

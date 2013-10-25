@@ -183,7 +183,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
   class FirebirdReaction extends Reaction {
       override def selfProtect(d : Damage) = {
         val adjs = adjacents(selected.num).flatMap(x => selected.player.value.slots.get(x))
-        if (adjs.exists(_.card.houseIndex == 0)){
+        if (adjs.exists(_.card.houseIndex == 0) || selected.filledAdjacents.exists(_.get.card.houseIndex == 0)) {
           d.copy(amount = 0)
         } else d
       }
@@ -239,7 +239,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
 }
 
 case class SirinMalus(id : Int) extends AttackFunc {
-  def apply(attack : Int) = math.max(0, attack / 2)
+  def apply(attack : Int) = math.max(0, math.ceil(attack / 2f).intValue)
   def temper(s : SlotUpdate) {  s.attack.add(this)  }
   def untemper(s : SlotUpdate) {  s.attack.removeFirst(this)  }
 }
