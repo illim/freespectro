@@ -8,7 +8,10 @@ import GameCardEffect._
 class SB {
 
   val bounty =  new Creature("Bounty hunter", Attack(5), 18, "when kill opposite creature, get 1/3 mana of his cost round up", reaction = new BountyHunterReaction)
-  val deathLetter = new Creature("Death letter", Attack(0), 3, "reduce damage to 1. When die deals 20 damage to opposite creature", reaction = new DLReaction)
+  val deathLetter = new Creature("Death letter", Attack(0), 3, """
+reduce damage to 1.
+When die deals 15 damage to opposite creature.
+(Can't be healed)""", reaction = new DLReaction)
   val maiko = new Creature("Maiko", Attack(3), 13,
 """Decrease by 1 attack of all creatures on board.
 When summoned, heal owner by 2*(number of opposed creatures)
@@ -20,7 +23,7 @@ When summoned, heal owner by 2*(number of opposed creatures)
     maiko,
     Spell("Echo",
 """Each owner creature triggers his 'each turn' effects to both players
-and deals to opposite creature damage equals to its attack""", effects = effects(Direct -> echo)),
+and deals to opposite creature attack/2 damage""", effects = effects(Direct -> echo)),
     new Creature("Kojiro", Attack(5), 27,
 """Can only be summoned onto an existing creature.
 Kojiro attack the turn he is summoned
@@ -29,11 +32,11 @@ Each turn deals 2 damage to opposite&aligned creatures.""", status = runFlag, ef
 """When alive, next summoned creature deals damage equals to his attack to
 opponent creatures.
 Heal 1 life to aligned creatures when a creature is summoned in the pack""", reaction = new GuideReaction, data = java.lang.Boolean.FALSE),
-    new Creature("Janus", Attack(6), 29,
+    new Creature("Janus", Attack(6), 25,
 """each turn drain (1/10maxlife) life from other side of the board
 if there is a symetric creature to heal him by 2
 For each creature drained, give one mana of the creature""", effects = effects(OnTurn -> janus)),
-    new Creature("Amaterasu", Attack(7), 32, """When summoned, and when a creature is summoned apply Amaterasu rules
+    new Creature("Amaterasu", Attack(7), 30, """When summoned, and when a creature is summoned apply Amaterasu rules
 if fire deals 4 damage to opposite creature
 if water increase lowest mana by 1
 if air deals 2 damage to opponent
@@ -81,7 +84,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
         case None =>
       }
       s.value.foreach{ x =>
-        s.oppositeSlot.inflict(Damage(x.attack, Context(playerId, Some(c), s.num), isSpell = true))
+        s.oppositeSlot.inflict(Damage(x.attack / 2, Context(playerId, Some(c), s.num), isSpell = true))
       }
     }
   }
@@ -119,12 +122,13 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
   }
 
   class DLReaction extends Reaction {
+      override def heal(amount : Int) { }
       override def inflict(damage : Damage){
         super.inflict(damage.copy(amount = 1))
       }
 
       override def onMyDeath(dead : Dead) {
-        val d = Damage(20, Context(selected.playerId, Some(dead.card), selected.num), isAbility = true)
+        val d = Damage(15, Context(selected.playerId, Some(dead.card), selected.num), isAbility = true)
         selected.oppositeSlot.inflict(d)
       }
   }
@@ -158,9 +162,11 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
       final def onSummoned(slot : SlotUpdate) = {
         if (selected != slot){
           if(!selected.get.data.asInstanceOf[Boolean]){
-            val d = Damage(slot.get.attack, Context(slot.playerId, Some(slot.get.card), slot.num), isAbility = true)
-            selected.otherPlayer.slots.inflictCreatures(d)
-            selected.setData(java.lang.Boolean.TRUE)
+            slot.value.foreach{ s =>
+              val d = Damage(s.attack, Context(slot.playerId, Some(s.card), slot.num), isAbility = true)
+              selected.otherPlayer.slots.inflictCreatures(d)
+              selected.setData(java.lang.Boolean.TRUE)
+            }
           }
           val aligneds = getAligneds(selected.slots, selected.num)
           if (aligneds contains (slot)){
@@ -180,13 +186,15 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
       filleds.partition(_.num > 2)
     }
     var hasDrained = false
-    draineds.foreach{ s =>
-      healeds.find(_.num == 5 - s.num) foreach { h =>
-        player.houses.incrMana(1, s.get.card.houseIndex)
-        val d = Damage(math.ceil(s.get.card.life / 10f).intValue, env, isAbility = true)
-        s.drain(d)
-        hasDrained = true
-        h.heal(2)
+    draineds.foreach{ slot =>
+      slot.value.foreach { s =>
+        healeds.find(_.num == 5 - slot.num) foreach { h =>
+          val d = Damage(math.ceil(s.card.life / 10f).intValue, env, isAbility = true)
+          slot.drain(d)
+          player.houses.incrMana(1, s.card.houseIndex)
+          hasDrained = true
+          h.heal(2)
+        }
       }
     }
     if (hasDrained){

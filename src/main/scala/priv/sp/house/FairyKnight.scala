@@ -89,7 +89,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
     import env._
     val openSlots = player.slots.getOpenSlots
     if (openSlots.nonEmpty) {
-      val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
+      val slot = openSlots(updater.randLogs.get(openSlots.size))
       slot.add(vodyanoy)
       slot.focus(blocking = false)
     }
@@ -121,7 +121,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
               val l = s.life
               oppSlot.drain(Damage(if (l < 11) l else (l - 10) , context, isAbility = true))
             }
-          case _ => selected.player.houses.incrMana(2, scala.util.Random.nextInt(5))
+          case _ => selected.player.houses.incrMana(2, selected.updater.randLogs.get(5))
         }
       }
   }
@@ -164,7 +164,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
         cards.filterNot(olds.excls.contains)
       case _ => cards
     }
-    val excls = Random.shuffle(filtereds).take(6).to[Set]
+    val excls = updater.randLogs.unorderedShuffle(filtereds, 6).to[Set]
     val destroyeds = Destroyeds(excls)
     otherPlayer.addDescMod(destroyeds)
     slot.setData(destroyeds)

@@ -21,7 +21,7 @@ class BoundedBot(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouse
   def executeAI(start: GameState) = {
     val st = k.ripDescReader(start)
     heuris.init(st)
-    initGameUpdater(start)
+    initGameUpdater(st)
     new BoundedBotAI(botPlayerId, st, this, heuris, settings).execute()
   }
 }

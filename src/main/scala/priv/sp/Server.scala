@@ -139,20 +139,16 @@ class Connection(channel : SocketChannel, server : Server){
     var count = 0L
     if (expectedLength.isEmpty){
       count = channel.read(Array(junk, headBuff, buffer))
-      if (count == 4) {
-        println("skip crap?")
-      } else {
-        println("read header"+ count)
-        if (headBuff.position == 4){
-          headBuff.flip()
-          val l = headBuff.getInt(0)
-          if (l>0 && l < maxSize){
-            expectedLength = Some(l)
-            println("expected length "+ expectedLength)
-            buffer.limit(l)
-          } else {
-            println("unknown length" + l)
-          }
+      println("read header"+ count)
+      if (headBuff.position == 4){
+        headBuff.flip()
+        val l = headBuff.getInt(0)
+        if (l>0 && l < maxSize){
+          expectedLength = Some(l)
+          println("expected length "+ expectedLength)
+          buffer.limit(l)
+        } else {
+          println("unknown length" + l)
         }
       }
     }

@@ -1,6 +1,8 @@
 package priv.sp.update
 
+import scala.util.Random
 import collection._
+import annotation._
 import scalaz._
 import priv.sp._
 import priv.util.FieldUpdate
@@ -15,6 +17,7 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
   playerFieldUpdates.foreach{ p =>
     p.houseEventListener.init(p)
   }
+  var randLogs = new RandLogs
 
   def state = value
 
@@ -27,6 +30,12 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
     val update = apply(st)
     val res = f(update)
     (update.result, res)
+  }
+
+  def resetRand() = {
+    val r = randLogs
+    randLogs = new RandLogs
+    r
   }
 
   def focus(num : Int, playerId : PlayerId, blocking : Boolean = true) = updateListener.focus(num, playerId, blocking)
@@ -92,3 +101,43 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
   }
 }
 
+
+// horrible tracking of rand usage
+case class RandLog(var count : Int)
+class RandLogs {
+  var offset = 0
+  var logs = List.empty[RandLog]
+
+  def get(n : Int) = {
+    val randlog = getOrAddLog(n)
+    Random.nextInt(n)
+  }
+
+  def unorderedShuffle[A](l : Seq[A], count : Int = -1) = {
+    val limit = if (count == -1) 1 else l.size - count + 1
+    val randlog = getOrAddLog(fact(l.size, limit)/2)
+    if (limit == 1) Random.shuffle(l) else Random.shuffle(l).take(count) // crap
+  }
+
+  def getOrAddLog(n : Int) = {
+    if (logs.size == offset){
+      val r = RandLog(n)
+      logs = r :: logs
+      offset += 1
+      r
+    } else {
+      val r = logs(logs.size - offset)
+      if (r.count < n) r.count = n
+      offset += 1
+      r
+    }
+  }
+
+  def width = (1 /: logs){ (acc, l) =>
+    acc * l.count
+  }
+
+  def probability : Float = 1f / width
+
+  @tailrec private def fact(n : Int, limit : Int , acc : Int = 1) : Int = if (n == limit) acc else fact(n - 1, limit, acc * n)
+}

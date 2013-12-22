@@ -79,6 +79,7 @@ class Game(val world: World, resources : GameResources, val server : GameServer)
       (autoSkip[Option[Option[Command]]](Some(None))
        orElse {
          cardPanels(player).setEnabled(true)
+         updater.resetRand()
          gameLock.waitFor[Option[Option[Command]]]{ c =>
            server.waitNextCommand(c, state)
          }}).foreach{ nextCommandOpt : Option[Option[Command]] =>

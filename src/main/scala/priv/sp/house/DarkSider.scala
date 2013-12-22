@@ -8,20 +8,32 @@ import GameCardEffect._
 object Darksider {
   import CardSpec._
 
-  val wolfSpider = new Creature("Wolf spider", Attack(3), 16, "when opponent summons card, deals to opposite creature damage\nequal to cost of that card.", reaction = new WolfSpiderReaction)
-  val warlock = new Creature("Warlock", Attack(5), 30, "when opponent casts spell, blocks it and loses 3X life\n(X - cost of spell).", reaction = new WarlockReaction)
+  val wolfSpider = new Creature("Wolf spider", Attack(3), 16,
+"""when opponent summons card, deals to opposite creature damage
+equal to cost of that card.""", reaction = new WolfSpiderReaction)
+  val warlock = new Creature("Warlock", Attack(5), 30,
+"""when opponent casts spell, blocks it and loses 3X life
+(X - cost of spell).""", reaction = new WarlockReaction)
   val blackKnight = new Creature("Black knight", Attack(4), 18, "his neighbors attack only slot opposite to black knight.", reaction = new BlackKnightReaction)
 
   val Darksider : House = House("Darksider", List(
-    new Creature("Fallen mage", Attack(4), 12, "when attacks, deals the same damage to all enemy creatures of element\nof opposite creature.", runAttack = new ElemAttack),
+    new Creature("Fallen mage", Attack(4), 12,
+"""when attacks, deals the same damage to all enemy creatures of element
+of opposite creature.""", runAttack = new ElemAttack),
     wolfSpider,
     blackKnight,
-    new Creature("Dark mystic", AttackSources().add(new ManaAttack(4)), 21, "attack is equal to owner special power.\nWhen friendly elemental creature dies,\nincreases owner special power by 1.", reaction = new DarkMysticReaction),
+    new Creature("Dark mystic", AttackSources().add(new ManaAttack(4)), 21,
+"""attack is equal to owner special power.
+When friendly elemental creature dies,
+increases owner special power by 1.""", reaction = new DarkMysticReaction),
     new Creature("Faceless horror", Attack(7), 34, "when summoned, opponent loses card of opposite creature.",
       effects = effects(Direct -> horror)),
     new Creature("Lake of oblivion", Attack(0), 41, "when opponent summons card, blocks it till the death of lake.", reaction = new LakeReaction, data = LakeData()),
     warlock,
-    new Creature("Black dragon", Attack(8), 39, "immune to all spells and creatures abilities with no exception\n(for example, air 10, earth 2-11, fire 5).\nWhen enters the game, stuns all enemy creatures.",
+    new Creature("Black dragon", Attack(8), 39,
+"""immune to all spells and creatures abilities with no exception
+(for example, air 10, earth 2-11, fire 5).
+When enters the game, stuns all enemy creatures.""",
       reaction = new DragonReaction,
       effects = effects(Direct -> dragon))), eventListener = Some(new CustomListener(new DarksiderEventListener)))
 

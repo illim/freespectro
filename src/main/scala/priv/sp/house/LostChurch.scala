@@ -78,7 +78,7 @@ Can switch with prisoner to nearest empty slot""",
     if (!player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
       val openSlots = player.slots.getOpenSlots
       if (openSlots.nonEmpty) {
-        val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
+        val slot = openSlots(updater.randLogs.get(openSlots.size))
         slot.add(prisoner)
         if (player.slots.findCard(preacher).isDefined){
           slot.attack.add(PreacherAttackBonus)
@@ -113,7 +113,7 @@ Can switch with prisoner to nearest empty slot""",
         giveHope(player)
       }
     }
-    final override def onMyRemove(dead : Option[Dead]){
+    final override def cleanUp(){
       val slots = selected.slots
       slots.findCard(prisoner).foreach{ slot =>
         if (slots.findCard(preacher).isEmpty){

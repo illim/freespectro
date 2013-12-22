@@ -39,7 +39,7 @@ class BBBot2Spec extends BotTestHelper {
          toSlot(4, Earth, 1)),
        life = 40)) )
 
-    val bot = new BoundedBot(1, desc, houses)
+    val bot = new BoundedBot2(1, desc, houses)
     val c = bot.executeAI(state).get.card
     println("card played " + c)
     c should not equal(Air.cards(1))
