@@ -13,7 +13,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   val human = other(botPlayerId)
   val cardStats = playerIds.map{ p => new CardStats(start, p, bot) }
   val choices = new Choices(bot, cardStats, settings)
-  val heuris = new LifeHeuris(botPlayerId, settings)
+  val heuris = new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
   heuris.init(start)
 
   type TreeLabel = Node
@@ -27,7 +27,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     var i = 0
     while(System.currentTimeMillis < end && continue){
       treePolicy(loc) match {
-          case Some(selected) =>  defaultPolicy(selected)
+          case Some(selected) => defaultPolicy(selected)
           case None => continue = false
       }
       i+=1
@@ -77,24 +77,20 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   def updateStats(loc : TreeP, st : GameState, end : Option[PlayerId], stats : List[PlayerStats]) = {
     val tree = loc.tree
     val node = tree.label
-    node.numSim += 1
     val h = heuris(st, node.playerStats, loc.depth)
-    val reward = end.map{p => if (p == botPlayerId) {
-      node.nbWin += 1
-      h
-    } else {
-      node.nbLoss += 1
+    val reward = end.map{p => if (p == botPlayerId) h else {
       if (h <= 0) h else - 1/ h
     } }.getOrElse(settings.rewardDefaultWeightFactor * h)
+    node.numSim += 1
     node.rewards += reward
 
     loc.backPropagate{ t =>
-      val node = t.label
+      val n = t.label
       end.foreach{ p =>
-        if (p == botPlayerId) { node.nbWin += 1  } else { node.nbLoss += 1 }
+        if (p == botPlayerId) { n.nbWin += 1  } else { n.nbLoss += 1 }
       }
-      node.numSim += 1
-      node.rewards += reward
+      n.numSim += 1
+      n.rewards += reward
     }
     reward
   }
@@ -103,7 +99,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     val label = loc.tree.label
     val children = label.open()
     if (children.nonEmpty){
-      if (children.forall(_.end.isDefined)){
+      if (children.forall(_.isLeaf)){
         label.poisoned = true
       }
       if (loc.tree.subforest.isEmpty){
@@ -114,7 +110,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     } else None
   }
 
-  def isDeadEnd(loc : TreeP) = (loc.depth == maxDepth) || loc.tree.label.poisoned
+  def isLeaf(loc : TreeP) = (loc.depth == maxDepth) || loc.tree.label.isLeaf
 
   final def treePolicy(start: TreeP) : Option[TreeP] = {
     var loc = start
@@ -124,21 +120,25 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
       end = true
     }
 
+    def nextOrUp(){
+      if (loc.hasNext) loc.goNext()
+      else {
+        loc.parent match {
+          case None => endWith(start)
+          case Some(p) =>
+            loc = p
+            nextOrUp()
+        }
+      }
+    }
+
     while (!end) {
       select(loc)
-      val depth = loc.depth
-      if (depth == maxDepth){
+      if (isLeaf(loc)){
         endWith(loc)
       } else {
         openAndGetFirstChild(loc) match {
-          case None =>
-            if (loc.hasNext) loc.goNext()
-            else {
-              loc.parent match {
-                case None => endWith(start)
-                case Some(p) => loc = p
-              }
-            }
+          case None => nextOrUp()
           case Some(child) => loc = child
         }
       }
@@ -150,10 +150,10 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   private def select(t : TreeP) = {
     t.parent.foreach{ p  =>
       var best = (t.tree, t.pos)
-      val toggled = if (t.tree.label.playerId != botPlayerId) !( _ : Boolean) else identity[Boolean] _
+      val isFairOnly = p.tree.label.playerId == human
       while(t.hasNext){
         t.goNext()
-        if (toggled(t.tree.label.getUct > best._1.label.getUct)) {
+        if ((isFairOnly && t.tree.label.getFair > best._1.label.getFair) || t.tree.label.getUct > best._1.label.getUct) {
           best = (t.tree, t.pos)
         }
       }
@@ -174,6 +174,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   } with NodeStats {
     private var children = List.empty[Node] // after opened can't be empty if not ended
     final def notExpanded = end.isEmpty && children.isEmpty
+    def isLeaf = end.isDefined || poisoned
 
     final def open() = {
       if (notExpanded) {
@@ -202,23 +203,17 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   }
 
   trait NodeStats { _ : Node =>
-
     var numSim = 1
     var nbWin = 0
     var nbLoss = 0
     var rewards = 0f
 
-    end.foreach{ p =>
-      if (p == botPlayerId) {
-        nbWin += 1
-      } else {
-        nbLoss += 1
-      }
-    }
-
     def getAvgReward : Float = rewards/numSim
     def getUct : Float =  parent.map{ p =>
       (getAvgReward / 5f) + math.sqrt(2 * math.log(p.numSim)/numSim).floatValue  // HACK to try to have reward in [0, 1], it goes rarely up to 10
+    }.getOrElse(0f)
+    def getFair = parent.map{ p =>
+      math.sqrt(2 * math.log(p.numSim)/numSim).floatValue
     }.getOrElse(0f)
     def statString = s"Node($commandOpt : $getUct, avgRwd=$getAvgReward, nSim=$numSim)"
   }
