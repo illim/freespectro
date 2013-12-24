@@ -74,13 +74,14 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     cardUsage.updateStats(reward)
   }
 
-  def updateStats(loc : TreeP, st : GameState, end : Option[PlayerId], stats : List[PlayerStats]) = {
+  def updateStats(loc : TreeP, st : GameState, end : Option[PlayerId], playerStats : List[PlayerStats]) = {
     val tree = loc.tree
     val node = tree.label
-    val h = heuris(st, node.playerStats, loc.depth)
-    val reward = end.map{p => if (p == botPlayerId) h else {
-      if (h <= 0) h else - 1/ h
-    } }.getOrElse(settings.rewardDefaultWeightFactor * h)
+    val stats = playerIds.map{ i =>
+      playerStats(i) + node.playerStats(i)
+    }
+    val h = heuris(st, stats, loc.depth)
+    val reward = end.map{p => if (p == botPlayerId) 1f else - 1f }.getOrElse(h)
     node.numSim += 1
     node.rewards += reward
 
@@ -95,16 +96,12 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     reward
   }
 
-  def openAndGetFirstChild(loc : TreeP) : Option[TreeP] = {
+  def getFirstChild(loc : TreeP) : Option[TreeP] = {
     val label = loc.tree.label
-    val children = label.open()
-    if (children.nonEmpty){
-      if (children.forall(_.isLeaf)){
-        label.poisoned = true
-      }
+    val children = label.children
+    if (children.headOption.isDefined){
       if (loc.tree.subforest.isEmpty){
-        val childTrees = children.map { c => new Tree(c) }
-        loc.tree.subforest ++= childTrees
+        loc.tree.subforest = children.map { c => new Tree(c) }
       }
       Some(loc.child)
     } else None
@@ -121,8 +118,8 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     }
 
     def nextOrUp(){
-      if (loc.hasNext) loc.goNext()
-      else {
+      val hasNext = loc.gotoNext()
+      if (!hasNext) {
         loc.parent match {
           case None => endWith(start)
           case Some(p) =>
@@ -137,7 +134,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
       if (isLeaf(loc)){
         endWith(loc)
       } else {
-        openAndGetFirstChild(loc) match {
+        getFirstChild(loc) match {
           case None => nextOrUp()
           case Some(child) => loc = child
         }
@@ -151,11 +148,12 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     t.parent.foreach{ p  =>
       var best = (t.tree, t.pos)
       val isFairOnly = p.tree.label.playerId == human
-      while(t.hasNext){
-        t.goNext()
+      var hasNext = t.gotoNext()
+      while(hasNext){
         if ((isFairOnly && t.tree.label.getFair > best._1.label.getFair) || t.tree.label.getUct > best._1.label.getUct) {
           best = (t.tree, t.pos)
         }
+        hasNext = t.gotoNext()
       }
       t.goto(best._2)
     }
@@ -168,30 +166,22 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     playerStats : List[PlayerStats], commandOpt: Option[Command] = None, parent : Option[Node] = None) extends {
 
     val end = from.checkEnded
-    var poisoned = false
     val playerId = transition.playerId
 
   } with NodeStats {
-    private var children = List.empty[Node] // after opened can't be empty if not ended
-    final def notExpanded = end.isEmpty && children.isEmpty
-    def isLeaf = end.isDefined || poisoned
 
-    final def open() = {
-      if (notExpanded) {
-        searchChildren()
-      }
-      children
-    }
-
-    final def searchChildren(){
+    lazy val children : Stream[Node] =  {
       val commandChoices = choices.getNexts(from, transition.playerId)
-      children = (None :: commandChoices.map(Some(_)).toList).flatMap{ cmd =>
+
+      new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
         val (randWidth, n) = getChild(cmd)
         if (randWidth > 1) {
           n :: List.fill(math.max(randWidth, 2)){ getChild(cmd)._2 }
         } else List(n)
       }
     }
+    def isLeaf = end.isDefined
+
 
     private def getChild(commandOpt: Option[Command]) = {
       val (state, outTransition) = bot.simulateCommand(from, playerId, commandOpt)

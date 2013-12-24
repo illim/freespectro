@@ -5,15 +5,20 @@ import collection._
 trait BotTree {
   type TreeLabel
 
-  class Tree(val label : TreeLabel, val subforest : mutable.ArrayBuffer[Tree] = mutable.ArrayBuffer.empty) {
+  class Tree(val label : TreeLabel, var subforest : Stream[Tree] = Stream.Empty) {
     def loc = new TreeP(this, 0, None, 0)
   }
 
   // tree pointer
   class TreeP(var tree : Tree, var pos : Int, val parent : Option[TreeP] = None, val depth : Int = 0){
-    def hasNext = parent.exists(_.tree.subforest.size > pos +1)
 
-    def goNext() = goto(pos + 1)
+    def gotoNext() = parent.flatMap{ p =>
+      p.tree.subforest.lift(pos + 1).map{ t =>
+        pos += 1
+        tree = t
+      }
+    }.isDefined
+
     def goto(p : Int) {
       pos = p
       tree = parent.get.tree.subforest(p)

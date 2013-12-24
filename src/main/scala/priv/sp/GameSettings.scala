@@ -74,7 +74,7 @@ class GameSettings(resources : GameResources) extends JPanel  {
   }
 
   val hc = new HeurisChoice
-  add(hc.combo)
+  //add(hc.combo)
 }
 
 class GameDebug(game : => Game) extends JPanel with ActionListener {
