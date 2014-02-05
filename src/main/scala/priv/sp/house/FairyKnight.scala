@@ -36,7 +36,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
                     eventListener = Some(new CustomListener(new FKEventListener)))
 
   Fairy.initCards(Houses.basicCostFunc)
-  val additionalCards = List(thgorynych, ohgorynych)
+  val additionalCards = List(vodyanoy, thgorynych, ohgorynych)
   additionalCards.foreach{ c =>
     c.houseIndex = Fairy.houseIndex
     c.houseId = Fairy.houseId

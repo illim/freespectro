@@ -7,6 +7,9 @@ import priv.util._
 import scalaz._
 import collection._
 
+// for random effects, the simulator add a max of 2 additional evaluations
+// todo weight the heuris result considering the random factors from choices and effects, not only the number of turns
+
 class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, settings : Settings) extends BotTree {
   var defaultPolicyMaxTurn = 10
   val maxDepth = 2
@@ -27,8 +30,8 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     var i = 0
     while(System.currentTimeMillis < end && continue){
       treePolicy(loc) match {
-          case Some(selected) => defaultPolicy(selected)
-          case None => continue = false
+        case Some(selected) => defaultPolicy(selected)
+        case None => continue = false
       }
       i+=1
     }
@@ -101,7 +104,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     val children = label.children
     if (children.headOption.isDefined){
       if (loc.tree.subforest.isEmpty){
-        loc.tree.subforest = children.map { c => new Tree(c) }
+        loc.tree.subforest = children
       }
       Some(loc.child)
     } else None
@@ -135,7 +138,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
         endWith(loc)
       } else {
         getFirstChild(loc) match {
-          case None => nextOrUp()
+          case None => endWith(loc)// nextOrUp()
           case Some(child) => loc = child
         }
       }
@@ -148,12 +151,10 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     t.parent.foreach{ p  =>
       var best = (t.tree, t.pos)
       val isFairOnly = p.tree.label.playerId == human
-      var hasNext = t.gotoNext()
-      while(hasNext){
+      while(t.gotoNext()){
         if ((isFairOnly && t.tree.label.getFair > best._1.label.getFair) || t.tree.label.getUct > best._1.label.getUct) {
           best = (t.tree, t.pos)
         }
-        hasNext = t.gotoNext()
       }
       t.goto(best._2)
     }
@@ -170,25 +171,29 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
 
   } with NodeStats {
 
-    lazy val children : Stream[Node] =  {
-      val commandChoices = choices.getNexts(from, transition.playerId)
-
-      new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
-        val (randWidth, n) = getChild(cmd)
-        if (randWidth > 1) {
-          n :: List.fill(math.max(randWidth, 2)){ getChild(cmd)._2 }
-        } else List(n)
-      }
-    }
     def isLeaf = end.isDefined
 
+    lazy val children : Stream[Tree] =  {
+      if (isLeaf){
+        Stream.Empty
+      } else {
+        val commandChoices = choices.getNexts(from, transition.playerId)
+
+        new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
+          val (randWidth, t) = getChild(cmd)
+          if (randWidth > 1) {
+            t :: List.fill(math.max(randWidth, 2)){ getChild(cmd)._2 }
+          } else List(t)
+        }
+      }
+    }
 
     private def getChild(commandOpt: Option[Command]) = {
       val (state, outTransition) = bot.simulateCommand(from, playerId, commandOpt)
       val randWidth = bot.updater.randLogs.width
       bot.updater.resetRand()
       val playerStats = bot.updater.stats.map(_.copy())
-      (randWidth, Node(state, outTransition, playerStats, commandOpt, Some(this)))
+      (randWidth, new Tree(Node(state, outTransition, playerStats, commandOpt, Some(this))))
     }
   }
 
@@ -226,8 +231,6 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
 
 }
 
-
-// for random effects, the simulator add a max of 2 additional evaluations
 class BoundedBot2(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, val settings : Settings = new Settings) extends Bot {
 
   def executeAI(start: GameState) = {
