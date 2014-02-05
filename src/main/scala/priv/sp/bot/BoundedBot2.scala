@@ -149,14 +149,14 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
 
   private def select(t : TreeP) = {
     t.parent.foreach{ p  =>
-      var best = (t.tree, t.pos)
+      var best = (t.tree, t.pos._1)
       val isFairOnly = p.tree.label.playerId == human
       while(t.gotoNext()){
         if ((isFairOnly && t.tree.label.getFair > best._1.label.getFair) || t.tree.label.getUct > best._1.label.getUct) {
-          best = (t.tree, t.pos)
+          best = (t.tree, t.pos._1)
         }
       }
-      t.goto(best._2)
+      t.gobackto(best._2)
     }
   }
 
