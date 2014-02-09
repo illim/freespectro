@@ -182,7 +182,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
         new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
           val (randWidth, t) = getChild(cmd)
           if (randWidth > 1) {
-            t :: List.fill(math.max(randWidth, 2)){ getChild(cmd)._2 }
+            t :: List.fill(math.min(randWidth, 2)){ getChild(cmd)._2 }
           } else List(t)
         }
       }
