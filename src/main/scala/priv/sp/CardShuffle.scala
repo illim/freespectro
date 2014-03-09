@@ -18,15 +18,14 @@ class CardShuffle(houses : Houses) {
       case None => CardModel.BasicCardRange
     }
     val cardModel = CardModel.build(houses, specialHouse, getCardRange)
-    new CardShuffler(cardModel).solve()
+    val pDesc = new CardShuffler(cardModel).solve()
     val manaModel = new ManaModel(cardModel)
-    new ManaShuffler(manaModel, p == startingPlayer).solve()
-    (cardModel.toPlayerHouseDesc, manaModel.toHouseStates)
+    val houseStates = new ManaShuffler(manaModel, p == startingPlayer).solve()
+    (pDesc, houseStates)
   }
 }
 
 import oscar.cp.modeling._
-import oscar.search._
 import oscar.cp.core._
 import priv.util.CpHelper
 import priv.util.CpHelper._
@@ -75,12 +74,12 @@ class HModel(cp : CPSolver, val house : House, spHouses : Houses, getCardRange :
     val (c0, ctemp) = range.partition(_ < 3)
     val (c1, ctemp2) = ctemp.partition(_ < 5)
     val (c2, c3) = ctemp2.partition(_ < 7)
-    (CPVarInt(cp, c0)
-     :: CPVarInt(cp, c1)
-     :: CPVarInt(cp, c2)
-     :: CPVarInt(cp, c3) :: Nil)
+    (CPIntVar(cp, c0)
+     :: CPIntVar(cp, c1)
+     :: CPIntVar(cp, c2)
+     :: CPIntVar(cp, c3) :: Nil)
   } else {
-    (0 to 3).map(i => CPVarInt(cp, range))
+    (0 to 3).map(i => CPIntVar(cp, range))
   }
 
   def getSolveds : Set[Int] = cards.map(_.value)(breakOut)
@@ -88,52 +87,55 @@ class HModel(cp : CPSolver, val house : House, spHouses : Houses, getCardRange :
 }
 
 class CardShuffler(cardModel : CardModel) extends CpHelper {
-  def cp = cardModel.cp
+  implicit def solver = cardModel.cp
   import cardModel._
 
   def solve(timeLimit : Int = Int.MaxValue) = {
-    val vars = allCards.toArray
-    cp.subjectTo{
-      houses.foreach{ house =>
-        import house.cards
+    val vars = allCards
+    houses.foreach{ house =>
+      import house.cards
 
-        if (!house.isSpecial){
-          val s = sum(cards)
-          cp.add(s < 30)
-          cp.add(s > 20)
-        }
-        cp.add(allDifferent(cards))
+      if (!house.isSpecial){
+        val s = sum(cards)
+        add(s < 30)
+        add(s > 20)
       }
-      cp.add(oneManaGen)
-      cp.add(oneWipe)
+      add(allDifferent(cards))
+    }
+    add(oneManaGen)
+    add(oneWipe)
 
-      val d = getDefense
-      cp.add(d > 1)
-      cp.add(d < 4)
+    val d = getDefense
+    add(d > 1)
+    add(d < 4)
 
-      val fs = getFinishers
-      cp.add(fs > 0)
-      cp.add(fs < 3)
+    val fs = getFinishers
+    add(fs > 0)
+    add(fs < 3)
 
-      cp.add(maximum(fire) > 9)
-      cp.add(maximum(earth) > 9)
-      cp.add(maximum(water) > 8)
-      cp.add(maximum(air) > 8)
+    add(maximum(fire) > 9)
+    add(maximum(earth) > 9)
+    add(maximum(water) > 8)
+    add(maximum(air) > 8)
 
-      // bans
-      cp.add(contains(9, fire) ==> notContains(11, fire))
-      cp.add(contains(5, fire) ==> notContains(3, earth))
-      cp.add(contains(1, water) ==> notContains(9, earth))
-      cp.add(contains(5, earth) ==> notContains(6, earth))
+    // bans
+    add(contains(9, fire) ==> notContains(11, fire))
+    add(contains(5, fire) ==> notContains(3, earth))
+    add(contains(1, water) ==> notContains(9, earth))
+    add(contains(5, earth) ==> notContains(6, earth))
 
-    } exploration {
-      cp.binary(vars, _.size, getRandom _ )
-      //println(allCards)
+    search {
+      binaryFirstFail(vars, getRandom _ )
+    }
+    var playerDesc : PlayerDesc = null
+    onSolution {
+      playerDesc = toPlayerHouseDesc
     }
     // maybe this can be considered as a hack and hide a real problem
     // or is it just a variable relaxing method by retrying and hoping random doesn't lead to a dead end
     // i don't really know (todo use vizualisation tool)
-    softRun(cp, vars, timeLimit)
+    softRun(vars, timeLimit)
+    playerDesc
   }
 
   def oneManaGen = sum(
@@ -164,7 +166,7 @@ class CardShuffler(cardModel : CardModel) extends CpHelper {
 
 class ManaModel(val cardModel : CardModel, val cp : CPSolver = CPSolver()){
   val manas = (0 to 3).map{ _ =>
-    CPVarInt(cp, 2 to 6)
+    CPIntVar(cp, 2 to 6)
   }
 
   def toHouseStates = (manas.map{ m =>
@@ -172,22 +174,31 @@ class ManaModel(val cardModel : CardModel, val cp : CPSolver = CPSolver()){
   } :+ (new HouseState(2))).to[Vector]
 }
 
-class ManaShuffler(model : ManaModel, isFirst : Boolean){
+class ManaShuffler(model : ManaModel, isFirst : Boolean) {
   import model._
+
+  implicit val solver = model.cp
   val total = if (isFirst) 19 else 18
   val manaGen = findManaGen
 
   def solve() = {
-    cp.subjectTo{
-      val s = sum(manas)
-      cp.add(s == total)
-      manaGen.foreach{ case (idx, cost) =>
-        cp.add(manas(idx) < 7)
-        cp.add(manas(idx) >= (if (isFirst) cost else (cost -1)))
-      }
-    } exploration {
-      cp.binary(manas.toArray, _.size, getRandom _ )
-    } run(1)
+    val s = sum(manas)
+    add(s == total)
+    manaGen.foreach{ case (idx, cost) =>
+      add(manas(idx) < 7)
+      add(manas(idx) >= (if (isFirst) cost else (cost -1)))
+    }
+
+    search {
+      binaryFirstFail(manas, getRandom _ )
+    }
+
+    var houseStates : Vector[HouseState] =null
+    onSolution {
+      houseStates = toHouseStates
+    }
+    start(nSols = 1)
+    houseStates
   }
 
   def findManaGen = {

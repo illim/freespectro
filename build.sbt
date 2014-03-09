@@ -3,7 +3,7 @@ name := "freespectro"
 
 version := "1.0"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.0"
 
 resolvers ++= Seq(
  "Sonatype Repository" at "http://oss.sonatype.org/content/repositories/releases")
@@ -21,7 +21,7 @@ javaOptions in run ++= Seq("-Djava.library.path="+Path.userHome.absolutePath+"/.
 
 autoCompilerPlugins := true
 
-addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.2")
+addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.0")
 
 scalacOptions ++= Seq("-P:continuations:enable")
 

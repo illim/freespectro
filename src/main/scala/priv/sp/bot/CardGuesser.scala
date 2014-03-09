@@ -34,7 +34,6 @@ class ModelFilter(val knownCards : Set[(Card, Int)], p: PlayerDesc) {
 }
 
 import oscar.cp.modeling._
-import oscar.search._
 import oscar.cp.core._
 import priv.util.CpHelper
 import priv.util.CpHelper._
@@ -62,7 +61,7 @@ class GHModel(cp : CPSolver, val house : House, spHouses : Houses, knowledge : M
     c.cost -> i
   }.toMap
   // 0 : exclude, 1: sure, 2 : maybe
-  val cards = Vector.fill(house.cards.size)(CPVarInt(cp, 0 to 2))
+  val cards = Vector.fill(house.cards.size)(CPIntVar(cp, 0 to 2))
   val knownCards = knowledge.knownCards.filter{ case (card, _) => spHouses.getHouseById(card.houseId) == house}.toList.sortBy(_._2)
   knownCards.foreach{ case (card, idx) => apply(card.cost).assign(1) }
 
@@ -88,27 +87,28 @@ class GHModel(cp : CPSolver, val house : House, spHouses : Houses, knowledge : M
 }
 
 class CardGuesser(cardModel : GCardModel) extends CpHelper {
-  def cp = cardModel.cp
+  implicit def solver = cardModel.cp
 
   import cardModel._
 
   def solve(timeLimit : Int = Int.MaxValue) = {
-    cp.subjectTo{
-      cp.add(oneManaGen)
-      cp.add(oneWipe)
+    add(oneManaGen)
+    add(oneWipe)
 
-      // bans
-      cp.add(is(fire(9))  ==> not(fire(11)))
-      cp.add(is(fire(5))  ==> not(earth(3)))
-      cp.add(is(water(1)) ==> not(earth(9)))
-      cp.add(is(earth(5)) ==> not(earth(6)))
-    } exploration {
-      cp.binary(allCards.toArray, _.size, _.max)
-    } run(1, timeLimit = timeLimit)
+    // bans
+    add(is(fire(9))  ==> not(fire(11)))
+    add(is(fire(5))  ==> not(earth(3)))
+    add(is(water(1)) ==> not(earth(9)))
+    add(is(earth(5)) ==> not(earth(6)))
+    search {
+      binary(allCards, _.size, _.max)
+    }
+
+    start(nSols = 1, timeLimit = timeLimit)
   }
 
-  def is(x : CPVarInt) = (x === 1)
-  def not(x : CPVarInt) = (x === 0)
+  def is(x : CPIntVar) = (x === 1)
+  def not(x : CPIntVar) = (x === 0)
 
   def oneManaGen = {
     val manaGens = Houses.manaGens.map{ case (houseIndex, cost) =>
