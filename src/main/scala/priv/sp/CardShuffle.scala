@@ -20,7 +20,7 @@ class CardShuffle(houses : Houses) {
     val cardModel = CardModel.build(houses, specialHouse, getCardRange)
     val pDesc = new CardShuffler(cardModel).solve()
     val manaModel = new ManaModel(cardModel)
-    val houseStates = new ManaShuffler(manaModel, p == startingPlayer).solve()
+    val houseStates = new ManaShuffler(manaModel, pDesc, p == startingPlayer).solve()
     (pDesc, houseStates)
   }
 }
@@ -174,7 +174,7 @@ class ManaModel(val cardModel : CardModel, val cp : CPSolver = CPSolver()){
   } :+ (new HouseState(2))).to[Vector]
 }
 
-class ManaShuffler(model : ManaModel, isFirst : Boolean) {
+class ManaShuffler(model : ManaModel, pDesc : PlayerDesc, isFirst : Boolean) {
   import model._
 
   implicit val solver = model.cp
@@ -202,9 +202,9 @@ class ManaShuffler(model : ManaModel, isFirst : Boolean) {
   }
 
   def findManaGen = {
-    cardModel.houses.zipWithIndex.flatMap{ case (h, idx) =>
-      val solveds = h.getSolveds
-      Houses.manaGens.collectFirst{ case (houseIndex, cost) if idx == houseIndex && solveds.contains(cost) =>
+    pDesc.houses.zipWithIndex.flatMap{ case (h, idx) =>
+      val costs : Set[Int] = h.cards.map(_.cost)(breakOut)
+      Houses.manaGens.collectFirst{ case (houseIndex, cost) if idx == houseIndex && costs.contains(cost) =>
         (idx, cost)
       }
     }
