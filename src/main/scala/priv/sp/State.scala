@@ -3,8 +3,30 @@ package priv.sp
 import collection._
 import java.io.Serializable
 
+object GameState {
+  val some0 = Some(0)
+  val some1 = Some(1)
+
+  def toString(s : GameState) = {
+    s.players.map{ p =>
+      "houses " + p.houses.map(_.mana).mkString(",") + ", life " + p.life +
+      ", slots " + p.slotList.map{ i =>
+        p.slots.get(i).map{ s =>
+          s.card.name + "/" + s.life
+        }.getOrElse(".")
+      }.mkString(",") + "\n"
+    }.mkString
+  }
+}
 case class GameState(players: List[PlayerState]) {
-  def checkEnded = players.zipWithIndex.collectFirst{ case (p, n) if p.life <= 0 => other(n) }
+
+  def checkEnded : Option[Int] = {
+    import GameState._
+
+    if (players.head.life <= 0) some0
+    else if (players.last.life <= 0) some1
+    else None
+  }
 }
 case class PlayerState(
   houses      : PlayerState.HousesType,
@@ -114,16 +136,3 @@ sealed trait Transition {
   def playerId : PlayerId
 }
 case class WaitPlayer(playerId : PlayerId, name : String = null) extends Transition
-
-object GameState {
-  def toString(s : GameState) = {
-    s.players.map{ p =>
-      "houses " + p.houses.map(_.mana).mkString(",") + ", life " + p.life +
-      ", slots " + p.slotList.map{ i =>
-        p.slots.get(i).map{ s =>
-          s.card.name + "/" + s.life
-        }.getOrElse(".")
-      }.mkString(",") + "\n"
-    }.mkString
-  }
-}

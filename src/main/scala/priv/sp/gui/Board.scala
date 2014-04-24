@@ -3,7 +3,6 @@ package priv.sp.gui
 import priv._
 import org.lwjgl.opengl.GL11._
 import priv.sp._
-import scala.util.continuations._
 
 class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel : DescriptionPanel, infoPanel : InfoPanel, val sp: SpWorld) {
 

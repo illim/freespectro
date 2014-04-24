@@ -2,7 +2,6 @@ package priv.sp
 
 import javax.swing._
 import java.awt.event._
-import scala.util.continuations._
 import priv.util.Utils._
 import priv.World
 
@@ -53,16 +52,12 @@ class MultiSettings(
 
   def newServer(boot : ((Option[GameServer] => Unit) => Any)) {
     abort()
-    reset {
-      val gameServerOpt = shift { k: (Option[GameServer] => Unit) =>
-        setEnable(false)
-        boot(k)
-      }
+    setEnable(false)
+    boot{ gameServerOpt =>
       setEnable(true)
       gameServerOpt.foreach{ gameServer =>
         resetGame(gameServer)
       }
     }
   }
-
 }

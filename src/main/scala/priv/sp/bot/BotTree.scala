@@ -15,16 +15,14 @@ trait BotTree {
     var forestCache = Vector((tree, pos._2))
 
     def gotoNext() = {
-      pos._2.exists { forest =>
-        forest match {
-          case head #:: tail =>
-            tree = head
-            pos = (pos._1 + 1, Some(tail))
-            forestCache = forestCache :+ (tree, pos._2)
-            true
-          case _ =>
-            false
-        }
+      pos._2.exists {
+        case head #:: tail =>
+          tree = head
+          pos = (pos._1 + 1, Some(tail))
+          forestCache = forestCache :+ (tree, pos._2)
+          true
+        case _ =>
+          false
       }
     }
 
