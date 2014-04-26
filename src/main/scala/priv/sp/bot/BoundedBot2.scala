@@ -78,8 +78,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
   }
 
   def updateStats(loc : TreeP, st : GameState, end : Option[PlayerId], playerStats : List[PlayerStats]) = {
-    val tree = loc.tree
-    val node = tree.label
+    val node = loc.tree.label
     val stats = playerIds.map{ i =>
       playerStats(i) + node.playerStats(i)
     }
@@ -88,8 +87,7 @@ class BoundedBot2AI(botPlayerId: PlayerId, start : GameState, bot : Bot, setting
     node.numSim += 1
     node.rewards += reward
 
-    loc.backPropagate{ t =>
-      val n = t.label
+    loc.backPropagate{ n =>
       end.foreach{ p =>
         if (p == botPlayerId) { n.nbWin += 1  } else { n.nbLoss += 1 }
       }

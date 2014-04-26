@@ -34,9 +34,9 @@ trait BotTree {
 
     def hasChild = tree.subforest.nonEmpty
     def child = new TreeP(tree.subforest.head, Some(this), depth + 1)
-    def backPropagate(f : Tree => Unit){
+    def backPropagate(f : TreeLabel => Unit){
       parent.foreach{ p =>
-        f(p.tree)
+        f(p.tree.label)
         p.backPropagate(f)
       }
     }

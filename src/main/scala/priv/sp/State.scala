@@ -23,8 +23,8 @@ case class GameState(players: List[PlayerState]) {
   def checkEnded : Option[Int] = {
     import GameState._
 
-    if (players.head.life <= 0) some0
-    else if (players.last.life <= 0) some1
+    if (players.head.life <= 0) some1
+    else if (players.last.life <= 0) some0
     else None
   }
 }
