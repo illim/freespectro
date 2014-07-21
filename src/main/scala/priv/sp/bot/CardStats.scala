@@ -17,9 +17,10 @@ object CardStats {
 }
 
 // stats for policy to be less random
-class CardStats(initState : GameState, val playerId : PlayerId, bot : Bot) {
+class CardStats(val playerId : PlayerId, context : BotContext, knowledge : BotKnowledge) {
   import CardStats._
-  val isHighBetter = playerId == bot.botPlayerId
+  import context._
+  val isHighBetter = playerId == botPlayerId
 
   case class CardStat(card : Card, isHypothetical : Boolean, var total : Float = 0f , var nbUsed : Int = 0){
     val fact = if (isHypothetical) maybe else 1f
@@ -41,9 +42,9 @@ class CardStats(initState : GameState, val playerId : PlayerId, bot : Bot) {
 
   var stats = immutable.Map.empty[Card, CardStat]
 
-  initState.players(playerId).desc.get.houses.foreach{ h =>
+  start.players(playerId).desc.get.houses.foreach{ h =>
     h.cards.foreach{ cardDesc =>
-      val isHypothetical = (playerId != bot.botPlayerId && cardDesc.card.cost < 9 && !bot.knownCards.exists(_._1 == cardDesc.card))
+      val isHypothetical = (playerId != botPlayerId && cardDesc.card.cost < 9 && ! knowledge.knownCards.exists(_._1 == cardDesc.card))
       stats += (cardDesc.card -> CardStat(cardDesc.card, isHypothetical))
     }
   }
@@ -95,4 +96,47 @@ class CardStats(initState : GameState, val playerId : PlayerId, bot : Bot) {
       }
     }
   }
+}
+
+
+
+import breeze.util._
+
+class StatMap [A] {
+
+  case class Entry(rewards : Float, count : Int = 1) {
+    def add(reward : Float) = Entry(reward + rewards, count +1)
+  }
+
+  class Stats {
+    private val index = Index[A]()
+    private var m = Vector(Vector.empty[Entry])
+
+    private def add(i : Int, j : Int, reward : Float) {
+      if (m.size < i) {
+        m = m ++ Vector.fill(i - m.size)(Vector.empty[Entry])
+      }
+      var row = m(i)
+      if (row.size < j) {
+         row = row ++ Vector.fill(j - m.size)(Entry(0f))
+      }
+      val value = row(j).add(reward)
+      m = m.updated(i, row.updated(j, value))
+    }
+
+    def add(xs : Vector[A], reward : Float) {
+      for(x <- xs) {
+        val i = index.index(x)
+        for(y <- xs) {
+          val j = index.index(y)
+          if (i != j) {
+            add(i, j, reward)
+            add(j, i, reward)
+          }
+        }
+      }
+    }
+
+  }
+
 }

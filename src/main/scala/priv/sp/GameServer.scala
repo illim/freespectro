@@ -62,7 +62,7 @@ class Local(resources : GameResources) extends GameServer {
       val cardIdx = desc.players(owner).getIndexOfCardInHouse(c.card)
       if (cardIdx != -1){
         resources.aiExecutor.submit(runnable {
-          bot.updateKnowledge(c, cardIdx)
+          bot.knowledge.updateKnowledge(c, cardIdx)
         })
       }
     }
@@ -70,7 +70,7 @@ class Local(resources : GameResources) extends GameServer {
 
   override def reset(){
     super.reset()
-    resources.aiExecutor.submit(runnable(bot.reset()))
+    resources.aiExecutor.submit(runnable(bot.knowledge.reset()))
   }
 }
 

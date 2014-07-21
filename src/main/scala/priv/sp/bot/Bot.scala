@@ -17,16 +17,31 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
   private def ripPlayerState = GameDesc.playerLens(other(botPlayerId))%==( _ => otherPlayerDesc)
 }
 
-trait Bot {
-  def gameDesc: GameDesc
-  def spHouses : Houses
-  def botPlayerId: PlayerId
-  def executeAI(state: GameState): Option[Command]
+object Bot {
+  def loop(settings : Settings)(f : => Boolean) = {
+    val startTime = System.currentTimeMillis
+    val end       = startTime + settings.duration
+    var i         = 0
+    var continue  = true
+    while(System.currentTimeMillis < end && continue){
+      continue = f
+      i+=1
+    }
+    (System.currentTimeMillis() - startTime, i)
+  }
+}
 
-  val guess = new CardGuess(gameDesc, spHouses)
-  var knownCards = Set.empty[(Card, Int)]
+case class BotContext(botPlayerId : PlayerId, start : GameState, settings : Settings) {
+  val human = other(botPlayerId)
+}
+
+class BotKnowledge(
+    gameDesc : GameDesc,
+    val spHouses : Houses,
+    botPlayerId: PlayerId) {
+
+  var knownCards = Set.empty[(Card, Int)] // card and his index in house
   var k = generateK().get
-  var updater : GameStateUpdater = null
 
   def updateKnowledge(command : Command, indexOfCardInHouse : Int) {
     import command._
@@ -40,6 +55,7 @@ trait Bot {
   def generateK(timeLimit : Int = Int.MaxValue) = {
     println("generating AI fake player")
     val start = System.currentTimeMillis
+    val guess = new CardGuess(gameDesc, spHouses)
     guess.createAIPlayer(botPlayerId, knownCards, timeLimit).map{ fakePlayerDesc =>
       println("generated k in " + (System.currentTimeMillis -start)+" ms")
       new Knowledge(gameDesc, botPlayerId, knownCards, fakePlayerDesc)
@@ -50,12 +66,11 @@ trait Bot {
     knownCards = Set.empty
     k = generateK().get
   }
+}
 
-  def initGameUpdater(state : GameState){
-    if (updater == null){
-      updater = new GameStateUpdater(state, gameDesc)
-    }
-  }
+class BotSimulator(val knowledge : BotKnowledge, val context : BotContext) {
+
+  val updater = new GameStateUpdater(context.start, knowledge.k.desc)
 
   def simulateCommand(state: GameState, command: Command) : (GameState, Transition) = {
     simulateCommand(state, command.player, Some(command))
@@ -89,15 +104,15 @@ trait Bot {
   }
 }
 
-class Choices(bot : Bot, cardStats : List[CardStats], settings : Settings) {
+class Choices(cardStats : List[CardStats], settings : Settings) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
-    val p = state.players(playerId)
-    val slots = p.slots
-    val openSlots = PlayerState.openSlots(p)
-    val otherp = state.players(other(playerId))
+    val p              = state.players(playerId)
+    val slots          = p.slots
+    val openSlots      = PlayerState.openSlots(p)
+    val otherp         = state.players(other(playerId))
     val otherOpenSlots = PlayerState.openSlots(otherp)
-    val otherSlots = otherp.slots
+    val otherSlots     = otherp.slots
 
     p.desc.get.houses.flatMap { houseDesc  =>
       val houseState = p.houses(houseDesc.house.houseIndex)
