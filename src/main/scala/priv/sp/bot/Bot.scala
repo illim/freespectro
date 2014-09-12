@@ -32,7 +32,7 @@ object Bot {
 }
 
 case class BotContext(botPlayerId : PlayerId, start : GameState, settings : Settings) {
-  val human = other(botPlayerId)
+  val humanId = other(botPlayerId)
 }
 
 class BotKnowledge(

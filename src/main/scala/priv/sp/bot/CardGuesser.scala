@@ -51,6 +51,7 @@ class GCardModel(val cp : CPSolver, val houses : List[GHModel]){
     (0 to 4).map{ i =>
       val house = houses(i).house
       val solveds = houses(i).getSolveds
+      println("house " + house.name + " : " + solveds.toList)
       PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c)).map(CardDesc(_))(breakOut))
     }(breakOut) : Vector[PlayerHouseDesc])
 }
