@@ -18,7 +18,7 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
 }
 
 object Bot {
-  def loop(settings : Settings)(f : => Boolean) = {
+  def loopWhile(settings : Settings)(f : => Boolean) = {
     val startTime = System.currentTimeMillis
     val end       = startTime + settings.duration
     var i         = 0

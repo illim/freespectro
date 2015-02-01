@@ -13,6 +13,31 @@ import collection._
 object BoundedBot2AI extends BotTree {
   type TreeLabel = Node
   val currentNodeId = new java.util.concurrent.atomic.AtomicInteger()
+
+
+  def logNode(node : Node, observer : BotObserver, children : Traversable[String]) = {
+    val name = node.commandOpt.map(_.toString).getOrElse("")
+
+    s"""{"name" : "$name","stats" : "${observer.getNodeStat(node).statString}",
+       |"children" : [${children.mkString(",\n")}]}""".stripMargin
+  }
+  def logRun(policyRun : PolicyRun) = {
+    def logCommand(command : Option[Command], child : String) = {
+      val name = command.map(_.toString).getOrElse("")
+
+      s"""{"name" : "$name", "stats" : "","children" : [$child]}""".stripMargin
+    }
+    policyRun.commands.foldLeft("") { (child, command) =>
+      logCommand(command, child)
+    }
+  }
+  def dump(tree : Tree, observer : BotObserver) : String = {
+    val l = tree.label
+    val children : Traversable[String] = if (tree.subforest.isEmpty){
+      l.policyRuns.map { run => logRun(run) }.filter(_.nonEmpty)
+    } else tree.subforest.toList.map(c => dump(c, observer))
+    logNode(l, observer, children)
+  }
 }
 
 import BoundedBot2AI._
@@ -23,13 +48,17 @@ case class Node(
   transition : Transition,
   playerStats : List[PlayerStats], getChildren : Node => Stream[Tree], commandOpt: Option[Command] = None, parent : Option[Node] = None) {
 
-  val end      = from.checkEnded
-  val playerId = transition.playerId
-  val id       = currentNodeId.incrementAndGet()
-  def isLeaf   = end.isDefined
+  val end       = from.checkEnded
+  val playerId  = transition.playerId
+  val id        = currentNodeId.incrementAndGet()
+  var policyRuns = Vector.empty[PolicyRun]
+  def isLeaf    = end.isDefined
   lazy val children = getChildren(this)
 }
 
+class PolicyRun{
+  var commands = List.empty[Option[Command]] // inverted list
+}
 
 class BoundedBot2AI(simulator : BotSimulator) {
   import simulator.context._
@@ -46,7 +75,7 @@ class BoundedBot2AI(simulator : BotSimulator) {
   def execute() = {
     val node = treeNode(Node(start, WaitPlayer(botPlayerId), simulator.updater.stats, getChildren _))
     val loc  = node.loc
-    val (timeSpent, nbIterations) = Bot.loop(settings) {
+    val (timeSpent, nbIterations) = Bot.loopWhile(settings) {
       treePolicy(loc) match {
         case Some(selected) => defaultPolicy(selected); true
         case None => false
@@ -64,11 +93,11 @@ class BoundedBot2AI(simulator : BotSimulator) {
           case None => Some(childTree.label)
         }
     }
-    result.flatMap { node =>
+    (node, result.flatMap { node =>
       val nodeStat = observer.getNodeStat(node)
       println(s"ai spent $timeSpent, numSim : ${nodeStat.numSim}, ${nodeStat.nbWin}/${nodeStat.nbLoss},  ${nbIterations} iterations")
       node.commandOpt
-    }
+    })
   }
 
   val defaultPolicyMaxTurn = 10
@@ -81,25 +110,28 @@ class BoundedBot2AI(simulator : BotSimulator) {
     var player = node.playerId
     simulator.updater.resetStats()
     val cardUsage = new observer.CardUsage
+    val policyRun = new PolicyRun
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
       nextCommand.foreach{ c => cardUsage.cardUsed(player, c.card) }
+      policyRun.commands = nextCommand :: policyRun.commands
       val (gameState, transition) = simulator.simulateCommand(state, player, nextCommand)
       state = gameState
       player = transition.playerId
       nbStep += 1
       end = state.checkEnded
     }
+    node.policyRuns = node.policyRuns :+ policyRun
     observer.updateStats(loc, state, end, simulator.updater.stats, cardUsage)
     end.isDefined
   }
 
   def getFirstChild(loc : TreeP) : Option[TreeP] = {
     val label = loc.tree.label
-    val children = label.children
+    val children = label.children // compute the children
     if (children.headOption.isDefined){
       if (loc.tree.subforest.isEmpty){
-        loc.tree.subforest = children
+        loc.tree.subforest = children // attach the children
       }
       Some(loc.child)
     } else None
@@ -259,14 +291,18 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
   }
 }
 
-
 class BoundedBot2(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, val settings : Settings = new Settings) {
   val knowledge = new BotKnowledge(gameDesc, spHouses, botPlayerId)
 
   def executeAI(start: GameState) = {
+    debugExecuteAI(start)._1._2
+  }
+
+  def debugExecuteAI(start: GameState) = {
     val st = knowledge.k.ripDescReader(start)
     val context = BotContext(botPlayerId, st, settings)
     val simulator = new BotSimulator(knowledge, context)
-    new BoundedBot2AI(simulator).execute()
+    val ai = new BoundedBot2AI(simulator)
+    (ai.execute(), ai.observer)
   }
 }
