@@ -9,6 +9,7 @@ import collection._
 
 // for random effects, the simulator add a max of 2 additional evaluations
 // todo weight the heuris result considering the random factors from choices and effects, not only the number of turns
+// card stats + warmup ?
 
 object BoundedBot2AI extends BotTree {
   type TreeLabel = Node
@@ -216,7 +217,7 @@ class BoundedBot2AI(simulator : BotSimulator) {
 
 
 class NodeStat(val node : Node, parentStat : Option[NodeStat]) {
-  var numSim = 1
+  var numSim = 1f
   var nbWin = 0
   var nbLoss = 0
   var rewards = 0f
@@ -238,7 +239,7 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
   private val nodeStats = mutable.Map.empty[Int, NodeStat]
   def getNodeStat(node : Node) : NodeStat = nodeStats.getOrElseUpdate(node.id, new NodeStat(node, node.parent.map(getNodeStat)))
 
-  val cardStats = playerIds.map{ p => new CardStats(p, context, knowledge) }
+  val cardStats = playerIds.map{ p => new DummyCardStats(p, context, knowledge) }
   val choices = new Choices(cardStats, settings)
 //  val heuris = new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
   val heuris = new LifeHeuris(context, settings)
@@ -258,6 +259,7 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
     }
     val h        = heuris(st) //, stats, loc.depth)
     val reward   = end.map{p => if (p == botPlayerId) 1f else - 1f }.getOrElse(h)
+
     nodeStat.numSim  += 1
     nodeStat.rewards += reward
 
