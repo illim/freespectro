@@ -1,5 +1,6 @@
 package priv.sp.bot
 
+import java.nio.file.{Files, Paths}
 import priv.sp._
 import collection.mutable._
 import scalaz._
@@ -24,7 +25,7 @@ class BBBotSpec extends BotTestHelper {
         get(Earth, 2, 6, 7, 11),
         get(dudeMancer.Dude, 2, 4, 5, 8)))))
 
-  "bot" should "win the game with last move" in {
+  /**"bot" should "win the game with last move" in {
     val state = GameState(List(
      pstate(0,
        houseStates(10, 10, 10, 10, 10),
@@ -42,26 +43,29 @@ class BBBotSpec extends BotTestHelper {
          toSlot(5, Earth, 7)),
        life = 5) ))
 
-    val bot = new BoundedBot(1, desc, houses)
+    val bot = new BoundedBot2(1, desc, houses)
     bot.executeAI(state).get.card should equal(Earth.cards(5))
-  }
+  }*/
 
   "bot" should "defend" in {
     val state = GameState(List(
      pstate(0,
        houseStates(11, 10, 7, 10, 10),
        slots = slots(
-         toSlot(0, Fire, 10, 11),
-         toSlot(4, Earth, 10, 10)),
+         toSlot(0, Fire, 10, attack = 11),
+         toSlot(4, Earth, 10, attack = 10)), // about to kill next turn
        life = 15),
      pstate(1,
-       houseStates(10, 2, 10, 10, 10),
+       houseStates(10, 2, 10, 10, 10), // would arma the turn after
        slots = slots(
-         toSlot(0, Water, 10, 2),
+         toSlot(0, Water, 10, attack = 2),
          toSlot(5, Earth, 7)),
        life = 5) ))
 
-    val bot = new BoundedBot(1, desc, houses)
-    bot.executeAI(state).get.card should equal(Air.cards(3))
+    val bot = new BoundedBot2(1, desc, houses)
+    val ((node, played), observer) = bot.debugExecuteAI(state)
+    Files.write(Paths.get("bot.json"), BoundedBot2AI.dump(node, observer).getBytes)
+    println(played.get)
+    played.get.card should equal(Air.cards(3))
   }
 }

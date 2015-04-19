@@ -1,5 +1,5 @@
 package priv.sp.bot
-
+/**
 import priv.sp._
 import priv.sp.update._
 import collection.mutable._
@@ -151,3 +151,4 @@ class BBBot3Spec extends BotTestHelper {
   }
 
 }
+*/

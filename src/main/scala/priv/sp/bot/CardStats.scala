@@ -5,6 +5,30 @@ import priv.sp.update._
 import collection._
 import util.Random
 
+trait CardStats {
+  def getRandomCard(board : BoardView) : Option[CardDesc]
+  def update(reward : Float, cards : List[Card]) : Unit
+}
+
+class DummyCardStats(val playerId : PlayerId, context : BotContext, knowledge : BotKnowledge) extends CardStats {
+
+  def getRandomCard(board : BoardView) : Option[CardDesc] = {
+    val desc = board.p.desc.get
+    val houseDescs = desc.houses
+    val cards = houseDescs.foldLeft(Vector.empty[CardDesc]){ (acc, h) =>
+      val houseState = board.p.houses(h.house.houseIndex)
+      val cards = h.cards.filter{_.isAvailable(houseState)}
+      acc ++ cards
+    }
+    val idx = Random.nextInt(cards.size + 1)
+    if (idx >= cards.size) None
+    else Some(cards(idx))
+  }
+
+  def update(reward : Float, cards : List[Card]){}
+}
+
+/**
 // bs magic number(i'm bored)
 object CardStats {
   val maybe = 0.7f
@@ -17,7 +41,7 @@ object CardStats {
 }
 
 // stats for policy to be less random
-class CardStats(val playerId : PlayerId, context : BotContext, knowledge : BotKnowledge) {
+class DumbCardStats(val playerId : PlayerId, context : BotContext, knowledge : BotKnowledge) extends CardStats  {
   import CardStats._
   import context._
   val isHighBetter = playerId == botPlayerId
@@ -97,8 +121,8 @@ class CardStats(val playerId : PlayerId, context : BotContext, knowledge : BotKn
     }
   }
 }
-
-
+*/
+/**
 
 import breeze.util._
 
@@ -140,3 +164,4 @@ class StatMap [A] {
   }
 
 }
+*/

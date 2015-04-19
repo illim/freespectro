@@ -11,6 +11,7 @@ import org.scalatest.matchers._
  * Shitty random training
  * TODO find relevant changes
  */
+/**
 class BBBotVs extends FlatSpec with ShouldMatchers {
   val houses = HouseSingleton
   import houses._
@@ -108,3 +109,4 @@ class BBBotVs extends FlatSpec with ShouldMatchers {
   }
 
 }
+*/

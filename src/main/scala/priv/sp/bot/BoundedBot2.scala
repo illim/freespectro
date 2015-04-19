@@ -9,10 +9,36 @@ import collection._
 
 // for random effects, the simulator add a max of 2 additional evaluations
 // todo weight the heuris result considering the random factors from choices and effects, not only the number of turns
+// card stats + warmup ?
 
 object BoundedBot2AI extends BotTree {
   type TreeLabel = Node
   val currentNodeId = new java.util.concurrent.atomic.AtomicInteger()
+
+
+  def logNode(node : Node, observer : BotObserver, children : Traversable[String]) = {
+    val name = node.commandOpt.map(_.toString).getOrElse("")
+
+    s"""{"name" : "$name","stats" : "${observer.getNodeStat(node).statString}",
+       |"children" : [${children.mkString(",\n")}]}""".stripMargin
+  }
+  def logRun(policyRun : PolicyRun) = {
+    def logCommand(command : Option[Command], child : String) = {
+      val name = command.map(_.toString).getOrElse("")
+
+      s"""{"name" : "$name", "stats" : "","children" : [$child]}""".stripMargin
+    }
+    policyRun.commands.foldLeft("") { (child, command) =>
+      logCommand(command, child)
+    }
+  }
+  def dump(tree : Tree, observer : BotObserver) : String = {
+    val l = tree.label
+    val children : Traversable[String] = if (tree.subforest.isEmpty){
+      l.policyRuns.map { run => logRun(run) }.filter(_.nonEmpty)
+    } else tree.subforest.toList.map(c => dump(c, observer))
+    logNode(l, observer, children)
+  }
 }
 
 import BoundedBot2AI._
@@ -21,15 +47,19 @@ import BoundedBot2AI.Tree
 case class Node(
   from: GameState,
   transition : Transition,
-  playerStats : List[PlayerStats], commandOpt: Option[Command] = None, parent : Option[Node] = None) {
+  playerStats : List[PlayerStats], getChildren : Node => Stream[Tree], commandOpt: Option[Command] = None, parent : Option[Node] = None) {
 
-  val end      = from.checkEnded
-  val playerId = transition.playerId
-  val id       = currentNodeId.incrementAndGet()
-  def isLeaf   = end.isDefined
-  var runData : AnyRef = null // bot run specific data
+  val end       = from.checkEnded
+  val playerId  = transition.playerId
+  val id        = currentNodeId.incrementAndGet()
+  var policyRuns = Vector.empty[PolicyRun]
+  def isLeaf    = end.isDefined
+  lazy val children = getChildren(this)
 }
 
+class PolicyRun{
+  var commands = List.empty[Option[Command]] // inverted list
+}
 
 class BoundedBot2AI(simulator : BotSimulator) {
   import simulator.context._
@@ -40,14 +70,13 @@ class BoundedBot2AI(simulator : BotSimulator) {
   val choices  = observer.choices
 
   private def treeNode(node : Node) = {
-    node.runData = new GameNodeData(node)
     new Tree(node)
   }
 
   def execute() = {
-    val node = treeNode(Node(start, WaitPlayer(botPlayerId), simulator.updater.stats))
+    val node = treeNode(Node(start, WaitPlayer(botPlayerId), simulator.updater.stats, getChildren _))
     val loc  = node.loc
-    val (timeSpent, nbIterations) = Bot.loop(settings) {
+    val (timeSpent, nbIterations) = Bot.loopWhile(settings) {
       treePolicy(loc) match {
         case Some(selected) => defaultPolicy(selected); true
         case None => false
@@ -65,42 +94,45 @@ class BoundedBot2AI(simulator : BotSimulator) {
           case None => Some(childTree.label)
         }
     }
-    result.flatMap { node =>
+    (node, result.flatMap { node =>
       val nodeStat = observer.getNodeStat(node)
       println(s"ai spent $timeSpent, numSim : ${nodeStat.numSim}, ${nodeStat.nbWin}/${nodeStat.nbLoss},  ${nbIterations} iterations")
       node.commandOpt
-    }
+    })
   }
 
   val defaultPolicyMaxTurn = 10
   def defaultPolicy(loc : TreeP) = {
-    val tree= loc.tree
+    val tree   = loc.tree
     var nbStep = 0
-    val node = tree.label
-    var state = node.from
-    var end = node.end
+    val node   = tree.label
+    var state  = node.from
+    var end    = node.end
     var player = node.playerId
     simulator.updater.resetStats()
     val cardUsage = new observer.CardUsage
+    val policyRun = new PolicyRun
     while(nbStep < defaultPolicyMaxTurn && end.isEmpty){
       val nextCommand = choices.getRandomMove(state, player)
       nextCommand.foreach{ c => cardUsage.cardUsed(player, c.card) }
+      policyRun.commands = nextCommand :: policyRun.commands
       val (gameState, transition) = simulator.simulateCommand(state, player, nextCommand)
       state = gameState
       player = transition.playerId
       nbStep += 1
       end = state.checkEnded
     }
+    node.policyRuns = node.policyRuns :+ policyRun
     observer.updateStats(loc, state, end, simulator.updater.stats, cardUsage)
     end.isDefined
   }
 
   def getFirstChild(loc : TreeP) : Option[TreeP] = {
     val label = loc.tree.label
-    val children = label.runData.asInstanceOf[GameNodeData].children
+    val children = label.children // compute the children
     if (children.headOption.isDefined){
       if (loc.tree.subforest.isEmpty){
-        loc.tree.subforest = children
+        loc.tree.subforest = children // attach the children
       }
       Some(loc.child)
     } else None
@@ -147,7 +179,7 @@ class BoundedBot2AI(simulator : BotSimulator) {
   private def select(t : TreeP) = {
     t.parent.foreach{ p  =>
       var best = (t.tree, t.pos._1)
-      val isFairOnly = p.tree.label.playerId == human
+      val isFairOnly = p.tree.label.playerId == humanId
       while(t.gotoNext()){
         if (observer.select(t.tree.label, best._1.label, isFairOnly)) {
           best = (t.tree, t.pos._1)
@@ -157,29 +189,27 @@ class BoundedBot2AI(simulator : BotSimulator) {
     }
   }
 
-
-  case class GameNodeData(node : Node) {
-    lazy val children : Stream[Tree] =  {
-      if (node.isLeaf){
-        Stream.Empty
-      } else {
-        val commandChoices = choices.getNexts(node.from, node.transition.playerId)
-
-        new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
-          val (randWidth, t) = getChild(cmd)
-          if (randWidth > 1) {
-            t :: List.fill(math.min(randWidth, 2)){ getChild(cmd)._2 }
-          } else List(t)
-        }
-      }
-    }
-
-    private def getChild(commandOpt: Option[Command]) = {
+  val maxRandomChild = 4
+  def getChildren(node : Node) : Stream[Tree] = {
+    def getChild(commandOpt: Option[Command]) = {
       val (state, outTransition) = simulator.simulateCommand(node.from, node.playerId, commandOpt)
       val randWidth = simulator.updater.randLogs.width
       simulator.updater.resetRand()
       val playerStats = simulator.updater.stats.map(_.copy())
-      (randWidth, treeNode(Node(state, outTransition, playerStats, commandOpt, Some(node))))
+      (randWidth, treeNode(Node(state, outTransition, playerStats, getChildren _, commandOpt, Some(node))))
+    }
+
+    if (node.isLeaf){
+      Stream.Empty
+    } else {
+      val commandChoices = choices.getNexts(node.from, node.transition.playerId)
+
+      new Stream.Cons(None, commandChoices.map(Some(_))).flatMap{ cmd =>
+        val (randWidth, t) = getChild(cmd)
+        if (randWidth > 1) {
+          t :: List.fill(math.min(randWidth, maxRandomChild)){ getChild(cmd)._2 }
+        } else List(t)
+      }
     }
   }
 
@@ -187,7 +217,7 @@ class BoundedBot2AI(simulator : BotSimulator) {
 
 
 class NodeStat(val node : Node, parentStat : Option[NodeStat]) {
-  var numSim = 1
+  var numSim = 1f
   var nbWin = 0
   var nbLoss = 0
   var rewards = 0f
@@ -209,9 +239,10 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
   private val nodeStats = mutable.Map.empty[Int, NodeStat]
   def getNodeStat(node : Node) : NodeStat = nodeStats.getOrElseUpdate(node.id, new NodeStat(node, node.parent.map(getNodeStat)))
 
-  val cardStats = playerIds.map{ p => new CardStats(p, context, knowledge) }
+  val cardStats = playerIds.map{ p => new DummyCardStats(p, context, knowledge) }
   val choices = new Choices(cardStats, settings)
-  val heuris = new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
+//  val heuris = new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
+  val heuris = new LifeHeuris(context, settings)
   heuris.init(start)
 
   def select(node1 : Node, node2 : Node, isFairOnly : Boolean) = {
@@ -226,8 +257,9 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
     val stats    = playerIds.map{ i =>
       playerStats(i) + node.playerStats(i)
     }
-    val h        = heuris(st, stats, loc.depth)
+    val h        = heuris(st) //, stats, loc.depth)
     val reward   = end.map{p => if (p == botPlayerId) 1f else - 1f }.getOrElse(h)
+
     nodeStat.numSim  += 1
     nodeStat.rewards += reward
 
@@ -245,14 +277,14 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
 
   def updateCardStats(cardUsage : CardUsage, reward : Float) {
     cardStats(botPlayerId).update(reward, cardUsage.botCards)
-    cardStats(human).update(reward, cardUsage.oppCards)
+    cardStats(humanId).update(reward, cardUsage.oppCards)
   }
 
   class CardUsage {
     var botCards = List.empty[Card]
     var oppCards = List.empty[Card]
     def cardUsed(player: PlayerId, card : Card){
-      if (player == context.human){
+      if (player == context.humanId){
         oppCards = card :: oppCards
       } else {
         botCards = card :: botCards
@@ -261,14 +293,18 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
   }
 }
 
-
 class BoundedBot2(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHouses : Houses, val settings : Settings = new Settings) {
   val knowledge = new BotKnowledge(gameDesc, spHouses, botPlayerId)
 
   def executeAI(start: GameState) = {
+    debugExecuteAI(start)._1._2
+  }
+
+  def debugExecuteAI(start: GameState) = {
     val st = knowledge.k.ripDescReader(start)
     val context = BotContext(botPlayerId, st, settings)
     val simulator = new BotSimulator(knowledge, context)
-    new BoundedBot2AI(simulator).execute()
+    val ai = new BoundedBot2AI(simulator)
+    (ai.execute(), ai.observer)
   }
 }

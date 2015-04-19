@@ -216,7 +216,7 @@ object Shaman {
   case object WolfMod extends DescMod {
     def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
       if (house.houseIndex < 4) cards
-      else wolfDesc +: cards.tail
+      else wolfDesc +: cards.drop(1)
     }
   }
 

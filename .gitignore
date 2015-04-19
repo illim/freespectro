@@ -3,3 +3,9 @@ project/boot
 *~
 *#
 .#*
+.idea
+.idea_modules
+bin
+src/main/resources/Images/Cards
+pics
+lib

@@ -14,9 +14,11 @@ class CardGuess(gameDesc : GameDesc, spHouses : Houses) {
   def createAIPlayer(botPlayerId : PlayerId, knownCards : Set[(Card, Int)], timeLimit : Int = Int.MaxValue) : Option[PlayerDesc] = {
     val knowledge = new ModelFilter(knownCards, gameDesc.players(botPlayerId))
     val cardModel = GCardModel.build(spHouses, gameDesc.players(other(botPlayerId)), knowledge)
-    new CardGuesser(cardModel).solve(timeLimit)
-    if (cardModel.cp.isFailed) None
-    else Some(cardModel.toPlayerHouseDesc)
+    val solution = new CardGuesser(cardModel).solve(timeLimit)
+    if (solution.isEmpty){
+      println("Failed guessing")
+    }
+    solution
   }
 }
 
@@ -51,6 +53,7 @@ class GCardModel(val cp : CPSolver, val houses : List[GHModel]){
     (0 to 4).map{ i =>
       val house = houses(i).house
       val solveds = houses(i).getSolveds
+      println("house " + house.name + " : " + solveds.toList)
       PlayerHouseDesc(house, house.cards.filter(c => solveds.contains(c)).map(CardDesc(_))(breakOut))
     }(breakOut) : Vector[PlayerHouseDesc])
 }
@@ -60,7 +63,7 @@ class GHModel(cp : CPSolver, val house : House, spHouses : Houses, knowledge : M
     c.cost -> i
   }.toMap
   // 0 : exclude, 1: sure, 2 : maybe
-  val cards = Vector.fill(house.cards.size)(CPIntVar(cp, 0 to 2))
+  val cards = Vector.fill(house.cards.size)(CPIntVar(0 to 2)(cp))
   val knownCards = knowledge.knownCards.filter{ case (card, _) => spHouses.getHouseById(card.houseId) == house}.toList.sortBy(_._2)
   knownCards.foreach{ case (card, idx) => apply(card.cost).assign(1) }
 
@@ -103,7 +106,13 @@ class CardGuesser(cardModel : GCardModel) extends CpHelper {
       binary(allCards, _.size, _.max)
     }
 
-    start(nSols = 1, timeLimit = timeLimit)
+    var solution = Option.empty[PlayerDesc]
+    onSolution {
+      solution = Some(cardModel.toPlayerHouseDesc)
+    }
+
+    val stats = start(nSols = 1, timeLimit = timeLimit)
+    solution
   }
 
   def is(x : CPIntVar) = (x === 1)

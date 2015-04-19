@@ -18,7 +18,7 @@ class Knowledge(gameDesc : GameDesc, botPlayerId : PlayerId, knownCards : Set[(C
 }
 
 object Bot {
-  def loop(settings : Settings)(f : => Boolean) = {
+  def loopWhile(settings : Settings)(f : => Boolean) = {
     val startTime = System.currentTimeMillis
     val end       = startTime + settings.duration
     var i         = 0
@@ -32,7 +32,7 @@ object Bot {
 }
 
 case class BotContext(botPlayerId : PlayerId, start : GameState, settings : Settings) {
-  val human = other(botPlayerId)
+  val humanId = other(botPlayerId)
 }
 
 class BotKnowledge(
@@ -104,15 +104,20 @@ class BotSimulator(val knowledge : BotKnowledge, val context : BotContext) {
   }
 }
 
+class BoardView(state: GameState, playerId: PlayerId) {
+  val p              = state.players(playerId)
+  lazy val slots          = p.slots
+  lazy val openSlots      = PlayerState.openSlots(p)
+  lazy val otherp         = state.players(other(playerId))
+  lazy val otherOpenSlots = PlayerState.openSlots(otherp)
+  lazy val otherSlots     = otherp.slots
+}
+
 class Choices(cardStats : List[CardStats], settings : Settings) {
 
   def getNexts(state: GameState, playerId: PlayerId): Stream[Command] = {
-    val p              = state.players(playerId)
-    val slots          = p.slots
-    val openSlots      = PlayerState.openSlots(p)
-    val otherp         = state.players(other(playerId))
-    val otherOpenSlots = PlayerState.openSlots(otherp)
-    val otherSlots     = otherp.slots
+    val board = new BoardView(state, playerId)
+    import board._
 
     p.desc.get.houses.flatMap { houseDesc  =>
       val houseState = p.houses(houseDesc.house.houseIndex)
@@ -156,15 +161,11 @@ class Choices(cardStats : List[CardStats], settings : Settings) {
   import util.Random
 
   def getRandomMove(state: GameState, playerId: PlayerId): Option[Command] = {
-    val p = state.players(playerId)
-    val otherp = state.players(other(playerId))
-    val cardStat = cardStats(playerId)
-    val cardOption = cardStat.getRandomCard(p)
+    val board = new BoardView(state, playerId)
+    import board._
 
-/**      val houseDesc = p.desc.get.houses(Random.nextInt(5))
-      val houseState = p.houses(houseDesc.house.houseIndex)
-      val cards = houseDesc.cards.filter(_.isAvailable(houseState))
-      randHeadOption(cards)*/
+    val cardStat = cardStats(playerId)
+    val cardOption = cardStat.getRandomCard(board)
 
     cardOption.flatMap { cardDesc =>
       import cardDesc.card
@@ -175,8 +176,7 @@ class Choices(cardStats : List[CardStats], settings : Settings) {
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }
         case Some(SelectOwnerSlot) =>
-          val opens = PlayerState.openSlots(p)
-          val (blockeds, unBlockeds) = opens.partition(otherp.slots.isDefinedAt _)
+          val (blockeds, unBlockeds) = openSlots.partition(otherp.slots.isDefinedAt _)
           (if (Random.nextFloat < settings.simBlockedSlotWeight) randHeadOption(blockeds) else randHeadOption(unBlockeds)).map { num =>
             Command(playerId, card, Some(new SlotInput(num)), cardDesc.cost)
           }

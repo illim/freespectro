@@ -15,7 +15,10 @@ libraryDependencies ++= Seq(
  "org.lwjgl.lwjgl" % "lwjgl_util" % lvers,
  "org.lwjgl.lwjgl" % "lwjgl-platform" % lvers classifier "natives-windows",
  "org.scalatest"   % "scalatest_2.11" % "2.1.3" % "test",
- "org.scalaz"      % "scalaz-core_2.11" % "7.0.6")
+ "org.scalaz"      % "scalaz-core_2.11" % "7.0.6"
+// "org.scalanlp"    % "breeze_2.11" % "0.8.1"
+// "com.github.fommil"    % "org.scalanlp" % "1.1"
+)
 
 fork in run := true
 
