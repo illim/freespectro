@@ -7,14 +7,13 @@ import GameCardEffect._
 
 class SB {
 
-  val bounty =  new Creature("Bounty hunter", Attack(5), 18, "when kill opposite creature, get 1/3 mana of his cost round up", reaction = new BountyHunterReaction)
+  val bounty =  new Creature("Bounty hunter", Attack(5), 16, "when kill opposite creature, get 1/3 mana of his cost round up", reaction = new BountyHunterReaction)
   val deathLetter = new Creature("Death letter", Attack(0), 3, """
 reduce damage to 1.
 When die deals 15 damage to opposite creature.
 (Can't be healed)""", reaction = new DLReaction)
   val maiko = new Creature("Maiko", Attack(3), 13,
 """Decrease by 1 attack of all creatures on board.
-When summoned, heal owner by 2*(number of opposed creatures)
 (Replaced by death letter after summoned)""", effects = effects(Direct -> maikoEffect), reaction = new MaikoReaction)
 
   val SB = House("Snowblood", List(
@@ -56,7 +55,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
   val someBounty = Some(bounty)
   class BountyHunterReaction extends Reaction {
       final override def onDeath(dead : Dead){
-        if (dead.player.id != selected.playerId && dead.num == selected.num){
+        if (dead.player.id != selected.playerId){
           dead.damage.foreach{ d =>
             if (d.context.selected == selected.num && d.context.card == someBounty){
               selected.player.houses.incrMana(math.ceil(dead.card.cost / 3f).toInt, dead.card.houseIndex)
@@ -98,8 +97,6 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     player.slots.foreach(temper)
     otherPlayer.slots.foreach(temper)
     player.addDescMod(maikoAbility)
-    val inter = player.getSlots.keySet.intersect(otherPlayer.getSlots.keySet)
-    player.heal(inter.size * 2)
   }
 
   class MaikoReaction extends Reaction {

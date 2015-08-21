@@ -214,7 +214,7 @@ Can switch with prisoner to nearest empty slot""",
       var res = d.damage
       if (target.isDefined){
         val slot = player.slots(d.target.get)
-        if (slot.get.card == prisoner){
+        if (slot.get.card == prisoner || slot.get.card == enragedPrisoner){
           selected inflict d.damage
           res = d.damage.copy(amount = 0)
         }
