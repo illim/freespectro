@@ -18,7 +18,7 @@ trait EarthHouse {
     new Creature("woods hermit", Attack(1), 13, "Increase earth mana growth by 2", effects = effects(OnTurn -> addMana(2, 3))),
     Spell("Fury", "Deals to opponent the sum of the attacks of the 2 strongest owner creatures", effects = effects(Direct -> fury)),
     new Creature("Huge spider", Attack(4), 21, "Spawn 2 forest spiders around him", effects = effects(Direct -> spider)),
-    new Creature("Troll", Attack(6), 25, "Every turn heals himself by 4", effects = effects(OnTurn -> focus(healCreature(4)))),
+    new Creature("Troll", Attack(6), 26, "Every turn heals himself by 4", effects = effects(OnTurn -> focus(healCreature(4)))),
     Spell("Stone shower", "Deals 25 damage to any creature", effects = effects(Direct -> massDamage(25, isSpell = true))),
     new Creature("Earth Elemental", AttackSources().add(ManaAttack(3)), 49, effects = effects(OnTurn -> addMana(1, 3))),
     new Creature("Master healer", Attack(3), 35, "Every turn heals by 3 owner and his creatures",

@@ -15,7 +15,7 @@ trait Fire {
     new Creature("Orc chieftain", Attack(3), 16, "Increase attack of adjacent card by 2", reaction = new OrcSlotReaction),
     Spell("Flame wave", "Deals 9 damage to opponent creatures", effects = effects(Direct -> damageCreatures(9, isSpell = true))),
     new Creature("Bull Commander", Attack(6), 20, "Increase attack of owner card by 1", reaction = new BullSlotReaction),
-    new Creature("Blargl", Attack(8), 25, "Deals 4 damage to every creature when summoned", effects = effects(Direct -> massDamage(4, isAbility = true, immuneSelf = true))),
+    new Creature("Blargl", Attack(8), 26, "Deals 4 damage to every creature when summoned", effects = effects(Direct -> massDamage(4, isAbility = true, immuneSelf = true))),
     Spell("Inferno", "Deals 18 damage to target and 10 to other opponent creatures", inputSpec = Some(SelectTargetCreature), effects = effects(Direct -> inferno)),
     new Creature("Fire Elemental", AttackSources().add(ManaAttack(0)), 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(3, isAbility = true), Direct -> focus(damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
     Spell("Apocalypse", "Damage any creature and opponent by 8 + fire mana", effects = effects(Direct -> armageddon)),

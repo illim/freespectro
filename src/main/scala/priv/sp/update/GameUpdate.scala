@@ -106,7 +106,7 @@ class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener 
 case class RandLog(var count : Int)
 class RandLogs {
   var offset = 0
-  var logs = List.empty[RandLog]
+  var logs = Vector.empty[RandLog]
 
   def get(n : Int) = {
     val randlog = getOrAddLog(n)
@@ -122,7 +122,7 @@ class RandLogs {
   def getOrAddLog(n : Int) = {
     if (logs.size == offset){
       val r = RandLog(n)
-      logs = r :: logs
+      logs = r +: logs
       offset += 1
       r
     } else {

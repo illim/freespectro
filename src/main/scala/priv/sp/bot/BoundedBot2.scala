@@ -13,7 +13,7 @@ import collection._
 
 object BoundedBot2AI extends BotTree {
   type TreeLabel = Node
-  val currentNodeId = new java.util.concurrent.atomic.AtomicInteger()
+  val currentNodeId = new java.util.concurrent.atomic.AtomicLong()
 
 
   def logNode(node : Node, observer : BotObserver, children : Traversable[String]) = {
@@ -236,8 +236,16 @@ class NodeStat(val node : Node, parentStat : Option[NodeStat]) {
 class BotObserver(context : BotContext, knowledge : BotKnowledge) {
   import context._
 
-  private val nodeStats = mutable.Map.empty[Int, NodeStat]
-  def getNodeStat(node : Node) : NodeStat = nodeStats.getOrElseUpdate(node.id, new NodeStat(node, node.parent.map(getNodeStat)))
+  private val nodeStats = mutable.LongMap.empty[NodeStat]
+  def getNodeStat(node : Node) : NodeStat = {
+    nodeStats.get(node.id) match {
+      case Some(n) => n
+      case None =>
+        val n = new NodeStat(node, node.parent.map(getNodeStat))
+        nodeStats.put(node.id, n)
+        n
+    }
+  }
 
   val cardStats = playerIds.map{ p => new DummyCardStats(p, context, knowledge) }
   val choices = new Choices(cardStats, settings)

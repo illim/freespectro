@@ -24,8 +24,8 @@ class JunkMage {
     new Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
     new Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     new Creature("Roaming assassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
-    new Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\nIf mirror position is blocked, heal factory by 5", reaction = new FactoryReaction),
-    new Creature("Recycling Bot", Attack(8), 29, "When owner creature die, heal 10 life. If his life is already full,\n heal the player with 2 life for each creature lost.", reaction = new RecyclingBotReaction),
+    new Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\n, and heals factory by 5", reaction = new FactoryReaction),
+    new Creature("Recycling Bot", Attack(8), 29, "When owner creature die, the creature heals 10 life,\n and heals 2 life to its owner for each creature lost.", reaction = new RecyclingBotReaction),
     trashCyborg), eventListener = Some(new CustomListener(new JunkEventListener)))
 
   val jf = Junk.cards(2).asCreature
@@ -181,7 +181,8 @@ trait MirrorSummon extends Reaction {
         if (slot.value.isEmpty){
           selected.focus()
           slot.add(card)
-        } else if (healIfNoMirror != 0){
+        }
+        if (healIfNoMirror != 0){
           selected.heal(healIfNoMirror)
         }
       }
@@ -219,13 +220,10 @@ class FactoryReaction extends MirrorSummon {
 class RecyclingBotReaction extends Reaction {
   final override def onDeath(dead : Dead){
     import dead._
-    selected.value.foreach{ botSlot =>
+    selected.value foreach{ botSlot =>
       selected.focus()
-      if (botSlot.life == botSlot.card.life) {
-        player.heal(2)
-      } else {
-        selected.heal(10)
-      }
+      player heal 2
+      selected heal 10
     }
   }
 }

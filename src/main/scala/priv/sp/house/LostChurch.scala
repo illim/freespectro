@@ -13,8 +13,8 @@ object LostChurch {
 
   val liberatorLife = 15
 
-  val prisoner = new Creature("Prisoner", Attack(2), 10, "When dying loose 1 mana of each basic houses.", reaction = new PrisonerReaction)
-  val enragedPrisoner = new Creature("Enraged Prisoner", Attack(7), 35, "Immune to spell & ability when liberator is alive.", reaction = new PrisonerReaction)
+  val prisoner = new Creature("Prisoner", Attack(2), 10, "When dying loose 1 mana of the two highest basic houses and earn 1 special mana.", reaction = new PrisonerReaction)
+  val enragedPrisoner = new Creature("Enraged Prisoner", Attack(7), 35, "Immune to spell & ability when liberator is alive.", reaction = new PrisonerReaction, status = runFlag)
   val windOfOppression = Spell("wind of oppression", "Stun scarecrow's opposite creature and its neighbours. Deals 5 damage to them", effects = effects(Direct -> oppress))
   val darkMonk = new Creature("Dark monk", Attack(2), 13, "Decrease opponent fire mana by 2\nand increase cost of them by 1 when alive.",
     effects = effects(Direct -> guardFire), reaction = new DarkMonkReaction)
@@ -38,7 +38,7 @@ Can switch with prisoner to nearest empty slot""",
     scarecrow,
     liberator,
     new Creature("Falconer" , Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
-    Spell("Madden", "Deals 8 damage to opponent creature and add everyone 1 attack.", effects = effects(Direct -> madden))),
+    Spell("Madden", "Deals 8 damage to opponent creature \nHeals by 3 for each creature killed and add everyone 1 attack.", effects = effects(Direct -> madden))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
     eventListener = Some(new CustomListener(new LCEventListener)))
 
@@ -75,13 +75,13 @@ Can switch with prisoner to nearest empty slot""",
 
   def spawnPrisoner : Effect = { env : Env =>
     import env._
-    if (!player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner }){
+    if ( ! player.slots().exists{ case (n, slot) => slot.card == prisoner || slot.card == enragedPrisoner } ){
       val openSlots = player.slots.getOpenSlots
       if (openSlots.nonEmpty) {
         val slot = openSlots(updater.randLogs.get(openSlots.size))
-        slot.add(prisoner)
-        if (player.slots.findCard(preacher).isDefined){
-          slot.attack.add(PreacherAttackBonus)
+        slot add prisoner
+        if ((player.slots findCard preacher).isDefined){
+          slot.attack add PreacherAttackBonus
         }
         slot.focus(blocking = false)
       }
@@ -93,15 +93,20 @@ Can switch with prisoner to nearest empty slot""",
   def weaken : Effect = { env : Env =>
     import env._
     player.slots().foreach{ case (num, slot) =>
-      if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && !slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
-        player.slots(num).attack.add(LCAttack(- math.ceil(slot.card.attack.base.get / 3f).toInt))
+      if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && ! slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
+        player.slots(num).attack add LCAttack(- math.ceil(slot.card.attack.base.get / 3f).toInt)
       }
     }
   }
+
+  def getPrisonerSlot(slots : SlotsUpdate) : Option[SlotUpdate] = {
+    slots.slots find { slot => slot.value.isDefined && (slot.get.card == prisoner || slot.get.card == enragedPrisoner) }
+  }
+
   def giveHope(player : PlayerUpdate) = {
-    player.slots.findCard(prisoner).foreach{ slot =>
+    getPrisonerSlot(player.slots) foreach { slot =>
       if (!slot.attack.has[PreacherAttackBonus.type]){
-        slot.attack.add(PreacherAttackBonus)
+        slot.attack add PreacherAttackBonus
       }
     }
   }
@@ -109,18 +114,18 @@ Can switch with prisoner to nearest empty slot""",
     final override def onAdd(slot : SlotUpdate) = {
       if (selected.num == slot.num){
         val player = selected.slots.player
-        player.addDescMod(IncrBasicCostMod)
+        player addDescMod IncrBasicCostMod
         giveHope(player)
       }
     }
     final override def cleanUp(){
       val slots = selected.slots
-      slots.findCard(prisoner).foreach{ slot =>
-        if (slots.findCard(preacher).isEmpty){
-          slot.attack.removeAny(PreacherAttackBonus)
+      getPrisonerSlot(slots) foreach{ slot =>
+        if ((slots findCard preacher).isEmpty){
+          slot.attack removeAny PreacherAttackBonus
         }
       }
-      slots.player.removeDescMod(IncrBasicCostMod)
+      slots.player removeDescMod IncrBasicCostMod
     }
   }
   def prophetize = { env : Env =>
@@ -140,12 +145,12 @@ Can switch with prisoner to nearest empty slot""",
   }
   def oppress = { env : Env =>
     import env._
-    player.slots.findCard(scarecrow).foreach{ slot =>
+    (player.slots findCard scarecrow) foreach { slot =>
       slotInterval(slot.num - 1, slot.num + 1).foreach{ n =>
         val oppSlot = otherPlayer.slots(n)
-        if (oppSlot.value.isDefined){
-          oppSlot.inflict(Damage(5, env, isAbility = true))
-          oppSlot.toggle(stunFlag)
+        if (oppSlot.value.isDefined) {
+          oppSlot inflict Damage(5, env, isAbility = true)
+          oppSlot toggle stunFlag
         }
       }
     }
@@ -161,42 +166,44 @@ Can switch with prisoner to nearest empty slot""",
     }
 
     final override def cleanUp(){
-      selected.player.removeDescMod(scarecrowAbility)
+      selected.player removeDescMod scarecrowAbility
     }
   }
 
   def deliverPrisoner = { env : Env =>
     import env._
-    player.slots.value.find{ case (n, slot) => slot.card == prisoner }.foreach{ case (n, slot) =>
-      player.slots(n).destroy()
-      player.slots(n).add(enragedPrisoner)
+    getPrisonerSlot(player.slots) foreach { case slot =>
+      slot.destroy()
+      slot add enragedPrisoner 
     }
   }
 
   def speedDrug = { env : Env =>
     import env._
-    val bonus = LCAttackBonus(env.player.id)
-    player.slots.foreach(_.attack.add(bonus))
-    player.slots.inflictCreatures(Damage(4, env, isSpell = true))
+    player.slots foreach (_.attack.add(LCAttackBonus(env.player.id)))
+    player.slots inflictCreatures Damage(4, env, isSpell = true)
   }
+
+  val maddenBonus = AttackAdd(1)
   def madden = { env : Env =>
     import env._
-    val bonus = AttackAdd(1)
     otherPlayer.slots.foreach{ slot =>
       val d = Damage(8, env, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
-        slot.attack.add(bonus)
+        slot.attack add maddenBonus
+      } else {
+        player heal 3
       }
     }
-    player.slots.foreach{_.attack.add(bonus) }
+    player.slots foreach {_.attack.add(maddenBonus) }
   }
   def falcon = { env: Env =>
     import env._
     focus()
-    otherPlayer.slots.foreach { slot =>
+    otherPlayer.slots foreach { slot =>
       if (slot.num != selected){
-        slot.inflict(Damage(math.abs(slot.num - selected), env, isAbility = true))
+        slot inflict Damage(math.abs(slot.num - selected), env, isAbility = true)
       }
     }
   }
@@ -208,7 +215,7 @@ Can switch with prisoner to nearest empty slot""",
       if (target.isDefined){
         val slot = player.slots(d.target.get)
         if (slot.get.card == prisoner){
-          selected.inflict(d.damage)
+          selected inflict d.damage
           res = d.damage.copy(amount = 0)
         }
       }
@@ -218,7 +225,7 @@ Can switch with prisoner to nearest empty slot""",
 
   class LiberatorReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
-      dead.player.slots.findCard(enragedPrisoner).foreach{ slot =>
+      (dead.player.slots findCard enragedPrisoner).foreach{ slot =>
         slot.inflict(Damage(liberatorLife, Context(dead.player.id)))
       }
     }
@@ -234,11 +241,15 @@ Can switch with prisoner to nearest empty slot""",
 
   class PrisonerReaction extends Reaction {
     final override def onMyDeath(dead : Dead){
-      if (dead.player.slots.findCard(liberator).isEmpty){
-        dead.player.houses.incrMana(-1, 0, 1, 2, 3)
+      import dead.player
+      if (player.slots.findCard(liberator).isEmpty){
+        val houses = player.houses.houses
+        val highs = (0 to 3) sortBy { i => houses(i).mana } drop 2
+        player.houses.incrMana(-1, highs : _ *)
+        player.houses.incrMana(1, 4)
       }
       val bonus = LCAttackBonus(dead.player.id)
-      dead.player.slots.foreach{_.attack.removeAny(bonus) }
+      player.slots foreach {_.attack.removeAny(bonus) }
     }
   }
 
@@ -298,7 +309,7 @@ class FalseProphetReaction extends Reaction {
     dead.player.houses.incrMana(-1, 0, 1, 2, 3)
   }
   final override def cleanUp(){
-    selected.player.removeDescMod(IncrBasicCostMod)
+    selected.player removeDescMod IncrBasicCostMod
   }
 }
 

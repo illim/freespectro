@@ -24,7 +24,7 @@ fork in run := true
 
 scalacOptions += "-Ydelambdafy:method"
 
-javaOptions in run ++= Seq("-Djava.library.path="+Path.userHome.absolutePath+"/.ivy2/cache/org.lwjgl.lwjgl/lwjgl-platform/jars/", "-Dorg.lwjgl.util.Debug=true")
+javaOptions in run ++= Seq("-Djava.library.path="+Path.userHome.absolutePath+"/.ivy2/cache/org.lwjgl.lwjgl/lwjgl-platform/jars/", "-Dorg.lwjgl.util.Debug=true", "-XX:+UnlockCommercialFeatures", "-XX:+FlightRecorder", "-Xmx384m", "-Xms128m")
 
 autoCompilerPlugins := true
 
