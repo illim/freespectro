@@ -21,7 +21,7 @@ class JunkMage {
     Spell("Poison flower", "Deals 5 damage to owner target creature, his opposite creature, \nthen the opposite neighbors.\nDeals -1 mana for target and opposite creature.",
           inputSpec = Some(SelectOwnerCreature),
           effects = effects(Direct -> poisonFlower)),
-    new Creature("Junkyard fortune", Attack(3), 19, "Absorb 2 of first damage done to either owner or creature of cost <=3", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
+    new Creature("Junkyard fortune", Attack(3), 15, "Absorb 4 of first damage done to owner", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
     new Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     new Creature("Roaming assassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
     new Creature("Factory", Attack(4), 29, "Mirror spawn of adjacent creature of cost < 6\n(spawn effect applied once)\n, and heals factory by 5", reaction = new FactoryReaction),
@@ -158,10 +158,11 @@ class JFReaction extends Reaction {
   final override def onProtect(d : DamageEvent) = {
     import d._
     if (!selected.get.data.asInstanceOf[Boolean]
-        && (d.target.isEmpty || player.slots(d.target.get).get.card.cost < 4)){
+      && d.target.isEmpty
+      && d.damage.amount > 0){
         player.updater.focus(selected.num, player.id, blocking = false)
         selected.setData(java.lang.Boolean.TRUE)
-        d.damage.copy(amount = math.max(0, d.damage.amount - 2))
+        d.damage.copy(amount = math.max(0, d.damage.amount - 4))
     } else d.damage
   }
 }
