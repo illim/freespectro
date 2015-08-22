@@ -3,6 +3,7 @@ package priv.sp
 import house._
 import priv.sp.update._
 import java.io._
+import collection._
 
 object House {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
@@ -87,8 +88,8 @@ class Houses
   val bs = List(junkMage.Junk, lostChurch.LostChurch, sb.SB, warp.Warp, zenMage.Zen)
   val special = sinist ++ others ++ bs
 
-  val specialNames = special.map(_.name).to[Set]
-  val specialByName = special.map{ c => (c.name, c) }.toMap
+  val specialNames : Set[String]         = special.map(_.name)(breakOut)
+  val specialByName : Map[String, House] = special.map{ c => (c.name, c) }(breakOut)
   private val allHouses = base ++ special
   private val allCards = {
     (allHouses.flatMap(_.cards)
@@ -98,10 +99,10 @@ class Houses
     ++ sb.additionalCards)
   }
 
-  val getHouseById = allHouses.map(h => h.houseId -> h).toMap
-  def getCardById(id : Int) : Card = allCards.find(_.id == id).getOrElse(sys.error(s"card id $id not found "))
+  val getHouseById : Map[Int, House] = allHouses.map(h => h.houseId -> h)(breakOut)
+  def getCardById(id : Int) : Card = allCards.find(_.id == id) getOrElse sys.error(s"card id $id not found ")
 
-  def isSpecial(house : House)= specialNames.contains(house.name)
+  def isSpecial(house : House)= specialNames contains house.name
 
-  base.zipWithIndex.foreach{ case (house, index) => house.initCards(Houses.basicCostFunc) }
+  base.zipWithIndex foreach { case (house, index) => house.initCards(Houses.basicCostFunc) }
 }

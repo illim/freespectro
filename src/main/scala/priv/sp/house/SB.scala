@@ -56,7 +56,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
   class BountyHunterReaction extends Reaction {
       final override def onDeath(dead : Dead){
         if (dead.player.id != selected.playerId){
-          dead.damage.foreach{ d =>
+          dead.damage foreach { d =>
             if (d.context.selected == selected.num && d.context.card == someBounty){
               selected.player.houses.incrMana(math.ceil(dead.card.cost / 3f).toInt, dead.card.houseIndex)
             }
@@ -82,8 +82,8 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
           f(env2)
         case None =>
       }
-      s.value.foreach{ x =>
-        s.oppositeSlot.inflict(Damage(x.attack / 2, Context(playerId, Some(c), s.num), isSpell = true))
+      s.value foreach { x =>
+        s.oppositeSlot inflict Damage(x.attack / 2, Context(playerId, Some(c), s.num), isSpell = true)
       }
     }
   }
@@ -92,41 +92,41 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     import env._
     val malus = MaikoMalus(selected)
     def temper(s : SlotUpdate) {
-      s.attack.add(malus)
+      s.attack add malus
     }
-    player.slots.foreach(temper)
-    otherPlayer.slots.foreach(temper)
-    player.addDescMod(maikoAbility)
+    player.slots foreach temper
+    otherPlayer.slots foreach temper
+    player addDescMod maikoAbility
   }
 
   class MaikoReaction extends Reaction {
       final override def onAdd(slot : SlotUpdate) = {
         if (slot != selected){
           val malus = MaikoMalus(selected.num)
-          slot.attack.add(malus)
+          slot.attack add malus
         }
       }
       final override def onRemove(slot : SlotUpdate) = {
         val malus = MaikoMalus(selected.num)
-        slot.attack.removeFirst(malus)
+        slot.attack removeFirst malus
       }
-      final override def cleanUp(){
+      final override def cleanUp() : Unit = {
         val malus = MaikoMalus(selected.num)
-        def removeMalus(s : SlotUpdate){ s.attack.removeFirst(malus) }
-        selected.player.slots.foreach(removeMalus)
-        selected.otherPlayer.slots.foreach(removeMalus)
+        def removeMalus(s : SlotUpdate){ s.attack removeFirst malus }
+        selected.player.slots foreach removeMalus
+        selected.otherPlayer.slots foreach removeMalus
       }
   }
 
   class DLReaction extends Reaction {
-      override def heal(amount : Int) { }
-      override def inflict(damage : Damage){
+      override def heal(amount : Int) : Unit = { }
+      override def inflict(damage : Damage) : Unit = {
         super.inflict(damage.copy(amount = 1))
       }
 
-      override def onMyDeath(dead : Dead) {
+      override def onMyDeath(dead : Dead) : Unit = {
         val d = Damage(15, Context(selected.playerId, Some(dead.card), selected.num), isAbility = true)
-        selected.oppositeSlot.inflict(d)
+        selected.oppositeSlot inflict d
       }
   }
 
@@ -136,8 +136,8 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     if (aligneds.nonEmpty){
       getSelectedSlot.focus()
       val d = Damage(2, env, isAbility = true)
-      aligneds.foreach{ s =>
-        s.inflict(d)
+      aligneds foreach { s =>
+        s inflict d
       }
     }
   }
@@ -159,15 +159,15 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
       final def onSummoned(slot : SlotUpdate) = {
         if (selected != slot){
           if(!selected.get.data.asInstanceOf[Boolean]){
-            slot.value.foreach{ s =>
+            slot.value foreach{ s =>
               val d = Damage(s.attack, Context(slot.playerId, Some(s.card), slot.num), isAbility = true)
-              selected.otherPlayer.slots.inflictCreatures(d)
-              selected.setData(java.lang.Boolean.TRUE)
+              selected.otherPlayer.slots inflictCreatures d
+              selected setData java.lang.Boolean.TRUE
             }
           }
           val aligneds = getAligneds(selected.slots, selected.num)
           if (aligneds contains (slot)){
-            aligneds.foreach(_.heal(1))
+            aligneds foreach (_.heal(1))
           }
         }
       }
@@ -178,19 +178,19 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     import env._
     val filleds = player.slots.filleds
     val (draineds, healeds) = if (selected > 2) {
-      filleds.partition(_.num < 3)
+      filleds partition (_.num < 3)
     } else {
-      filleds.partition(_.num > 2)
+      filleds partition (_.num > 2)
     }
     var hasDrained = false
-    draineds.foreach{ slot =>
-      slot.value.foreach { s =>
+    draineds foreach{ slot =>
+      slot.value foreach { s =>
         healeds.find(_.num == 5 - slot.num) foreach { h =>
           val d = Damage(math.ceil(s.card.life / 10f).intValue, env, isAbility = true)
-          slot.drain(d)
+          slot drain d
           player.houses.incrMana(1, s.card.houseIndex)
           hasDrained = true
-          h.heal(2)
+          h heal 2
         }
       }
     }
@@ -203,16 +203,16 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     slot.get.card.houseIndex match {
       case 0 =>
         val d = Damage(4, Context(selected.playerId, Some(selected.get.card), selected.num), isAbility = true)
-        slot.oppositeSlot.inflict(d)
+        slot.oppositeSlot inflict d
       case 1 =>
         selected.player.value.houses.zipWithIndex.sortBy(_._1.mana).headOption.foreach{ case (_, idx) =>
           selected.player.houses.incrMana(1, idx)
         }
       case 2 =>
         val d = Damage(2, Context(selected.playerId, Some(selected.get.card), selected.num), isAbility = true)
-        selected.otherPlayer.inflict(d)
+        selected.otherPlayer inflict d
       case 3 =>
-        selected.player.heal(2)
+        selected.player heal 2
       case _ => ()
     }
   }
@@ -220,7 +220,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
   def amaterasu = { env : Env =>
     import env._
     val selected = getSelectedSlot
-    player.slots.foreach{ s =>
+    player.slots foreach{ s =>
       if (s.get.card.houseIndex < 4){
         s.focus()
         applyAmaterasuRules(selected, s)
@@ -235,7 +235,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
   }
 
   class SBEventListener extends HouseEventListener with OppDeathEventListener {
-    def onEnemyAdd(slot : SlotUpdate) {
+    def onEnemyAdd(slot : SlotUpdate) : Unit = {
       player.slots.foreach{ s =>
         s.get.reaction match {
           case mk : MaikoReaction => mk.onAdd(slot)
@@ -244,7 +244,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
       }
     }
 
-    def onSummon(slot : SlotUpdate){
+    def onSummon(slot : SlotUpdate) : Unit = {
       player.slots.foreach { s =>
         s.get.reaction match {
           case os : OnSummonable => os.onSummoned(slot)
@@ -253,10 +253,10 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
       }
     }
 
-    override def init(p : PlayerUpdate){
+    override def init(p : PlayerUpdate) : Unit = {
       super.init(p)
-      p.otherPlayer.slots.slots.foreach{ slot =>
-        slot.add.after{ _ => onEnemyAdd(slot) }
+      p.otherPlayer.slots.slots foreach { slot =>
+        slot.add after { _ => onEnemyAdd(slot) }
       }
       p.submitCommand.after{ c =>
         c.card match {
@@ -276,9 +276,9 @@ trait OnSummonable {
 class TrackerReaction extends Reaction with OnSummonable{
     final def onSummoned(slot : SlotUpdate) = {
       if(!selected.get.data.asInstanceOf[Boolean] && selected != slot){
-        slot.toggle(invincibleFlag)
-        slot.player.addEffect(OnTurn -> RemoveInvincible(slot.get.id))
-        selected.setData(java.lang.Boolean.TRUE)
+        slot toggle invincibleFlag
+        slot.player addEffect (OnTurn -> RemoveInvincible(slot.get.id))
+        selected setData java.lang.Boolean.TRUE
       }
     }
 }

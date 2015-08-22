@@ -92,7 +92,7 @@ Can switch with prisoner to nearest empty slot""",
   }
   def weaken : Effect = { env : Env =>
     import env._
-    player.slots().foreach{ case (num, slot) =>
+    player.slots() foreach { case (num, slot) =>
       if (slot.card.houseId == LostChurch.houseId && slot.life < (slot.card.life / 2) && ! slot.attackSources.sources.exists(_.isInstanceOf[LCAttack])) {
         player.slots(num).attack add LCAttack(- math.ceil(slot.card.attack.base.get / 3f).toInt)
       }
@@ -118,7 +118,7 @@ Can switch with prisoner to nearest empty slot""",
         giveHope(player)
       }
     }
-    final override def cleanUp(){
+    final override def cleanUp() = {
       val slots = selected.slots
       getPrisonerSlot(slots) foreach{ slot =>
         if ((slots findCard preacher).isEmpty){
@@ -187,7 +187,7 @@ Can switch with prisoner to nearest empty slot""",
   val maddenBonus = AttackAdd(1)
   def madden = { env : Env =>
     import env._
-    otherPlayer.slots.foreach{ slot =>
+    otherPlayer.slots foreach { slot =>
       val d = Damage(8, env, isSpell = true)
       slot.inflict(d)
       if (slot.value.isDefined){
@@ -224,7 +224,7 @@ Can switch with prisoner to nearest empty slot""",
   }
 
   class LiberatorReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
+    final override def onMyDeath(dead : Dead) = {
       (dead.player.slots findCard enragedPrisoner).foreach{ slot =>
         slot.inflict(Damage(liberatorLife, Context(dead.player.id)))
       }
@@ -240,9 +240,9 @@ Can switch with prisoner to nearest empty slot""",
   }
 
   class PrisonerReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
+    final override def onMyDeath(dead : Dead) = {
       import dead.player
-      if (player.slots.findCard(liberator).isEmpty){
+      if ((player.slots findCard liberator).isEmpty){
         val houses = player.houses.houses
         val highs = (0 to 3) sortBy { i => houses(i).mana } drop 2
         player.houses.incrMana(-1, highs : _ *)
@@ -268,10 +268,10 @@ Can switch with prisoner to nearest empty slot""",
     }
 
 
-    override def init(p : PlayerUpdate){
+    override def init(p : PlayerUpdate) = {
       super.init(p)
-      p.slots.slots.foreach{ slot =>
-        slot.protect.intercept(d => protect(slot, d))
+      p.slots.slots foreach { slot =>
+        slot.protect intercept (d => protect(slot, d))
       }
     }
   }
@@ -283,7 +283,7 @@ class DarkMonkReaction extends Reaction {
       slot.otherPlayer.addDescMod(IncrFireCostMod)
     }
   }
-  final override def onMyRemove(dead : Option[Dead]){
+  final override def onMyRemove(dead : Option[Dead]) = {
     selected.otherPlayer.removeDescMod(IncrFireCostMod)
   }
 }
@@ -305,10 +305,10 @@ case object IncrFireCostMod extends DescMod {
 case class LCAttackBonus(player : PlayerId) extends AttackFunc { def apply(attack : Int) = attack + 1 }
 
 class FalseProphetReaction extends Reaction {
-  final override def onMyDeath(dead : Dead){
+  final override def onMyDeath(dead : Dead) = {
     dead.player.houses.incrMana(-1, 0, 1, 2, 3)
   }
-  final override def cleanUp(){
+  final override def cleanUp() = {
     selected.player removeDescMod IncrBasicCostMod
   }
 }

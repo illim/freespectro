@@ -17,20 +17,23 @@ class Warp {
     new Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to\ndifference between owner and opponent mana", effects = effects(Direct -> quake)),
     new Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    new Creature("Photographer", Attack(3), 19, "If there's already a photographer, owner empty slots are reverted to the state\nwhen the other was summoned.\nOld photographer is destroyed", effects = effects(Direct -> photo)),
+    new Creature("Photographer", Attack(3), 19, "If owner creature die, his shadow remains", reaction = new PhotoReaction),
     new Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     new Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     new Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.(at least try to!)\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
     new Creature("Warp Queen", Attack(6), 32, "Opponent creatures lose their ability until end of next owner turn.\nDeals 4 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener(new WarpEventListener(_))))
 
-  val photographer = Warp.cards(3)
   val stranger = Warp.cards(6)
   Warp.initCards(Houses.basicCostFunc)
+
+  val shadow = new Creature("Shadow", Attack(0), 4)
+  shadow.houseIndex = Warp.houseIndex
+  shadow.houseId = Warp.houseId
 
   def quake = { env : Env =>
     import env._
     val houses = player.value.houses
-    otherPlayer.slots.foreach{ slot =>
+    otherPlayer.slots foreach { slot =>
       val hidx = slot.get.card.houseIndex
       val d = Damage(
         math.abs(houses(hidx).mana - otherPlayer.getHouses(slot.get.card.houseIndex).mana),
@@ -49,24 +52,6 @@ class Warp {
       val merged = new MergeStranger(s.card , opp.card)
       slot.add(SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, merged.data))
     }
-  }
-  def photo : Effect = { env : Env =>
-    import env._
-    player.slots.filleds
-      .find(s => s.get.card == photographer && s.num != selected && s.get.data != null)
-      .foreach { s =>
-        val backup = s.get.data.asInstanceOf[PlayerState.SlotsType]
-        s.destroy()
-        player.slots.slots.foreach{ s =>
-          if (s.value.isEmpty){
-            backup.get(s.num).foreach{ b =>
-              s.add(SlotState(b.card, b.life, b.status, b.card.attack, player.slots.getAttack(s, b.card.attack), b.target, b.id, b.reaction, b.data))
-            }
-          }
-        }
-      }
-    val slot = player.slots(selected)
-    slot.setData(player.getSlots - selected)
   }
   def ram = { env : Env =>
     import env._
@@ -113,6 +98,18 @@ class Warp {
     }
   }
 
+  class PhotoReaction extends Reaction {
+    final override def onDeath(dead : Dead){
+      if (dead.card != shadow
+        && dead.player.id == selected.playerId
+        && Math.abs(dead.num - selected.num) == 1) {
+        val slot = dead.player.slots(dead.num)
+        slot add shadow
+        slot.attack add AttackAdd(dead.card.attack.base.getOrElse(0))
+      }
+    }
+  }
+
   class SchizoReaction extends Reaction {
 
     override def onAdd(slot : SlotUpdate) {
@@ -142,7 +139,7 @@ class Warp {
   }
 
   // code horror
-  class WarpEventListener(inner : HouseEventListener) extends ProxyEventListener(inner) {
+  class WarpEventListener(inner : HouseEventListener) extends ProxyEventListener(inner) with OwnerDeathEventListener {
     private def isStranger(card : Card) = {
       card == stranger || card.isInstanceOf[MergeStranger]
     }

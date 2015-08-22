@@ -68,7 +68,7 @@ class JunkMage {
       val life = trashStates.map(_.life).sum
       val attack = trashStates.size * trash.attack.base.get
       // get first !
-      slots.slots.find(x => x.value.isDefined && x.get.card == trashCyborg).foreach{ slot =>
+      slots.slots find (x => x.value.isDefined && x.get.card == trashCyborg) foreach { slot =>
         env.updater.focus(slot.num, env.playerId)
         val s = slot.get
         slot.write(Some(s.copy(life = s.life + life)))
@@ -84,7 +84,7 @@ class JunkMage {
       nearestSlotOpposed(selected, player).foreach{ n =>
         val slots = player.slots
         val dest = slots(n)
-        otherSlots(n).inflict(Damage(5, env, isAbility = true))
+        otherSlots(n) inflict Damage(5, env, isAbility = true)
         slots.move(selected, n)
       }
     }
@@ -100,10 +100,10 @@ class JunkMage {
     player.houses.incrMana(-1 , h)
     if (slot.oppositeSlot.value.isDefined){
       val hopp = slot.oppositeSlot.get.card.houseIndex
-      slotInterval(selected-1, selected +1).flatMap{ num =>
+      slotInterval(selected-1, selected +1) flatMap { num =>
         val oppSlot = otherPlayer.slots(num)
-        oppSlot.value.map { slot =>
-          oppSlot.inflict(damage)
+        oppSlot.value map { slot =>
+          oppSlot inflict damage
         }
       }
       otherPlayer.houses.incrMana(-1 , hopp)
@@ -147,7 +147,7 @@ class JunkMage {
 
     override def init(p : PlayerUpdate){
       super.init(p)
-      p.slots.slots.foreach{ slot =>
+      p.slots.slots foreach { slot =>
         slot.protect.intercept(d => protect(slot, d))
       }
     }
@@ -161,7 +161,7 @@ class JFReaction extends Reaction {
       && d.target.isEmpty
       && d.damage.amount > 0){
         player.updater.focus(selected.num, player.id, blocking = false)
-        selected.setData(java.lang.Boolean.TRUE)
+        selected setData java.lang.Boolean.TRUE
         d.damage.copy(amount = math.max(0, d.damage.amount - 4))
     } else d.damage
   }
@@ -169,7 +169,7 @@ class JFReaction extends Reaction {
 
 trait MirrorSummon extends Reaction {
   def maxCost : Int
-  var healIfNoMirror = 0
+  var healOnSummon = 0
   final override def onSummon(summoned : SummonEvent) {
     import summoned._
     val step = selected.num - num
@@ -183,8 +183,8 @@ trait MirrorSummon extends Reaction {
           selected.focus()
           slot.add(card)
         }
-        if (healIfNoMirror != 0){
-          selected.heal(healIfNoMirror)
+        if (healOnSummon != 0){
+          selected heal healOnSummon
         }
       }
     }
@@ -215,7 +215,7 @@ class ChainControllerReaction extends MirrorSummon {
 
 class FactoryReaction extends MirrorSummon {
   val maxCost = 5
-  healIfNoMirror = 5
+  healOnSummon = 5
 }
 
 class RecyclingBotReaction extends Reaction {

@@ -47,7 +47,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
   def result = value.copy(slots = getSlots, houses = getHouses)
 
-  def runSlots(){
+  def runSlots() : Unit = {
     getSlots.foreach { case (num, s) =>
       val slots = getSlots
       slots.get(num).foreach{ slot =>
@@ -58,7 +58,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def runSlot(numSlot: Int, slot: SlotState) {
+  def runSlot(numSlot: Int, slot: SlotState) : Unit = {
     if (slot.attack > 0 && slot.isRunnable && !ended){
       val d = Damage(slot.attack, Context(id, Some(slot.card), numSlot))
       updateListener.runSlot(numSlot, id)
@@ -67,8 +67,8 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def runSlot(s : SlotUpdate) {
-    s.value.foreach{ slot =>
+  def runSlot(s : SlotUpdate) : Unit = {
+    s.value foreach { slot =>
       runSlot(s.num, slot)
     }
   }
@@ -78,22 +78,22 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
    * from Spectromancer. Example : trooper damages a summoned creature
    * before being killed by his effect. (alternative is to create a phase beforeadd, afteradd)
    */
-  def submit(c : Option[Command]){
-    val (test, newCommand) = houseEventListener.interceptSubmit(c)
+  def submit(c : Option[Command]) = {
+    val (test, newCommand) = houseEventListener interceptSubmit c
     (if (test) newCommand else {
-      val (test2, newCommand2) = otherHouseEventListener.interceptSubmit(c)
+      val (test2, newCommand2) = otherHouseEventListener interceptSubmit c
       if (test2) newCommand2 else c
-    }).foreach(submitCommand)
+    }) foreach submitCommand
   }
 
   val submitCommand = new priv.util.ObservableFunc1({ command : Command =>
     if (command.card.isSpell){
-      updateListener.spellPlayed(command)
+      updateListener spellPlayed command
     }
     houses.incrMana(- command.cost, command.card.houseIndex) // could be after but it's ugly(-> hack for fury)
     updateListener.refresh(silent = true)
     if (!command.card.isSpell) {
-      command.input.foreach{ slotInput =>
+      command.input foreach { slotInput =>
         val targetSlots = command.card.inputSpec match {
           case Some(SelectTargetCreature) =>
             otherPlayer.slots
@@ -128,28 +128,28 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def heal(amount : Int) {
+  def heal(amount : Int) = {
     if (!ended) {
       write(value.copy(life = value.life + amount))
     }
   }
 
-  def addEffect(effect : CardSpec.PhaseEffect){
+  def addEffect(effect : CardSpec.PhaseEffect)={
     write(value.copy(effects = effect :: value.effects))
   }
 
-  def removeEffect(cond : CardSpec.Effect => Boolean){
+  def removeEffect(cond : CardSpec.Effect => Boolean) = {
     write(value.copy(effects = value.effects.filter(e => !cond(e._2))))
   }
 
-  def mapEffect(f : CardSpec.Effect => CardSpec.Effect){
+  def mapEffect(f : CardSpec.Effect => CardSpec.Effect) = {
     write(value.copy(effects = value.effects.map( x => (x._1, f(x._2)))))
   }
 
-  def setData(data : AnyRef)  { write(value.copy( data = data)) }
-  def updateData[A<: AnyRef](f : A => A)  { setData(f(value.data.asInstanceOf[A])) }
+  def setData(data : AnyRef) = { write(value.copy( data = data)) }
+  def updateData[A<: AnyRef](f : A => A) = { setData(f(value.data.asInstanceOf[A])) }
 
-  def addTransition(t : Transition){
+  def addTransition(t : Transition) = {
     write(value.copy(transitions = t :: value.transitions))
   }
 
@@ -162,7 +162,7 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def blockSlot(n : Int){
+  def blockSlot(n : Int) = {
     write(value.copy(slotList = value.slotList.filterNot(_ == n)))
   }
 
@@ -170,27 +170,27 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   private val slotEffectEnv = new GameCardEffect.Env(id, updater)
 
   // why player effects happen after? (I don't remember)
-  def applyEffects(phase : CardSpec.Phase) {
-    getSlots.foreach{ case (num, s) =>
+  def applyEffects(phase : CardSpec.Phase) = {
+    getSlots foreach { case (num, s) =>
       if (!ended) {
         val slots = getSlots
-        slots.get(num).foreach{ slot => // looks weird because slots can change at each iteration
+        slots.get(num) foreach { slot => // looks weird because slots can change at each iteration
           if (slot.id != s.id){ // in case of moved creature
-            slots.find(_._2.id == s.id).foreach{ case (num, slot) => applyEffect(phase, slot, num) }
+            slots.find(_._2.id == s.id) foreach { case (num, slot) => applyEffect(phase, slot, num) }
           } else applyEffect(phase, slot, num)
         }
       }
     }
-    value.effects.foreach{ case (p, f) =>
+    value.effects foreach { case (p, f) =>
       if (p == phase && ! ended) {
         f(playerEffectEnv)
       }
     }
   }
 
-  @inline def applyEffect(phase : CardSpec.Phase, slot : SlotState, num : Int){
+  @inline def applyEffect(phase : CardSpec.Phase, slot : SlotState, num : Int) = {
     if (!slot.has(CardSpec.blockedFlag)){
-      slot.card.effects(phase).map{ f =>
+      slot.card.effects(phase) map { f =>
         slotEffectEnv.selected = num
         slotEffectEnv.card = Some(slot.card)
         f(slotEffectEnv)
@@ -200,12 +200,12 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   }
 
 
-  def prepareNextTurn(){
+  def prepareNextTurn() = {
     houses.incrMana()
   }
 
   def mod(d : Damage) : Damage = {
-    if (d.context.playerId == id) otherPlayer.mod(d)
+    if (d.context.playerId == id) otherPlayer mod d
     else {
       if (d.isSpell) {
         (updater.houseEventListeners(d.context.playerId).mod(d) /: otherPlayer.getSlots){ case (acc, (_, slot)) =>
@@ -218,9 +218,9 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
     }
   }
 
-  def addDescMod(dmods : DescMod*)   { write(value.copy(desc = value.desc.add(dmods : _*))) }
-  def insertDescMod(dmod : DescMod) { write(value.copy(desc = value.desc.insert(dmod))) }
-  def removeDescMod(dmod : DescMod){ write(value.copy(desc = value.desc.remove(dmod))) }
+  def addDescMod(dmods : DescMod*)  = { write(value.copy(desc = value.desc.add(dmods : _*))) }
+  def insertDescMod(dmod : DescMod) = { write(value.copy(desc = value.desc.insert(dmod))) }
+  def removeDescMod(dmod : DescMod) = { write(value.copy(desc = value.desc.remove(dmod))) }
 
   // sub optimal?
   private def guard(damage : Damage) = {
@@ -232,15 +232,15 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
   class HousesUpdate extends FieldUpdate(Some(playerFieldUpdate), pstate.houses) {
     def houses = value
 
-    def incrMana(incr : Int = 1){
-      write(houses.map{ house =>
+    def incrMana(incr : Int = 1) = {
+      write(houses map{ house =>
         val newmana = house.mana + incr
         new HouseState(math.max(0, newmana))
       })
       updateElementals()
     }
 
-    def incrMana(amount : Int, houseIndex : Int*) {
+    def incrMana(amount : Int, houseIndex : Int*) = {
       write(houseIndex.foldLeft(houses){ (acc, id) =>
         val house = acc(id)
         acc.updated(id, new HouseState(math.max(0, house.mana + amount)))
@@ -248,9 +248,9 @@ class PlayerUpdate(val id : PlayerId, val updater : GameStateUpdater) extends Fi
       updateElementals()
     }
 
-    def updateElementals(){
+    def updateElementals() = {
       if (getSlots.exists(_._2.card.attack.base.isEmpty)){ // bs
-        slots.foreach { slot =>
+        slots foreach { slot =>
           if (slot.attack.get.base.isEmpty){
             slot.attack.setDirty() // force reeval
           }

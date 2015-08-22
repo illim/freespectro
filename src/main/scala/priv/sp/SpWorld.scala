@@ -22,7 +22,7 @@ class Textures extends ResourceCache[String, Texture] {
 
   def load(path: String) = loadTexture(path)
   def clean() {
-    resources.values.foreach(tex => glDeleteTextures(tex.id))
+    resources.values foreach (tex => glDeleteTextures(tex.id))
     resources.clear()
   }
 }

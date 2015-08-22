@@ -12,10 +12,10 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
   val playerFieldUpdates = playerIds.map(id => new PlayerUpdate(id, self))
   var ended = false
   var updateListener : UpdateListener = new DefaultUpdateListener
-  val houseEventListeners = playerFieldUpdates.map(_.houseEventListener)
-  val stats = playerFieldUpdates.map(_.stats)
-  playerFieldUpdates.foreach{ p =>
-    p.houseEventListener.init(p)
+  val houseEventListeners = playerFieldUpdates map (_.houseEventListener)
+  val stats = playerFieldUpdates map (_.stats)
+  playerFieldUpdates foreach { p =>
+    p.houseEventListener init p
   }
   var randLogs = new RandLogs
 
@@ -42,8 +42,8 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
 
   def players(id : PlayerId) = playerFieldUpdates(id).reinit()
 
-  def resetStats(){ playerFieldUpdates.foreach(_.stats.reset()) }
-  def flush() {  playerFieldUpdates.foreach(_.flush()) }
+  def resetStats() = { playerFieldUpdates.foreach(_.stats.reset()) }
+  def flush() = {  playerFieldUpdates.foreach(_.flush()) }
 
   def result = {
     flush()
@@ -56,25 +56,25 @@ class GameStateUpdater(initState : GameState, val desc : GameDesc) extends Field
 
 
 trait UpdateListener {
-  def focus(num : Int, playerId : PlayerId, blocking : Boolean = true)
-  def move(num : Int, dest : Int, playerId : PlayerId)
-  def runSlot(num : Int, playerId : PlayerId)
-  def summon(num : Int, slot : SlotState, playerId : PlayerId)
-  def die(num : Int, playerId : PlayerId)
-  def refresh(silent : Boolean = false) // this is not great to have some gui code here
-  def spellPlayed(c : Command)
-  def triggerAbility(o : AnyRef)
+  def focus(num : Int, playerId : PlayerId, blocking : Boolean = true) : Unit
+  def move(num : Int, dest : Int, playerId : PlayerId) : Unit
+  def runSlot(num : Int, playerId : PlayerId) : Unit
+  def summon(num : Int, slot : SlotState, playerId : PlayerId) : Unit
+  def die(num : Int, playerId : PlayerId) : Unit
+  def refresh(silent : Boolean = false) : Unit // this is not great to have some gui code here
+  def spellPlayed(c : Command) : Unit
+  def triggerAbility(o : AnyRef) : Unit
 }
 
 class DefaultUpdateListener extends UpdateListener {
-  def focus(num : Int, playerId : PlayerId, blocking : Boolean){ }
-  def move(num : Int, dest : Int, playerId : PlayerId) {}
-  def runSlot(num : Int, playerId : PlayerId){}
-  def summon(num : Int, slot : SlotState, playerId : PlayerId){}
-  def die(num : Int, playerId : PlayerId){}
-  def refresh(silent : Boolean){}
-  def spellPlayed(c : Command){}
-  def triggerAbility(o : AnyRef){}
+  def focus(num : Int, playerId : PlayerId, blocking : Boolean) : Unit = { }
+  def move(num : Int, dest : Int, playerId : PlayerId)  : Unit = {}
+  def runSlot(num : Int, playerId : PlayerId) : Unit = {}
+  def summon(num : Int, slot : SlotState, playerId : PlayerId) : Unit = {}
+  def die(num : Int, playerId : PlayerId) : Unit = {}
+  def refresh(silent : Boolean) : Unit = {}
+  def spellPlayed(c : Command) : Unit = {}
+  def triggerAbility(o : AnyRef) : Unit = {}
 }
 
 // broadcast crap
@@ -83,19 +83,19 @@ class HouseEventListener {
   def player = playerField.reinit()
 
   def mod(damage : Damage) = damage
-  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) {}
-  def onPlayerDamage(amount : Int){} // bs for mk
+  def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) = {}
+  def onPlayerDamage(amount : Int) = {} // bs for mk
   def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = Reaction.falseNone
-  def init(p : PlayerUpdate){ playerField = p  }
+  def init(p : PlayerUpdate) = { playerField = p  }
 }
 
 // bs for warp class
 class ProxyEventListener(inner : HouseEventListener) extends HouseEventListener {
 
-  override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) { inner.onDamaged(card, amount, slot) }
-  override def onPlayerDamage(amount : Int){ inner.onPlayerDamage(amount)}
+  override def onDamaged(card : Creature, amount : Int, slot : SlotUpdate) : Unit = { inner.onDamaged(card, amount, slot) }
+  override def onPlayerDamage(amount : Int) : Unit = { inner.onPlayerDamage(amount)}
   override def interceptSubmit(c : Option[Command]) : (Boolean, Option[Command]) = inner.interceptSubmit(c)
-  override def init(p : PlayerUpdate){
+  override def init(p : PlayerUpdate) : Unit = {
     playerField = p
     inner.init(p)
   }

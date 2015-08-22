@@ -149,25 +149,13 @@ class BoundedBot2AI(simulator : BotSimulator) {
       end = true
     }
 
-    /** def nextOrUp(){
-      val hasNext = loc.gotoNext()
-      if (!hasNext) {
-        loc.parent match {
-          case None => endWith(start)
-          case Some(p) =>
-            loc = p
-            nextOrUp()
-        }
-      }
-    } */
-
     while (!end) {
       select(loc)
       if (isLeaf(loc)){
         endWith(loc)
       } else {
         getFirstChild(loc) match {
-          case None => endWith(loc)// nextOrUp()
+          case None => endWith(loc)
           case Some(child) => loc = child
         }
       }
@@ -185,7 +173,7 @@ class BoundedBot2AI(simulator : BotSimulator) {
           best = (t.tree, t.pos._1)
         }
       }
-      t.gobackto(best._2)
+      t gobackto best._2
     }
   }
 
@@ -249,7 +237,6 @@ class BotObserver(context : BotContext, knowledge : BotKnowledge) {
 
   val cardStats = playerIds.map{ p => new DummyCardStats(p, context, knowledge) }
   val choices = new Choices(cardStats, settings)
-//  val heuris = new MultiRatioHeuris(botPlayerId, "Junior", settings, useOppPowerRatio = true, useKillValueRatio = true, usePowerRatio = true)
   val heuris = new LifeHeuris(context, settings)
   heuris.init(start)
 
@@ -309,7 +296,7 @@ class BoundedBot2(val botPlayerId: PlayerId, val gameDesc : GameDesc, val spHous
   }
 
   def debugExecuteAI(start: GameState) = {
-    val st = knowledge.k.ripDescReader(start)
+    val st = knowledge.k ripDescReader start
     val context = BotContext(botPlayerId, st, settings)
     val simulator = new BotSimulator(knowledge, context)
     val ai = new BoundedBot2AI(simulator)

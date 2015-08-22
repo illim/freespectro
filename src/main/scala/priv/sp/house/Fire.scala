@@ -24,10 +24,10 @@ trait Fire {
 
   private def goblinBerserker = { env: Env =>
     val damage = Damage(2, env, isAbility = true)
-    val targets = env.player.slots(env.selected).adjacentSlots.filter(_.value.isDefined)
+    val targets = env.player.slots(env.selected).adjacentSlots filter (_.value.isDefined)
     if (targets.nonEmpty) {
       env.focus()
-      targets.foreach(_.inflict(damage))
+      targets foreach (_.inflict(damage))
     }
   }
 
@@ -35,7 +35,7 @@ trait Fire {
     import env._
 
     val damage = Damage(10, env, isSpell = true)
-    otherPlayer.slots.foreach{ slot =>
+    otherPlayer.slots foreach { slot =>
       slot.inflict(
         if (slot.num == selected) Damage(18, env, isSpell = true) else damage)
     }
@@ -46,7 +46,7 @@ trait Fire {
     import env._
 
     val d = Damage(getMana(0) + 8, env, isSpell = true)
-    env.otherPlayer.inflict(d)
+    env.otherPlayer inflict d
     massDamage(d.amount, isSpell = true)(env)
   }
 }
@@ -71,25 +71,25 @@ private abstract class AttackBonusReaction extends Reaction {
   final override def onAdd(slot : SlotUpdate) = {
     val bonus = getBonus(selected.num)
     if (selected.num == slot.num){
-      slot.slots.foreach{ s =>
-        if (cond(s.num, slot.num)) s.attack.add(bonus)
+      slot.slots foreach { s =>
+        if (cond(s.num, slot.num)) s.attack add bonus
       }
     } else if (cond(selected.num, slot.num)) {
-      slot.attack.add(bonus)
+      slot.attack add bonus
     }
   }
 
-  final override def onRemove(slot : SlotUpdate){
+  final override def onRemove(slot : SlotUpdate) : Unit = {
     if (selected.num != slot.num && cond(selected.num, slot.num)) {
-      slot.attack.removeFirst(getBonus(selected.num))
+      slot.attack removeFirst getBonus(selected.num)
     }
   }
 
   final override def onMyRemove(dead : Option[Dead]) = {
     val bonus = getBonus(selected.num)
-    selected.slots.foreach{ s =>
-      if (cond(s.num, selected.num)) {
-        s.attack.removeFirst(bonus)
+    selected.slots foreach { slot =>
+      if (cond(slot.num, selected.num)) {
+        slot.attack removeFirst bonus
       }
     }
   }
