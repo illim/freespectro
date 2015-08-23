@@ -31,7 +31,7 @@ object MasterOfWind {
   eventListener = Some(new CustomListener(new WindEventListener)),
   data = WindState())
 
-  Wind.initCards(Houses.basicCostFunc)
+  Wind initCards Houses.basicCostFunc
 
   def nonSpecial(p : PlayerId, state : GameState) : List[Int] = {
     state.players(p).slots.foldLeft(List.empty[Int]){ case (acc, (i, s)) =>
@@ -57,8 +57,8 @@ object MasterOfWind {
   val blPhase = "Ball lightning phase"
   def ballLightning = { env : Env =>
     import env._
-    otherPlayer.inflict(Damage(7, env, isSpell = true))
-    player.addTransition(WaitPlayer(playerId, blPhase))
+    otherPlayer inflict Damage(7, env, isSpell = true)
+    player addTransition WaitPlayer(playerId, blPhase)
   }
 
   val sqPhase1 = "Squall phase 1"
@@ -66,10 +66,10 @@ object MasterOfWind {
   def squall = { env : Env =>
     import env._
     val d = Damage(1, env, isSpell = true)
-    otherPlayer.inflict(d)
-    otherPlayer.slots.inflictCreatures(d)
-    player.addTransition(WaitPlayer(playerId, sqPhase2))
-    player.addTransition(WaitPlayer(playerId, sqPhase1))
+    otherPlayer inflict d
+    otherPlayer.slots inflictCreatures d
+    player addTransition WaitPlayer(playerId, sqPhase2)
+    player addTransition WaitPlayer(playerId, sqPhase1)
   }
 
   def vortex = { env : Env =>
@@ -79,7 +79,7 @@ object MasterOfWind {
     val air = houses.houses(2).mana
     houses.incrMana(- 2 , 2)
     player.houses.incrMana(math.min(air, 2), 2)
-    player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
+    player addEffect (OnEndTurn -> new CountDown(2, { env : Env =>
       env.player.updateData[WindState](_.copy(vortex = false))
     }))
   }
@@ -89,17 +89,17 @@ object MasterOfWind {
     import env._
     player.slots(selected).destroy()
     otherPlayer.slots(selected).destroy()
-    player.addTransition(WaitPlayer(playerId, wwPhase))
+    player addTransition WaitPlayer(playerId, wwPhase)
   }
 
   def storm = { env : Env =>
     import env._
-    player.slots.foreach{ s =>
-      s.write(s.value.map(_.copy(target = Nil)))
+    player.slots foreach { s =>
+      s write s.value.map(_.copy(target = Nil))
     }
-    player.addEffect(OnEndTurn -> { env : Env =>
-      env.player.slots.foreach{ s =>
-        s.write(s.value.map(_.copy(target = List(s.num))))
+    player addEffect (OnEndTurn -> { env : Env =>
+      env.player.slots foreach{ s =>
+        s write s.value.map(_.copy(target = List(s.num)))
       }
     })
   }
@@ -108,8 +108,8 @@ object MasterOfWind {
     def onNoCommand = {
       val damage = Damage(3, Context(selected.playerId, Some(spirit), selected.num), isAbility = true)
       val otherPlayer = selected.otherPlayer
-      otherPlayer.inflict(damage)
-      otherPlayer.slots.inflictCreatures(damage)
+      otherPlayer inflict damage
+      otherPlayer.slots inflictCreatures damage
     }
   }
 
@@ -119,14 +119,14 @@ object MasterOfWind {
       if (slotPlayer.id == player.id){
         val data = player.value.data.asInstanceOf[WindState]
         if (data.winged){
-          slot.toggle(runFlag)
+          slot toggle runFlag
           player.updateData[WindState](_.copy(winged = false))
         }
       }
     }
     override def interceptSubmit(commandOption : Option[Command]) : (Boolean, Option[Command]) = {
       if (commandOption.isEmpty){
-        player.slots.foreach{ s =>
+        player.slots foreach { s =>
           s.get.reaction match {
             case sr : SpiritThunderReaction => sr.onNoCommand
             case _ =>
@@ -145,7 +145,7 @@ object MasterOfWind {
 
     override def init(p : PlayerUpdate){
       super.init(p)
-      p.slots.slots.foreach(slot => slot.add.after(_ => onAdd(slot)))
+      p.slots.slots foreach (slot => slot.add.after(_ => onAdd(slot)))
     }
   }
 }
