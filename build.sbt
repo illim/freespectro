@@ -5,7 +5,7 @@ name := "freespectro"
 
 version := "1.0"
 
-scalaVersion := "2.11.0"
+scalaVersion := "2.12.0-M2"
 
 resolvers ++= Seq(
  "Sonatype Repository" at "http://oss.sonatype.org/content/repositories/releases")
@@ -17,7 +17,8 @@ libraryDependencies ++= Seq(
  "org.lwjgl.lwjgl" % "lwjgl_util" % lvers,
  "org.lwjgl.lwjgl" % "lwjgl-platform" % lvers classifier "natives-windows",
  "org.scalatest"   % "scalatest_2.11" % "2.1.3" % "test",
- "org.scalaz"      % "scalaz-core_2.11" % "7.0.6"
+ "org.scalaz"      %% "scalaz-core" % "7.2.0-M2" excludeAll(
+    ExclusionRule(organization  = "org.scala-lang.modules"))
 // "org.scalanlp"    % "breeze_2.11" % "0.8.1"
 // "com.github.fommil"    % "org.scalanlp" % "1.1"
 )
