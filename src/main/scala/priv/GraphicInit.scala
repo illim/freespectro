@@ -17,12 +17,12 @@ object InitDisplay {
   def findDisplayMode(height: Int, bpp: Int) = {
     val width = 4 * height / 3
     val modes = Display.getAvailableDisplayModes()
-    modes.toList.map { mode =>
-      (mode, (mode.getWidth() == width,  mode.getHeight() == height, bpp - mode.getBitsPerPixel()))
+    modes.toList.map { mode ⇒
+      (mode, (mode.getWidth() == width, mode.getHeight() == height, bpp - mode.getBitsPerPixel()))
     }.sortBy(_._2).lastOption.map(_._1)
   }
 
-  def apply(canvas : java.awt.Canvas, mode : DisplayMode) = {
+  def apply(canvas: java.awt.Canvas, mode: DisplayMode) = {
     Display.setDisplayMode(mode)
     Display.setParent(canvas)
     Display.create()
@@ -52,43 +52,43 @@ object InitDisplay {
   }
 
   def initLights() {
-		val matSpecular = createFloatBuffer(4)
-		matSpecular.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
-		val lightPosition = createFloatBuffer(4)
-		lightPosition.put(0.0f).put(0.0f).put(-1.0f).put(0.0f).flip()
-		val whiteLight = createFloatBuffer(4)
-		whiteLight.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
-		val lModelAmbient = createFloatBuffer(4)
-		lModelAmbient.put(0.5f).put(0.5f).put(0.5f).put(1.0f).flip()
+    val matSpecular = createFloatBuffer(4)
+    matSpecular.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
+    val lightPosition = createFloatBuffer(4)
+    lightPosition.put(0.0f).put(0.0f).put(-1.0f).put(0.0f).flip()
+    val whiteLight = createFloatBuffer(4)
+    whiteLight.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip()
+    val lModelAmbient = createFloatBuffer(4)
+    lModelAmbient.put(0.5f).put(0.5f).put(0.5f).put(1.0f).flip()
 
     glMaterial(GL_FRONT, GL_SPECULAR, matSpecular)
-		glMaterialf(GL_FRONT, GL_SHININESS, 50.0f)
+    glMaterialf(GL_FRONT, GL_SHININESS, 50.0f)
 
-		glLight(GL_LIGHT0, GL_POSITION, lightPosition)
-		glLight(GL_LIGHT0, GL_SPECULAR, whiteLight)
-		glLight(GL_LIGHT0, GL_DIFFUSE, whiteLight)
-		glLightModel(GL_LIGHT_MODEL_AMBIENT, lModelAmbient)
+    glLight(GL_LIGHT0, GL_POSITION, lightPosition)
+    glLight(GL_LIGHT0, GL_SPECULAR, whiteLight)
+    glLight(GL_LIGHT0, GL_DIFFUSE, whiteLight)
+    glLightModel(GL_LIGHT_MODEL_AMBIENT, lModelAmbient)
 
-		glEnable(GL_LIGHTING)
-		glEnable(GL_LIGHT0)
+    glEnable(GL_LIGHTING)
+    glEnable(GL_LIGHT0)
     glEnable(GL_COLOR_MATERIAL)
-		glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
-	}
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
+  }
 }
 
 case class DisplayConf(val width: Int, val height: Int) {
   val resolution = Coord2i(width, height)
   val xfact = width / 1024d
   val yfact = height / 768d
-/**
-  val offscreenTex = new OffscreenTexture(width, height)
-
-  def saveScreen() {
-    glLoadIdentity()
-    glBindTexture(GL_TEXTURE_2D, offscreenTex.id)
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height)
-  }
-*/
+  /**
+   * val offscreenTex = new OffscreenTexture(width, height)
+   *
+   * def saveScreen() {
+   * glLoadIdentity()
+   * glBindTexture(GL_TEXTURE_2D, offscreenTex.id)
+   * glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height)
+   * }
+   */
   def cleanUp() {
     Display.destroy()
   }

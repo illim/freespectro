@@ -30,10 +30,10 @@ class Warp {
   shadow.houseIndex = Warp.houseIndex
   shadow.houseId = Warp.houseId
 
-  def quake = { env : Env =>
+  def quake = { env: Env ⇒
     import env._
     val houses = player.value.houses
-    otherPlayer.slots foreach { slot =>
+    otherPlayer.slots foreach { slot ⇒
       val hidx = slot.get.card.houseIndex
       val d = Damage(
         math.abs(houses(hidx).mana - otherPlayer.getHouses(slot.get.card.houseIndex).mana),
@@ -42,48 +42,48 @@ class Warp {
     }
   }
 
-  def merge = { env : Env =>
+  def merge = { env: Env ⇒
     import env._
     val oppSlot = otherPlayer.slots(selected)
-    oppSlot.value.foreach{ opp =>
+    oppSlot.value.foreach { opp ⇒
       val slot = player.slots(selected)
       val s = slot.get
       slot.destroy()
-      val merged = new MergeStranger(s.card , opp.card)
+      val merged = new MergeStranger(s.card, opp.card)
       slot.add(SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, merged.data))
     }
   }
-  def ram = { env : Env =>
+  def ram = { env: Env ⇒
     import env._
     val oppSlot = otherPlayer.slots(selected)
-    oppSlot.value.foreach{ s =>
+    oppSlot.value.foreach { s ⇒
       oppSlot.destroy()
       otherPlayer.houses.incrMana(math.max(0, s.card.cost - 2), s.card.houseIndex)
     }
   }
-  def warp = { env : Env =>
+  def warp = { env: Env ⇒
     import env._
-    otherPlayer.slots.foreach{ slot =>
+    otherPlayer.slots.foreach { slot ⇒
       bridle(slot.remove(None), slot)
     }
     otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
-    player.addEffect(OnEndTurn -> new CountDown(2, { env : Env =>
+    player.addEffect(OnEndTurn -> new CountDown(2, { env: Env ⇒
       env.otherPlayer.slots.foreach(unbridle)
     }))
   }
 
   private val cache = collection.mutable.Map.empty[Card, MereMortal]
 
-  def bridle(s : SlotState, slot : SlotUpdate){
+  def bridle(s: SlotState, slot: SlotUpdate) {
     val c = if (s.card.isInstanceOf[MergeStranger]) new MereMortal(s.card) else cache.getOrElseUpdate(s.card, new MereMortal(s.card)) // hack
     val reaction = c.newReaction
     reaction.use(slot)
     slot.write(Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data)))
   }
-  def unbridle(slot : SlotUpdate) {
-    slot.value.foreach{ s =>
+  def unbridle(slot: SlotUpdate) {
+    slot.value.foreach { s ⇒
       s.card match {
-        case m : MereMortal =>
+        case m: MereMortal ⇒
           val removed = slot.remove(None)
           val reaction = m.c.newReaction
           reaction.use(slot)
@@ -93,13 +93,13 @@ class Warp {
               m.c, removed.life, removed.status,
               removed.attackSources, slot.slots.getAttack(slot, removed.attackSources),
               removed.target, removed.id, reaction, removed.data))
-        case _ =>
+        case _ ⇒
       }
     }
   }
 
   class PhotoReaction extends Reaction {
-    final override def onDeath(dead : Dead){
+    final override def onDeath(dead: Dead) {
       if (dead.card != shadow
         && dead.player.id == selected.playerId
         && Math.abs(dead.num - selected.num) == 1) {
@@ -112,22 +112,22 @@ class Warp {
 
   class SchizoReaction extends Reaction {
 
-    override def onAdd(slot : SlotUpdate) {
-      if (selected.num == slot.num){
+    override def onAdd(slot: SlotUpdate) {
+      if (selected.num == slot.num) {
         val oppSlot = selected.oppositeSlot
-        oppSlot.value.foreach{ s =>
+        oppSlot.value.foreach { s ⇒
           oppSlot.remove(None)
           selected.setData(new Integer(s.id))
           bridle(s, oppSlot)
         }
       }
     }
-    override def onMyRemove(dead : Option[Dead]) {
+    override def onMyRemove(dead: Option[Dead]) {
       val s = selected.get
       if (s.data != null) {
-        selected.otherPlayer.slots.slots.find{ t =>  // in case he has moved !
-          t.value.exists{ y =>
-            if (y.id == s.data.asInstanceOf[Integer].intValue){
+        selected.otherPlayer.slots.slots.find { t ⇒ // in case he has moved !
+          t.value.exists { y ⇒
+            if (y.id == s.data.asInstanceOf[Integer].intValue) {
               unbridle(t)
               true
             } else false
@@ -139,22 +139,22 @@ class Warp {
   }
 
   // code horror
-  class WarpEventListener(inner : HouseEventListener) extends ProxyEventListener(inner) with OwnerDeathEventListener {
-    private def isStranger(card : Card) = {
+  class WarpEventListener(inner: HouseEventListener) extends ProxyEventListener(inner) with OwnerDeathEventListener {
+    private def isStranger(card: Card) = {
       card == stranger || card.isInstanceOf[MergeStranger]
     }
 
-    override def init(p : PlayerUpdate){
+    override def init(p: PlayerUpdate) {
       super.init(p)
-      if (p.otherPlayer.value.data != null){
+      if (p.otherPlayer.value.data != null) {
         player.setData(p.otherPlayer.value.data)
       }
-      p.otherPlayer.houses.update.after{ _ => refreshStranger()  }
+      p.otherPlayer.houses.update.after { _ ⇒ refreshStranger() }
     }
 
-    def refreshStranger(){
-      if (player.getSlots.values.exists(s => isStranger(s.card))){
-        player.slots.filleds.withFilter(s => isStranger(s.get.card)).foreach{ s =>
+    def refreshStranger() {
+      if (player.getSlots.values.exists(s ⇒ isStranger(s.card))) {
+        player.slots.filleds.withFilter(s ⇒ isStranger(s.get.card)).foreach { s ⇒
           s.attack.setDirty()
         }
       }
@@ -164,17 +164,17 @@ class Warp {
 
 class ErrantAttack extends RunAttack {
 
-  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
-    if (SingleTargetAttack.attack(target, d, player)){
+  def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
+    if (SingleTargetAttack.attack(target, d, player)) {
       player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
     }
   }
 }
 
 class ErrantReaction extends Reaction {
-  override def onMyDamage(amount : Int){
-    selected.value.foreach{ s =>
-      if (s.has(pausedFlag)){
+  override def onMyDamage(amount: Int) {
+    selected.value.foreach { s ⇒
+      if (s.has(pausedFlag)) {
         selected.toggleOff(pausedFlag)
       }
     }
@@ -182,7 +182,7 @@ class ErrantReaction extends Reaction {
 }
 
 class StrangerAttack extends AttackStateFunc {
-  def apply(attack : Int, player : PlayerUpdate) : Int = {
+  def apply(attack: Int, player: PlayerUpdate): Int = {
     attack + player.otherPlayer.getHouses.maxBy(_.mana).mana
   }
 }
@@ -194,10 +194,10 @@ class CloakReaction extends Reaction {
     Some(new CloakSlotMod(s))
   }
 
-  override def onMyDeath(dead : Dead){
+  override def onMyDeath(dead: Dead) {
     import dead._
     val cloaked = dead.slot.data.asInstanceOf[SlotState]
-    if (cloaked != null){
+    if (cloaked != null) {
       val slot = player.slots(num)
       val card = cloaked.card
       slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), List(slot.num), cloaked.id, cloaked.reaction, card.data))
@@ -205,42 +205,42 @@ class CloakReaction extends Reaction {
   }
 }
 
-class CloakSlotMod(cloaked : SlotState) extends SlotMod {
-  def apply(slotState : SlotState) = {
+class CloakSlotMod(cloaked: SlotState) extends SlotMod {
+  def apply(slotState: SlotState) = {
     slotState.copy(data = cloaked)
   }
 }
 
-class MereMortalReaction(c : Creature) extends Reaction{
+class MereMortalReaction(c: Creature) extends Reaction {
   val innerReaction = c.newReaction
-  override def use(s : SlotUpdate){ super.use(s); innerReaction.use(s) }
-  final override def cleanUp(){
+  override def use(s: SlotUpdate) { super.use(s); innerReaction.use(s) }
+  final override def cleanUp() {
     innerReaction.cleanUp()
   }
 }
 
-class MereMortal(val c : Creature)
-extends Creature(c.name, c.attack, c.life, status = c.status, reaction = new MereMortalReaction(c), data = c.data){
+class MereMortal(val c: Creature)
+    extends Creature(c.name, c.attack, c.life, status = c.status, reaction = new MereMortalReaction(c), data = c.data) {
   houseId = c.houseId
   houseIndex = c.houseIndex
   cost = c.cost
   id = c.id
 }
 
-class MergeStranger(s : Creature, c : Creature)
-extends Creature(
-  s.name,
-  s.attack,
-  s.life,
-  c.description,
-  s.inputSpec, // don't care
-  c.effects,
-  c.mod,
-  c.newReaction,
-  c.data,
-  if (c.runAttack.isMultiTarget) s.runAttack else c.runAttack,
-  c.isAltar,
-  c.status){
+class MergeStranger(s: Creature, c: Creature)
+    extends Creature(
+      s.name,
+      s.attack,
+      s.life,
+      c.description,
+      s.inputSpec, // don't care
+      c.effects,
+      c.mod,
+      c.newReaction,
+      c.data,
+      if (c.runAttack.isMultiTarget) s.runAttack else c.runAttack,
+      c.isAltar,
+      c.status) {
   houseId = s.houseId
   houseIndex = s.houseIndex
   cost = s.cost

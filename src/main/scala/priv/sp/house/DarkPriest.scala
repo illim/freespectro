@@ -12,13 +12,13 @@ object DarkPriest {
   val heretic = new Creature("heretic", Attack(6), 20, "")
   val blackAngel = new Creature("black angel", Attack(8), 25, "When kills creature, completely heals itself", runAttack = new BlackAngelAttack)
 
-  val DarkPriest : House = House("DarkPriest", List(
+  val DarkPriest: House = House("DarkPriest", List(
     new Creature("Ghost", Attack(5), 16, "If killed with spell or creature ability, reborns and switches sides.\nWhen enters the game, heals to owner 1 life for each his creature on the board.", reaction = new GhostReaction, effects = effects(Direct -> ghostHeal)),
     new Creature("Occultist", Attack(4), 20, "When enters the game, summons shadow of priest in opposite slot.", effects = effects(Direct -> occult)),
     Spell("Black Mass", "Sacrifices target creature and deals 4X damage to all enemy creatures\n(X - number of different elements to which enemy creatures belong).", inputSpec = Some(SelectOwnerCreature), effects = effects(Direct -> blackMass)),
     new Creature("Energy vampire", Attack(3), 23, "Every turn gives to owner 1 mana for each neighbour\n(element of mana = element of neighbour).", effects = effects(OnTurn -> evampire)),
     new Creature("Black monk", Attack(4), 25, "When receives damage, heals the same amount of life to owner.", reaction = new BlackMonkReaction),
-    new Creature("Betrayer" , Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), effects = effects(OnTurn -> betray)),
+    new Creature("Betrayer", Attack(7), 38, "Can be summoned only on enemy creature which dies.\nEvery turn deals 4 damage to itself, to owner and neighbours.", inputSpec = Some(SelectTargetCreature), effects = effects(OnTurn -> betray)),
     new Creature("Dark hydra", Attack(1), 32, "when attacks, damages opponent and all his creatures.\nAfter attack permanently increases its attack by 1 and heals X life to owner\n(X = attack power)", runAttack = new DarkHydraAttack),
     new Creature("Missionary", Attack(3), 36, "When enters the game, weakest friendly creature and\nweakest enemy creature of the same element lose half of current health.\nWhen owner summons elemental creature, turns it into heretic\nWhen owner summons special creature, turns itself into black angel", effects = effects(Direct -> missionar), reaction = new MissionaryReaction)),
     effects = List(OnStart -> initRestless))
@@ -27,46 +27,46 @@ object DarkPriest {
   DarkPriest.initCards(Houses.basicCostFunc)
 
   val oppCards = List(restlessSoul, shadowPriest)
-  oppCards.foreach{ c =>
+  oppCards.foreach { c ⇒
     c.houseIndex = 4
     c.houseId = DarkPriest.houseId
   }
 
-  def missionar = { env : Env =>
+  def missionar = { env: Env ⇒
     import env._
-    val weakest = player.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
-      if (s.num == selected){
+    val weakest = player.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) ⇒
+      if (s.num == selected) {
         acc
       } else {
         acc match {
-          case None => Some(s)
-          case Some(slot) =>
-            if (slot.get.attack > s.get.attack){
+          case None ⇒ Some(s)
+          case Some(slot) ⇒
+            if (slot.get.attack > s.get.attack) {
               Some(s)
             } else acc
         }
       }
     }
-    weakest.foreach{ w =>
+    weakest.foreach { w ⇒
       val houseIndex = w.get.card.houseIndex
       w.inflict(Damage(w.get.life / 2, env, isAbility = true))
-      val weakestOther = otherPlayer.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) =>
-        if (s.get.card.houseIndex != houseIndex){
+      val weakestOther = otherPlayer.slots.foldl(Option.empty[SlotUpdate]) { (acc, s) ⇒
+        if (s.get.card.houseIndex != houseIndex) {
           acc
         } else {
           acc match {
-            case None => Some(s)
-            case Some(slot) =>
-              if (slot.get.attack > s.get.attack){
+            case None ⇒ Some(s)
+            case Some(slot) ⇒
+              if (slot.get.attack > s.get.attack) {
                 Some(s)
               } else acc
           }
         }
       }
-      weakestOther.foreach{ s => s.inflict(Damage(s.get.life / 2, env, isAbility = true)) }
+      weakestOther.foreach { s ⇒ s.inflict(Damage(s.get.life / 2, env, isAbility = true)) }
     }
   }
-  def betray = { env : Env =>
+  def betray = { env: Env ⇒
     import env._
     val slot = env.player.slots(selected)
     val d = Damage(4, env, isAbility = true)
@@ -75,51 +75,51 @@ object DarkPriest {
     slot.inflict(d)
     slot.adjacentSlots.foreach(_.inflict(d))
   }
-  def evampire = { env : Env =>
+  def evampire = { env: Env ⇒
     import env._
     val adjacentHouses = player.slots(selected).adjacentSlots.flatMap(_.value).map(_.card.houseIndex)
-    player.houses.incrMana(1, adjacentHouses : _*)
+    player.houses.incrMana(1, adjacentHouses: _*)
   }
-  def blackMass = { env : Env =>
+  def blackMass = { env: Env ⇒
     import env._
     val slots = otherPlayer.slots.filleds
-    val nbElems = slots.map{ s => s.get.card.houseId }.distinct.size
+    val nbElems = slots.map { s ⇒ s.get.card.houseId }.distinct.size
     otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, env, isSpell = true))
     player.slots(selected).destroy()
   }
-  def occult : Effect = { env : Env =>
+  def occult: Effect = { env: Env ⇒
     import env._
     val slot = otherPlayer.slots(selected)
-    if (slot.value.isEmpty){
+    if (slot.value.isEmpty) {
       slot.add(shadowPriest)
     }
   }
-  def shadowHeal = { env : Env =>
+  def shadowHeal = { env: Env ⇒
     import env._
     focus()
     otherPlayer.heal(1)
     otherPlayer.slots.healCreatures(1)
   }
-  def ghostHeal = { env : Env =>
+  def ghostHeal = { env: Env ⇒
     import env._
     val nbSlots = player.getSlots.size
     player.heal(nbSlots)
   }
-  def initRestless = { env : Env =>
+  def initRestless = { env: Env ⇒
     env.otherPlayer.addEffect(OnEndTurn -> new SpawnRestless)
     spawnRestless(env.otherPlayer)
   }
 
-  class SpawnRestless extends Function[Env, Unit]{
-    def apply(env : Env){
+  class SpawnRestless extends Function[Env, Unit] {
+    def apply(env: Env) {
       import env._
-      if (!player.slots().exists{ case (n, slot) => slot.card == restlessSoul }){
+      if (!player.slots().exists { case (n, slot) ⇒ slot.card == restlessSoul }) {
         spawnRestless(player)
       }
     }
   }
 
-  def spawnRestless(player : PlayerUpdate){
+  def spawnRestless(player: PlayerUpdate) {
     val openSlots = player.slots.getOpenSlots
     if (openSlots.nonEmpty) {
       val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
@@ -129,14 +129,14 @@ object DarkPriest {
   }
 
   class RestlessReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
+    final override def onMyDeath(dead: Dead) {
       dead.otherPlayer.houses.incrMana(2, 4)
     }
   }
 
   class GhostReaction extends Reaction {
-    final override def onMyDeath(dead : Dead){
-      if (dead.isEffect){
+    final override def onMyDeath(dead: Dead) {
+      if (dead.isEffect) {
         val openSlots = dead.otherPlayer.slots.getOpenSlots
         if (openSlots.nonEmpty) {
           val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
@@ -147,10 +147,10 @@ object DarkPriest {
     }
   }
   class MissionaryReaction extends Reaction {
-    final override def onSummon(summoned : SummonEvent) {
+    final override def onSummon(summoned: SummonEvent) {
       import summoned._
-      if (selected.playerId == player.id){
-         if (card.houseIndex == 4){
+      if (selected.playerId == player.id) {
+        if (card.houseIndex == 4) {
           selected.destroy()
           selected.add(blackAngel)
         } else {
@@ -164,7 +164,7 @@ object DarkPriest {
 
   class BlackAngelAttack extends RunAttack {
 
-    def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+    def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
       val num = target.head
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
@@ -173,7 +173,7 @@ object DarkPriest {
       } else {
         slot.inflict(d)
         // FIXME maybe not good at all and should add source in damage?
-        if (slot.value.isEmpty){
+        if (slot.value.isEmpty) {
           player.slots(num).heal(blackAngel.life)
         }
       }
@@ -182,21 +182,21 @@ object DarkPriest {
 }
 
 class BlackMonkReaction extends Reaction {
-  override def onMyDamage(amount : Int) {
+  override def onMyDamage(amount: Int) {
     selected.player.heal(amount)
   }
 }
 
 class DarkHydraAttack extends RunAttack {
   isMultiTarget = true
-  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val otherPlayer = player.otherPlayer
     otherPlayer.inflict(d)
     otherPlayer.slots.inflictCreatures(d)
     player.heal(d.amount)
     val slot = player.slots(num)
-    if (slot.value.isDefined){
+    if (slot.value.isDefined) {
       slot.attack.add(OneAttackBonus) // TODO refactor
     }
   }

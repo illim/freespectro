@@ -14,9 +14,9 @@ import scalaz._
 
 object Utils {
 
-  def toBytes(o : AnyRef) = {
+  def toBytes(o: AnyRef) = {
     val bos = new ByteArrayOutputStream()
-    val out =  new ObjectOutputStream(bos)
+    val out = new ObjectOutputStream(bos)
     try {
       out.writeObject(o)
       bos.toByteArray()
@@ -26,7 +26,7 @@ object Utils {
     }
   }
 
-  def fromBytes(arr : Array[Byte]) = {
+  def fromBytes(arr: Array[Byte]) = {
     val bis = new ByteArrayInputStream(arr);
     val in = new ObjectInputStream(bis);
     try {
@@ -80,7 +80,7 @@ object Utils {
       }
       Some(code)
     } catch {
-      case e: Throwable =>
+      case e: Throwable ⇒
         e.printStackTrace
         None
     } finally {
@@ -101,7 +101,7 @@ object Utils {
       }
       Some(code)
     } catch {
-      case e: Throwable =>
+      case e: Throwable ⇒
         e.printStackTrace
         None
     } finally {
@@ -114,60 +114,63 @@ object Utils {
     if (fl == 0) fl else num.toFloat(n) * math.abs(1 / fl)
   }
 
-  def thread(name : String)(f: => Unit) = new Thread(runnable(f), name).start()
-  def runnable(f: => Unit) = new Runnable() { def run() = {
-    try {
-    f
-    } catch { case t : Throwable =>
-      t.printStackTrace
-    }
-  }  }
-
-  def deleteThenRight[A](treeLoc : TreeLoc[A]) : Option[TreeLoc[A]] = {
-    treeLoc.rights match {
-      case Stream.cons(t, ts) => Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
-      case _ => None
+  def thread(name: String)(f: ⇒ Unit) = new Thread(runnable(f), name).start()
+  def runnable(f: ⇒ Unit) = new Runnable() {
+    def run() = {
+      try {
+        f
+      } catch {
+        case t: Throwable ⇒
+          t.printStackTrace
+      }
     }
   }
 
-  def iterate[A](ite: java.util.Iterator[A])(f: A => Unit) {
+  def deleteThenRight[A](treeLoc: TreeLoc[A]): Option[TreeLoc[A]] = {
+    treeLoc.rights match {
+      case Stream.cons(t, ts) ⇒ Some(TreeLoc.loc(t, Stream.empty, ts, treeLoc.parents))
+      case _                  ⇒ None
+    }
+  }
+
+  def iterate[A](ite: java.util.Iterator[A])(f: A ⇒ Unit) {
     while (ite.hasNext) {
       f(ite.next)
     }
   }
 
   // swing
-  def doInDispatch(f : => Unit) = SwingUtilities.invokeLater(runnable(f))
-  def addBtn(name : String, target : java.awt.Container with ActionListener) = {
+  def doInDispatch(f: ⇒ Unit) = SwingUtilities.invokeLater(runnable(f))
+  def addBtn(name: String, target: java.awt.Container with ActionListener) = {
     val b = new JButton(name)
     b.setActionCommand(name)
     b.addActionListener(target)
     target.add(b)
     b
   }
-  def alignX[A<: JComponent](component : A, alignment : Float = java.awt.Component.LEFT_ALIGNMENT) : A = {
+  def alignX[A <: JComponent](component: A, alignment: Float = java.awt.Component.LEFT_ALIGNMENT): A = {
     component.setAlignmentX(alignment)
     component
   }
-  def createAction(name: String)(f: => Unit) : AbstractAction = {
+  def createAction(name: String)(f: ⇒ Unit): AbstractAction = {
     new AbstractAction(name) {
-      def actionPerformed(e: ActionEvent){ f }
+      def actionPerformed(e: ActionEvent) { f }
     }
   }
 }
 
-class TVar[A <: AnyRef](richLock : RichLock){
+class TVar[A <: AnyRef](richLock: RichLock) {
   import richLock.lock
 
   private var holder = Option.empty[A]
-  def set(a : A){
+  def set(a: A) {
     holder = Some(a)
     lock.synchronized {
       lock.notifyAll()
     }
   }
 
-  def get() : Option[A] = {
+  def get(): Option[A] = {
     lock.synchronized {
       lock.wait()
     }
@@ -183,7 +186,7 @@ class RichLock {
   @volatile var acquired = new AtomicBoolean
   val lock = new Object
 
-  def release(){ // this can be very dangerous if it is released during ai(TODO make it safer)
+  def release() { // this can be very dangerous if it is released during ai(TODO make it safer)
     lock.synchronized {
       released = true
       lock.notifyAll()
@@ -191,7 +194,7 @@ class RichLock {
   }
 
   // return none when surrendering for example
-  def waitFor[A <: AnyRef](f : TVar[A] => Unit) : Option[A] = {
+  def waitFor[A <: AnyRef](f: TVar[A] ⇒ Unit): Option[A] = {
     val t = new TVar[A](this)
     f(t)
     lock.synchronized {
@@ -199,12 +202,12 @@ class RichLock {
     }
   }
 
-  def waitLock(f : AnyRef => Unit){
+  def waitLock(f: AnyRef ⇒ Unit) {
     f(lock)
     lockWait()
   }
 
-  def lockWait(){
+  def lockWait() {
     lock.synchronized {
       if (!released && acquired.compareAndSet(false, true)) {
         lock.wait()
@@ -223,26 +226,26 @@ trait ResourceCache[A, B] {
     load(path)
   })
   def gets(path: A*): List[B] = path.map(get)(breakOut)
-  def getOrElseUpdate[C <: B](path: A, create: A => C): C = resources.getOrElseUpdate(path, create(path)).asInstanceOf[C]
+  def getOrElseUpdate[C <: B](path: A, create: A ⇒ C): C = resources.getOrElseUpdate(path, create(path)).asInstanceOf[C]
   def load(path: A): B
   def clean()
 }
 
-abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) {
+abstract class FieldUpdate[A](parent: Option[FieldUpdate[_]], getValue: ⇒ A) {
   var tid = 0
   var dirty = 0
   var value = getValue
   var valuedirty = 0 // if dirty is set by children value is out of sync
-  val update = new ObservableFunc1Unit(setValue(_ : A))
+  val update = new ObservableFunc1Unit(setValue(_: A))
 
-  def initNewUpdate(value : A) : this.type = {
+  def initNewUpdate(value: A): this.type = {
     write(value)
     tid += 1
     this
   }
 
-  def reinit() : this.type = {
-    if (! isInited) {
+  def reinit(): this.type = {
+    if (!isInited) {
       dirty = 0
       valuedirty = 0
       value = getValue
@@ -251,13 +254,13 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
     this
   }
 
-  def write(v : A){
+  def write(v: A) {
     setDirty()
     update(v)
   }
 
   // f is a whole rebuild of the value
-  def updated(f : => A) : A = {
+  def updated(f: ⇒ A): A = {
     if (valuedirty != dirty) {
       valuedirty = dirty
       update(f)
@@ -265,13 +268,13 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
     value
   }
 
-  def setValue(v : A){ value = v }
+  def setValue(v: A) { value = v }
 
   def isInited = tid == parent.get.tid
   def isDirty = parent.exists(_.tid == tid && dirty > 0)
-  def invalidate(){ tid = parent.get.tid - 1 }
-  def setDirty(){
-    parent.foreach{ p =>
+  def invalidate() { tid = parent.get.tid - 1 }
+  def setDirty() {
+    parent.foreach { p ⇒
       p.setDirty()
       dirty += 1
     }
@@ -279,59 +282,59 @@ abstract class FieldUpdate[A](parent : Option[FieldUpdate[_]], getValue : => A) 
 
 }
 
-class ObservableFunc1Unit[A](f : A => Unit) extends Function[A, Unit] {
+class ObservableFunc1Unit[A](f: A ⇒ Unit) extends Function[A, Unit] {
   private var inner = f
 
-  def apply(x : A) = inner(x)
+  def apply(x: A) = inner(x)
 
-  def after(g : A => Unit) {
+  def after(g: A ⇒ Unit) {
     val old = inner
-    inner = { x : A =>
+    inner = { x: A ⇒
       old(x)
       g(x)
     }
   }
 
-  def before(g : A => Unit) {
+  def before(g: A ⇒ Unit) {
     val old = inner
-    inner = { x : A =>
+    inner = { x: A ⇒
       g(x)
       old(x)
     }
   }
 }
 
-class ObservableFunc1[A, B](f : A => B) extends Function[A, B] {
+class ObservableFunc1[A, B](f: A ⇒ B) extends Function[A, B] {
   private var inner = f
 
-  def apply(x : A) = inner(x)
+  def apply(x: A) = inner(x)
 
-  def after(g : A => Unit) {
+  def after(g: A ⇒ Unit) {
     val old = inner
-    inner = { x : A =>
+    inner = { x: A ⇒
       val res = old(x)
       g(x)
       res
     }
   }
 
-  def before(g : A => Unit) {
+  def before(g: A ⇒ Unit) {
     val old = inner
-    inner = { x : A =>
+    inner = { x: A ⇒
       g(x)
       old(x)
     }
   }
 }
 
-class InterceptableFunc1[A](f : A => A) extends Function[A, A] {
+class InterceptableFunc1[A](f: A ⇒ A) extends Function[A, A] {
   private var inner = f
 
-  def apply(x : A) = inner(x)
+  def apply(x: A) = inner(x)
 
-  def intercept(g : A => A) {
+  def intercept(g: A ⇒ A) {
     val old = inner
-    inner = { x : A =>
+    inner = { x: A ⇒
       g(old(x))
     }
   }

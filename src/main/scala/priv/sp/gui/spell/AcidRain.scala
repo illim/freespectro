@@ -9,31 +9,31 @@ import Coord2i._
 
 // suboptimal
 
-trait Particle{
-  def startPos : Coord2i
-  def lifeTime : Int
+trait Particle {
+  def startPos: Coord2i
+  def lifeTime: Int
   var creationTime = 0L
-  def render(t : Long)
+  def render(t: Long)
 }
 
-trait Emitter { _ : Entity =>
-  def rate : Int
-  def maxTime : Int
-  def build(time : Long) : Particle
+trait Emitter { _: Entity ⇒
+  def rate: Int
+  def maxTime: Int
+  def build(time: Long): Particle
   var particles = Vector.empty[Particle]
   var lastEmit = 0L
 
-  def render(){
+  def render() {
     val delta = getDelta()
-    if (delta - lastEmit > rate && delta - creationTime < maxTime){
+    if (delta - lastEmit > rate && delta - creationTime < maxTime) {
       val p = build(delta)
       p.creationTime = delta
       particles = particles :+ p
       lastEmit = delta
     }
-    particles.foreach{ p =>
-      if (delta - p.creationTime > p.lifeTime){
-        particles= particles.filterNot(_ == p)
+    particles.foreach { p ⇒
+      if (delta - p.creationTime > p.lifeTime) {
+        particles = particles.filterNot(_ == p)
       } else {
         p.render(delta - p.creationTime)
       }
@@ -41,9 +41,9 @@ trait Emitter { _ : Entity =>
   }
 }
 
-class RainDrop(val startPos : Coord2i, dir : Coord2i) extends Particle {
+class RainDrop(val startPos: Coord2i, dir: Coord2i) extends Particle {
   val lifeTime = 900
-  def render(t : Long) {
+  def render(t: Long) {
     val a = startPos + dir * (t / 30f)
     val b = a + dir
     glVertex2f(a.x, a.y)
@@ -55,7 +55,7 @@ class RainEmitter extends Emitter with Entity {
   val maxTime = 1300
   def getRandomPoint = Coord2i(100 + nextInt(600), nextInt(50))
   val dir = Coord2i(-2, 5)
-  def build(time : Long) = new RainDrop(getRandomPoint, dir)
+  def build(time: Long) = new RainDrop(getRandomPoint, dir)
 }
 
 class AcidRain extends TimedEntity with Attachable {

@@ -8,7 +8,7 @@ import priv.sp._
 import scala.util.Random._
 import Coord2i._
 
-class EarthQuake(game : Game) extends TimedEntity with ShaderEntity {
+class EarthQuake(game: Game) extends TimedEntity with ShaderEntity {
   type S = RippleShader
   val duration = 1000L
   val shader = game.sp.baseShaders.ripple

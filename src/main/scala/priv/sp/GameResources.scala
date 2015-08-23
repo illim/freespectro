@@ -24,22 +24,22 @@ class GameResources {
 
   import java.net._
   import scala.collection.JavaConversions._
-  val networkInterfaces = NetworkInterface.getNetworkInterfaces.toList.filter{_.isUp()}
+  val networkInterfaces = NetworkInterface.getNetworkInterfaces.toList.filter { _.isUp() }
   var networkInterface = networkInterfaces.headOption
-  def getAddr(port : Int = 0) = networkInterface.flatMap{ n =>
-    n.getInetAddresses.toList.headOption.map{ a =>
+  def getAddr(port: Int = 0) = networkInterface.flatMap { n ⇒
+    n.getInetAddresses.toList.headOption.map { a ⇒
       new InetSocketAddress(a, port)
     }
   }.get
 
   var heurisChoice = 3
-  var playerChoices : List[List[House]] = List(sp.houses.sinist, sp.houses.sinist)
-  def resolveChoices = playerChoices.map{ o =>
+  var playerChoices: List[List[House]] = List(sp.houses.sinist, sp.houses.sinist)
+  def resolveChoices = playerChoices.map { o ⇒
     val l = (if (o.isEmpty) sp.houses.special else o)
     l(scala.util.Random.nextInt(l.size))
   }
 
-  def release(){
+  def release() {
     ended = true
     println("releasing resources")
     multi.release()
@@ -51,12 +51,12 @@ class GameResources {
 
 class Resources {
   private val resources = new ConcurrentLinkedQueue[Resource]
-  def apply[A <: Resource](x : A) : A = {
+  def apply[A <: Resource](x: A): A = {
     resources.add(x)
     x
   }
 
-  def release(){iterate(resources.iterator)(_.release())}
+  def release() { iterate(resources.iterator)(_.release()) }
 }
 
 trait Resource {
@@ -65,18 +65,18 @@ trait Resource {
 
 abstract class One[A] extends Resource {
   private var x = Option.empty[A]
-  def apply(v : => A) : A = {
+  def apply(v: ⇒ A): A = {
     release()
     val a = v
     x = Some(a)
     a
   }
-  def release(v : A)
-  def release(){
+  def release(v: A)
+  def release() {
     x.foreach(release _)
   }
 }
 
 class ClosableOne[A <: Closable] extends One[A] {
-  def release(v : A) = v.close()
+  def release(v: A) = v.close()
 }

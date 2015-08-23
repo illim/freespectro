@@ -32,39 +32,38 @@ class MoutainKing {
 
   MoutainKing.initCards(Houses.basicCostFunc)
 
-
-  def soldierEffect = { env : Env =>
+  def soldierEffect = { env: Env ⇒
     import env._
     val bonus = AttackAdd(3)
     getSelectedSlot().filledAdjacents.foreach(_.attack.add(bonus))
-    player.addEffect(OnEndTurn -> new CountDown(1, { e =>
+    player.addEffect(OnEndTurn -> new CountDown(1, { e ⇒
       e.player.slots(selected).filledAdjacents.foreach(_.attack.removeFirst(bonus))
     }))
   }
 
-  def moutain = { env : Env =>
+  def moutain = { env: Env ⇒
     import env._
-    otherPlayer.slots.reduce(strongest _).foreach{ s =>
+    otherPlayer.slots.reduce(strongest _).foreach { s ⇒
       s.toggle(CardSpec.stunFlag)
     }
   }
 
   class SoldierReaction extends Reaction {
-    override def onMyRemove(dead : Option[Dead]) {
+    override def onMyRemove(dead: Option[Dead]) {
       val otherPlayer = selected.otherPlayer
       otherPlayer.getSlots.get(selected.num) match {
-        case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) =>
+        case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) ⇒
           otherPlayer.slots(selected.num).attack.removeFirst(SoldierLowerAttack)
-        case _ =>
+        case _ ⇒
       }
       setSoldierOppAttackDirty(otherPlayer)
     }
 
-    def setHird(s : SlotUpdate, b : Boolean, otherPlayer : PlayerUpdate){
+    def setHird(s: SlotUpdate, b: Boolean, otherPlayer: PlayerUpdate) {
       val oppSlot = otherPlayer.slots(s.num)
-      if (oppSlot.value.isDefined){
+      if (oppSlot.value.isDefined) {
         if (b) {
-          if (!oppSlot.attack.has[SoldierLowerAttack.type]){
+          if (!oppSlot.attack.has[SoldierLowerAttack.type]) {
             oppSlot.attack.add(SoldierLowerAttack)
           }
         }
@@ -72,9 +71,9 @@ class MoutainKing {
       setSoldierOppAttackDirty(otherPlayer)
     }
 
-    def setSoldierOppAttackDirty(otherPlayer : PlayerUpdate){
-      otherPlayer.slots.foreach{ s =>
-        if (s.attack.has[SoldierLowerAttack.type]){
+    def setSoldierOppAttackDirty(otherPlayer: PlayerUpdate) {
+      otherPlayer.slots.foreach { s ⇒
+        if (s.attack.has[SoldierLowerAttack.type]) {
           s.attack.setDirty()
         }
       }
@@ -82,16 +81,16 @@ class MoutainKing {
   }
 
   class RuneReaction extends Reaction {
-    final override def selfProtect(d : Damage) = {
-      if (selected.oppositeState.isDefined && (d.context.selected != selected.num || ! d.context.card.exists(!_.isSpell))) {
+    final override def selfProtect(d: Damage) = {
+      if (selected.oppositeState.isDefined && (d.context.selected != selected.num || !d.context.card.exists(!_.isSpell))) {
         d.copy(amount = 0)
       } else d
     }
   }
 
   case object RuneAttackSource extends AttackSlotStateFunc {
-    def apply(attack : Int, slot : SlotUpdate) = {
-      if (slot.value.exists(_.data == Hird)){
+    def apply(attack: Int, slot: SlotUpdate) = {
+      if (slot.value.exists(_.data == Hird)) {
         val nbDwarf = slot.slots.filleds.count(_.get.card.houseId == MoutainKing.houseId)
         attack + nbDwarf
       } else attack
@@ -99,13 +98,13 @@ class MoutainKing {
   }
 
   case object SoldierLowerAttack extends AttackSlotStateFunc {
-    def apply(attack : Int, slot : SlotUpdate) = {
+    def apply(attack: Int, slot: SlotUpdate) = {
       val oppSlots = slot.otherPlayer.getSlots
       oppSlots.get(slot.num) match {
-        case Some(s) if s.card == soldier && s.data == Hird =>
+        case Some(s) if s.card == soldier && s.data == Hird ⇒
           val nbSoldier = oppSlots.count(_._2.card == soldier)
           math.max(0, attack - nbSoldier)
-        case _ => attack
+        case _ ⇒ attack
       }
     }
   }
@@ -113,55 +112,54 @@ class MoutainKing {
   class ShieldmanReaction extends Reaction {
     lazy val someShieldman = Some(shieldman)
 
-    final override def onProtect(d : DamageEvent) = {
+    final override def onProtect(d: DamageEvent) = {
       import d._
       target match {
-        case Some(num)
-          if math.abs(num - selected.num) == 1
-          && damage.context.card != someShieldman =>
-            val context = Context(player.id, someShieldman, selected.num)
+        case Some(num) if math.abs(num - selected.num) == 1
+          && damage.context.card != someShieldman ⇒
+          val context = Context(player.id, someShieldman, selected.num)
           val amount = d.damage.amount
           val samount = math.ceil(amount / 2.0).intValue
-          selected.inflict(damage.copy(amount = samount, context= context))
+          selected.inflict(damage.copy(amount = samount, context = context))
           d.damage.copy(amount = amount - samount)
-        case _ => d.damage
+        case _ ⇒ d.damage
       }
     }
 
-    override def selfProtect(d : Damage) = {
+    override def selfProtect(d: Damage) = {
       val life = selected.get.life
-      if (selected.get.data == Hird && d.isSpell && d.amount >= life){
+      if (selected.get.data == Hird && d.isSpell && d.amount >= life) {
         d.copy(amount = life - 1)
       } else d
     }
   }
 
   class ArmourReaction extends Reaction {
-      final override def selfProtect(d : Damage) = protectFromOpp(d, selected)
+    final override def selfProtect(d: Damage) = protectFromOpp(d, selected)
 
-      final override def onProtect(d : DamageEvent) = {
-        import d._
-        d.target match {
-          case Some(num) if selected.get.data == Hird && selected.get.card != armourClad
-            && math.abs(selected.num - num) == 1 =>
-              protectFromOpp(damage, player.slots(num))
-          case _ => d.damage
-        }
+    final override def onProtect(d: DamageEvent) = {
+      import d._
+      d.target match {
+        case Some(num) if selected.get.data == Hird && selected.get.card != armourClad
+          && math.abs(selected.num - num) == 1 ⇒
+          protectFromOpp(damage, player.slots(num))
+        case _ ⇒ d.damage
       }
+    }
 
-      def protectFromOpp(d : Damage, slot : SlotUpdate) = {
-        val oppSlotState = slot.oppositeState
-        val levelDiff = oppSlotState.map(s => math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
-        if (!d.isEffect && levelDiff != 0){
-          d.copy(amount = math.max(0, d.amount - levelDiff))
-        } else d
-      }
+    def protectFromOpp(d: Damage, slot: SlotUpdate) = {
+      val oppSlotState = slot.oppositeState
+      val levelDiff = oppSlotState.map(s ⇒ math.max(0, s.card.cost - slot.get.card.cost)) getOrElse 0
+      if (!d.isEffect && levelDiff != 0) {
+        d.copy(amount = math.max(0, d.amount - levelDiff))
+      } else d
+    }
   }
 
   class BallistaReaction extends Reaction {
-    final override def onSummon(summoned : SummonEvent) {
+    final override def onSummon(summoned: SummonEvent) {
       import summoned._
-      if (selected.playerId != player.id){
+      if (selected.playerId != player.id) {
         val context = Context(selected.playerId, Some(ballista), selected.num)
         val damage = Damage(math.ceil(player.slots(num).get.life / 2.0).intValue, context, isAbility = true)
         selected.focus()
@@ -174,53 +172,53 @@ class MoutainKing {
 
   class BerserkerReaction extends Reaction {
     var data = -1 // HACK
-    def onPlayerDamage(amount : Int, slot : SlotUpdate) {
-      if (amount > 4){
-        if (data == -1){
+    def onPlayerDamage(amount: Int, slot: SlotUpdate) {
+      if (amount > 4) {
+        if (data == -1) {
           data = 0
           runSlot(slot)
-          while(slot.value.isDefined && data > 0){
-            data -=1
+          while (slot.value.isDefined && data > 0) {
+            data -= 1
             runSlot(slot)
           }
           data = -1
         } else {
-          data +=1
+          data += 1
         }
       }
     }
-    private def runSlot(slot : SlotUpdate) = {
+    private def runSlot(slot: SlotUpdate) = {
       slot.player.runSlot(slot.num, slot.get)
     }
-    override def selfProtect(d : Damage) = {
-      if (selected.get.data == Hird){
+    override def selfProtect(d: Damage) = {
+      if (selected.get.data == Hird) {
         d.copy(amount = d.amount + 3)
       } else d
     }
   }
 
   case object BerserkerAttackSource extends AttackSlotStateFunc {
-    def apply(attack : Int, slot : SlotUpdate) = {
-      if (slot.value.exists(_.data == Hird)){
+    def apply(attack: Int, slot: SlotUpdate) = {
+      if (slot.value.exists(_.data == Hird)) {
         attack + 3
       } else attack
     }
   }
 
   class MountainReaction extends Reaction {
-    final override def onMyRemove(dead : Option[Dead]) {
-      if (selected.get.data == Hird){
+    final override def onMyRemove(dead: Option[Dead]) {
+      if (selected.get.data == Hird) {
         setHird(false, selected.player)
       }
     }
-    final override def onSummon(summoned : SummonEvent) {
+    final override def onSummon(summoned: SummonEvent) {
       import summoned._
-      if (selected.playerId == player.id && card.houseId == MoutainKing.houseId){
+      if (selected.playerId == player.id && card.houseId == MoutainKing.houseId) {
         selected.heal(6)
         selected.attack.add(AttackAdd(2))
       }
     }
-    def setHird(b : Boolean, player : PlayerUpdate){
+    def setHird(b: Boolean, player: PlayerUpdate) {
       if (b) player.addDescMod(LowerSpecialCostMod)
       else player.removeDescMod(LowerSpecialCostMod)
     }
@@ -229,34 +227,34 @@ class MoutainKing {
   // crap
   class MKEventListener extends HouseEventListener {
     val moutainHouseId = MoutainKing.houseId
-    def protect(slot : SlotUpdate, damage : Damage) = {
-      player.slots.foldl(damage) { (acc, s) =>
+    def protect(slot: SlotUpdate, damage: Damage) = {
+      player.slots.foldl(damage) { (acc, s) ⇒
         val sc = s.get.card
-        if (sc.houseIndex == 4){
+        if (sc.houseIndex == 4) {
           s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
         } else acc
       }
     }
 
-    def protectOpp(slot : SlotUpdate, damage : Damage) = {
+    def protectOpp(slot: SlotUpdate, damage: Damage) = {
       player.getSlots.get(slot.num) match {
-        case Some(s) if s.card == runesmith => s.reaction.selfProtect(damage)
-        case _ => damage
+        case Some(s) if s.card == runesmith ⇒ s.reaction.selfProtect(damage)
+        case _                              ⇒ damage
       }
     }
-    def onDeath(dead : Dead) {
+    def onDeath(dead: Dead) {
       val c = dead.card
       if (dead.player.id == player.id && c.houseId == moutainHouseId) {
-        player.slots.foreach{ s =>
+        player.slots.foreach { s ⇒
           if (s.num != dead.num) {
             val c = s.get.card
             if (c.houseId == moutainHouseId) {
-              if (math.abs(s.num - dead.num) == 1){
+              if (math.abs(s.num - dead.num) == 1) {
                 val sym = s.num + (s.num - dead.num)
                 if (!inSlotRange(sym)
-                    || !player.slots(sym).value.exists(_.card.houseId == moutainHouseId)) {
-                      setHird(s, false)
-                    }
+                  || !player.slots(sym).value.exists(_.card.houseId == moutainHouseId)) {
+                  setHird(s, false)
+                }
               }
               s.get.reaction.onDeath(dead)
             }
@@ -264,63 +262,63 @@ class MoutainKing {
         }
       }
     }
-    def onAdd(slot : SlotUpdate){
-      if (slot.playerId == player.id){
-        if (slot.value.isEmpty){
+    def onAdd(slot: SlotUpdate) {
+      if (slot.playerId == player.id) {
+        if (slot.value.isEmpty) {
           println(slot.num + " is empty in " + slot.slots.value)
         }
-        if (slot.get.card.houseId == moutainHouseId){
-          if (slot.filledAdjacents.count{ s =>
-            if (s.get.card.houseId == moutainHouseId){
-              if (s.get.data == null){
+        if (slot.get.card.houseId == moutainHouseId) {
+          if (slot.filledAdjacents.count { s ⇒
+            if (s.get.card.houseId == moutainHouseId) {
+              if (s.get.data == null) {
                 setHird(s, true)
               }
               true
             } else false
-          } > 0){
+          } > 0) {
             setHird(slot, true)
           }
         }
       } else {
         player.getSlots.get(slot.num) match {
-          case Some(s) if s.card == soldier && s.data == Hird =>
+          case Some(s) if s.card == soldier && s.data == Hird ⇒
             slot.attack.add(SoldierLowerAttack)
-          case _ =>
+          case _ ⇒
         }
       }
     }
-    override def onPlayerDamage(amount : Int){
-      player.slots.foreach{ s =>
+    override def onPlayerDamage(amount: Int) {
+      player.slots.foreach { s ⇒
         val c = s.get.card
-        if (c.houseIndex == 4){
+        if (c.houseIndex == 4) {
           s.get.reaction match {
-            case br : BerserkerReaction => br.onPlayerDamage(amount, s)
-            case _ =>
+            case br: BerserkerReaction ⇒ br.onPlayerDamage(amount, s)
+            case _                     ⇒
           }
         }
       }
     }
 
-    override def init(p : PlayerUpdate){
+    override def init(p: PlayerUpdate) {
       super.init(p)
       p.slots.onDead.after(onDeath _)
-      p.slots.slots.foreach{ slot =>
-        slot.add.after(_ => onAdd(slot))
-        slot.protect.intercept(d => protect(slot, d))
+      p.slots.slots.foreach { slot ⇒
+        slot.add.after(_ ⇒ onAdd(slot))
+        slot.protect.intercept(d ⇒ protect(slot, d))
       }
-      p.otherPlayer.slots.slots.foreach{ slot =>
-        slot.protect.intercept(d => protectOpp(slot, d))
+      p.otherPlayer.slots.slots.foreach { slot ⇒
+        slot.protect.intercept(d ⇒ protectOpp(slot, d))
       }
     }
 
-    private def setHird(s : SlotUpdate, b : Boolean){
+    private def setHird(s: SlotUpdate, b: Boolean) {
       s.setData(if (b) Hird else null)
       s.get.reaction match {
-        case sr : SoldierReaction => sr.setHird(s, b, player.otherPlayer)
-        case mr : MountainReaction => mr.setHird(b, player)
-        case _ =>
+        case sr: SoldierReaction  ⇒ sr.setHird(s, b, player.otherPlayer)
+        case mr: MountainReaction ⇒ mr.setHird(b, player)
+        case _ ⇒
           val c = s.get.card
-          if (c == runesmith || c == berserker){
+          if (c == runesmith || c == berserker) {
             s.attack.setDirty()
           }
       }
@@ -329,17 +327,16 @@ class MoutainKing {
   }
 }
 
-
 case object LowerSpecialCostMod extends DescMod {
-  def apply(house : House, cards : Vector[CardDesc]) : Vector[CardDesc] = {
+  def apply(house: House, cards: Vector[CardDesc]): Vector[CardDesc] = {
     if (house.houseIndex != 4) cards
-    else cards.map(c => c.copy( cost = math.max(0, c.cost - 1)))
+    else cards.map(c ⇒ c.copy(cost = math.max(0, c.cost - 1)))
   }
 }
 
 class CrossbowAttack extends RunAttack {
 
-  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
@@ -352,13 +349,12 @@ class CrossbowAttack extends RunAttack {
 
 class CrossbowReaction extends Reaction {
   // HACK should be on my death but the slot would already be empty
-  final override def onMyRemove(dead : Option[Dead]){
-    if (selected.get.data == Hird){
+  final override def onMyRemove(dead: Option[Dead]) {
+    if (selected.get.data == Hird) {
       selected.setData(null)
       selected.player.runSlot(selected.num, selected.get)
     }
   }
 }
-
 
 case object Hird

@@ -1,4 +1,6 @@
 import AssemblyKeys._
+import scalariform.formatter.preferences._
+
 name := "freespectro"
 
 version := "1.0"
@@ -29,3 +31,11 @@ javaOptions in run ++= Seq("-Djava.library.path="+Path.userHome.absolutePath+"/.
 autoCompilerPlugins := true
 
 test in assembly := {}
+
+scalariformSettings
+
+ScalariformKeys.preferences := ScalariformKeys.preferences.value
+  .setPreference(AlignSingleLineCaseStatements, true)
+  .setPreference(RewriteArrowSymbols, true)
+  .setPreference(AlignParameters, true)
+  .setPreference(PreserveDanglingCloseParenthesis, true)

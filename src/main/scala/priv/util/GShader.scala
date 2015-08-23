@@ -13,7 +13,7 @@ object GShader {
     Utils.codeFromResource(vert + ".vert"),
     Utils.codeFromResource(frag + ".frag")).left.map(sys.error).right.toOption.get
 
-  def createShaderProgram(vertCode: => Option[String], fragCode: => Option[String]): Either[String, (Int, Int, Int)] = {
+  def createShaderProgram(vertCode: ⇒ Option[String], fragCode: ⇒ Option[String]): Either[String, (Int, Int, Int)] = {
     val shader = glCreateProgram()
     if (shader != 0) {
       val v = createVertShader(vertCode _)
@@ -31,7 +31,7 @@ object GShader {
     } else Left("shader " + shader)
   }
 
-  def usingShader[A](shader: Int)(f: => A) = {
+  def usingShader[A](shader: Int)(f: ⇒ A) = {
     glUseProgram(shader)
     try {
       f
@@ -41,12 +41,12 @@ object GShader {
   val createVertShader = loadAndCheckObject(GL_VERTEX_SHADER)
   val createFragShader = loadAndCheckObject(GL_FRAGMENT_SHADER)
 
-  def loadAndCheckObject(shaderType: Int) = { (getCode: () => Option[String]) =>
+  def loadAndCheckObject(shaderType: Int) = { (getCode: () ⇒ Option[String]) ⇒
     val shader = glCreateShader(shaderType)
     if (shader == 0) {
       0
     } else {
-      getCode().map { code =>
+      getCode().map { code ⇒
         glShaderSource(shader, code)
         glCompileShader(shader)
         printShaderLogInfo(shader)
@@ -78,7 +78,7 @@ object GShader {
   def debugAttributes(program: Int) {
     val numAttributes = glGetProgram(program, GL_ACTIVE_ATTRIBUTES)
     val maxAttributeLength = glGetProgram(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
-    for (i <- 0 until numAttributes) {
+    for (i ← 0 until numAttributes) {
       val name = glGetActiveAttrib(program, i, maxAttributeLength)
       val location = glGetAttribLocation(program, name)
       println(name + ":" + location)
@@ -89,7 +89,7 @@ object GShader {
   def debugUniforms(program: Int) {
     val numUniforms = glGetProgram(program, GL_ACTIVE_UNIFORMS)
     val maxUniformLength = glGetProgram(program, GL_ACTIVE_UNIFORM_MAX_LENGTH)
-    for (i <- 0 until numUniforms) {
+    for (i ← 0 until numUniforms) {
       val name = glGetActiveUniform(program, i, maxUniformLength)
       val location = glGetUniformLocation(program, name)
       //        uniformLocations.put(name, location)

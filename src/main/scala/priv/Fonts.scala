@@ -14,7 +14,7 @@ object Fonts {
   val big = new PimpFont(awtFontBig)
 }
 
-class PimpFont(awtFont : Font) {
+class PimpFont(awtFont: Font) {
   val font = new UnicodeFont(awtFont)
   font.addAsciiGlyphs();
   font.getEffects().asInstanceOf[java.util.List[Effect]].add(new ColorEffect())
@@ -26,18 +26,18 @@ class PimpFont(awtFont : Font) {
     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)
     val c = if (color == null) Color.black else {
       color match {
-        case 'white => Color.white
-        case 'blue => Color.blue
-        case 'red => Color.red
-        case 'green => darkGreen
-        case 'gray => Color.gray
-        case _ => Color.black
+        case 'white ⇒ Color.white
+        case 'blue  ⇒ Color.blue
+        case 'red   ⇒ Color.red
+        case 'green ⇒ darkGreen
+        case 'gray  ⇒ Color.gray
+        case _      ⇒ Color.black
       }
     }
     font.drawString(x, y, s.toString, c)
-//    glColor4f(1, 1, 1, 1) // recover color
+    //    glColor4f(1, 1, 1, 1) // recover color
   }
 
-  def getWidth(s : String)= font.getWidth(s)
-  def getHeight(s : String)= font.getHeight(s)
+  def getWidth(s: String) = font.getWidth(s)
+  def getHeight(s: String) = font.getHeight(s)
 }

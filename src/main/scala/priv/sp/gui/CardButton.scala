@@ -6,10 +6,10 @@ import org.lwjgl.opengl.GL20._
 import priv.sp._
 import priv.util._
 
-class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, game : Game) extends GuiElem {
+class CardButton(getDesc: ⇒ Option[CardDesc], getHouseState: ⇒ HouseState, game: Game) extends GuiElem {
   import game.sp
 
-  var holder = getDesc.map(d => new CardHolder(d, getHouseState))
+  var holder = getDesc.map(d ⇒ new CardHolder(d, getHouseState))
   val size = holder.map(_.borderTex).getOrElse(sp.baseTextures.borderTex).size
   private var hovered = false
   private val grey = sp.shaders.get("grey")
@@ -21,19 +21,19 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
   def card = holder.map(_.desc.card)
   def isActive = holder.exists(_.isActive)
 
-  class CardHolder(val desc : CardDesc, houseState : HouseState){
+  class CardHolder(val desc: CardDesc, houseState: HouseState) {
     val cardTex = sp.textures.get("Images/Cards/" + desc.card.image)
     val borderTex = sp.baseTextures.getBorder(desc.card)
     def isActive = desc.isAvailable(houseState) && enabled
   }
 
-  def refresh(){
-    holder = getDesc.map(d => new CardHolder(d, getHouseState))
+  def refresh() {
+    holder = getDesc.map(d ⇒ new CardHolder(d, getHouseState))
   }
 
   def render() {
-    if (visible){
-      holder.map{ h =>
+    if (visible) {
+      holder.map { h ⇒
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         val isActive = h.isActive
@@ -52,8 +52,8 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
             tex.draw(sp.baseTextures.cardGlow)
           }
           glPopMatrix()
-        } else if (selected){
-          val o = Coord2i(size.x/2 - 100, size.y/2 -100)
+        } else if (selected) {
+          val o = Coord2i(size.x / 2 - 100, size.y / 2 - 100)
           glDisable(GL_TEXTURE_2D)
           selectedGlow.used {
             val deltax = getDelta() / 100f
@@ -63,8 +63,8 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
             glUniform2f(selectedGlow.offset, o.x, o.y)
             glBegin(GL_POLYGON)
             glVertex2f(o.x, o.y)
-            glVertex2f(o.x + 200,o.y)
-            glVertex2f(o.x + 200,o.y + 200)
+            glVertex2f(o.x + 200, o.y)
+            glVertex2f(o.x + 200, o.y + 200)
             glVertex2f(o.x, o.y + 200)
             glEnd()
             glEnable(GL_TEXTURE_2D)
@@ -79,9 +79,9 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
         tex.draw(h.borderTex)
 
         h.desc.card match {
-          case spell: Spell =>
+          case spell: Spell ⇒
             Fonts.font.draw(72, 9, h.desc.cost, 'blue)
-          case creature: Creature =>
+          case creature: Creature ⇒
             Fonts.font.draw(72, 1, h.desc.cost, 'blue)
             Fonts.font.draw(4, 80, creature.attack.base.map(_.toString) getOrElse "?", 'red)
             Fonts.font.draw(70, 80, creature.life, 'green)
@@ -89,12 +89,12 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
         if (!isActive) grey.end()
       }
     } else {
-      if (holder.isDefined){
+      if (holder.isDefined) {
         glDisable(GL_TEXTURE_2D)
         glColor4f(0.1f, 0.1f, 0.1f, 1)
         glBegin(GL_POLYGON)
         glVertex2f(0, 0)
-        glVertex2f(85,0)
+        glVertex2f(85, 0)
         glVertex2f(85, 97)
         glVertex2f(0, 97)
         glEnd()
@@ -104,10 +104,10 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
   }
 
   on {
-    case MouseMoved(_) =>
+    case MouseMoved(_) ⇒
       game.descriptionPanel.cardOption = holder.map(_.desc.card)
       hovered = true
-    case MouseLeaved(_) =>
+    case MouseLeaved(_) ⇒
       game.descriptionPanel.cardOption = None
       hovered = false
   }
@@ -115,32 +115,32 @@ class CardButton(getDesc : => Option[CardDesc], getHouseState: => HouseState, ga
 }
 
 /**
-case class TestButton(sp: SpWorld) extends GuiElem {
-  val size = Coord2i(200, 200)//sp.baseTextures.blank.coord
-  val selectedGlow = sp.baseShaders.selectedGlow("test", size.x)
-  def render() {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glDisable(GL_TEXTURE_2D)
-    glColor4f(1, 1, 1, 1)
-    selectedGlow.used {
-      val deltax = getDelta() / 50f
-      val animLength = 50
-      val animationCursor = deltax % animLength
-      val o = Coord2i(0, 0)
-      glUniform1f(selectedGlow.cursor, animationCursor)
-      glUniform2f(selectedGlow.offset, 0, 0)
-      glBegin(GL_POLYGON)
-      glVertex2f(o.x, o.y)
-      glVertex2f(o.x + size.x,o.y)
-      glVertex2f(o.x + size.x,o.y + size.y)
-      glVertex2f(o.x, o.y + size.y)
-      glEnd()
-      glEnable(GL_TEXTURE_2D)
-    }
-  }
-  override def updateCoord(c : Coord2i){
-    super.updateCoord(c)
-    println("testcoord" + c)
-  }
-}
-*/
+ * case class TestButton(sp: SpWorld) extends GuiElem {
+ * val size = Coord2i(200, 200)//sp.baseTextures.blank.coord
+ * val selectedGlow = sp.baseShaders.selectedGlow("test", size.x)
+ * def render() {
+ * glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+ * glDisable(GL_TEXTURE_2D)
+ * glColor4f(1, 1, 1, 1)
+ * selectedGlow.used {
+ * val deltax = getDelta() / 50f
+ * val animLength = 50
+ * val animationCursor = deltax % animLength
+ * val o = Coord2i(0, 0)
+ * glUniform1f(selectedGlow.cursor, animationCursor)
+ * glUniform2f(selectedGlow.offset, 0, 0)
+ * glBegin(GL_POLYGON)
+ * glVertex2f(o.x, o.y)
+ * glVertex2f(o.x + size.x,o.y)
+ * glVertex2f(o.x + size.x,o.y + size.y)
+ * glVertex2f(o.x, o.y + size.y)
+ * glEnd()
+ * glEnable(GL_TEXTURE_2D)
+ * }
+ * }
+ * override def updateCoord(c : Coord2i){
+ * super.updateCoord(c)
+ * println("testcoord" + c)
+ * }
+ * }
+ */

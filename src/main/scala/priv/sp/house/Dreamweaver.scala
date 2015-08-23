@@ -22,9 +22,9 @@ class Dreamweaver {
 
   Dreamweaver.initCards(Houses.basicCostFunc)
 
-  def aurora = { env : Env =>
+  def aurora = { env: Env ⇒
     import env._
-    def aur(p : PlayerUpdate) = p.slots.foreach{ s =>
+    def aur(p: PlayerUpdate) = p.slots.foreach { s ⇒
       val card = s.get.card
       s.heal(12)
       p.houses.incrMana(1, card.houseIndex)
@@ -34,11 +34,11 @@ class Dreamweaver {
     aur(otherPlayer)
   }
 
-  def guide = { env : Env =>
+  def guide = { env: Env ⇒
     import env._
     val nbCreatures = player.getSlots.size
     val dp = getMana(4)
-    player.slots.foreach{ s =>
+    player.slots.foreach { s ⇒
       if (s.num != selected) { // bs? apply effect before interception!?
         s.heal(dp)
       }
@@ -46,40 +46,40 @@ class Dreamweaver {
     player.heal(nbCreatures * 3)
   }
 
-  def mare = { env : Env =>
+  def mare = { env: Env ⇒
     import env._
     val damage = Damage(6 * otherPlayer.slots.slots.count(_.value.isEmpty), env, isAbility = true)
     otherPlayer.slots.inflictCreatures(damage)
   }
 
   class EtherealReaction extends NightmareReaction {
-    override def selfProtect(d : Damage) = {
+    override def selfProtect(d: Damage) = {
       if (d.isEffect) d.copy(amount = 0) else d
     }
   }
 
   class NightmareReaction extends Reaction {
-    override def onAdd(slot : SlotUpdate) = {
+    override def onAdd(slot: SlotUpdate) = {
       selected.attack.setDirty()
     }
-    override def onDeath(dead : Dead) {
+    override def onDeath(dead: Dead) {
       import dead._
       selected.attack.setDirty()
     }
   }
 
   private class SwordReaction extends Reaction {
-    override def onAdd(slot : SlotUpdate) = if (math.abs(selected.num - slot.num) == 1) selected.attack.setDirty()
-    override def onDeath(dead : Dead) {
+    override def onAdd(slot: SlotUpdate) = if (math.abs(selected.num - slot.num) == 1) selected.attack.setDirty()
+    override def onDeath(dead: Dead) {
       if (math.abs(selected.num - dead.num) == 1) selected.attack.setDirty()
     }
   }
 
   private class RainbowReaction extends Reaction {
 
-    override def onSummon(summoned : SummonEvent) {
+    override def onSummon(summoned: SummonEvent) {
       import summoned._
-      if (selected.playerId != player.id){
+      if (selected.playerId != player.id) {
         val p = player.otherPlayer
         p.houses.incrMana(3, card.houseIndex)
       }
@@ -88,40 +88,40 @@ class Dreamweaver {
 
   class DreamweaverEventListener extends HouseEventListener with OwnerDeathEventListener {
     def refreshRoc() {
-      if (player.getSlots.values.exists(_.card == roc)){
-        player.slots.filleds.withFilter(_.get.card == roc).foreach{ s =>
+      if (player.getSlots.values.exists(_.card == roc)) {
+        player.slots.filleds.withFilter(_.get.card == roc).foreach { s ⇒
           s.attack.setDirty()
         }
       }
     }
-    def protect(slot : SlotUpdate, damage : Damage) = {
-      player.slots.foldl(damage) { (acc, s) =>
+    def protect(slot: SlotUpdate, damage: Damage) = {
+      player.slots.foldl(damage) { (acc, s) ⇒
         val c = s.get.card
-        if (c == castle){
+        if (c == castle) {
           s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
         } else acc
       }
     }
 
-    override def init(p : PlayerUpdate){
+    override def init(p: PlayerUpdate) {
       super.init(p)
-      p.slots.slots.foreach{ slot =>
-        slot.protect.intercept(d => protect(slot, d))
+      p.slots.slots.foreach { slot ⇒
+        slot.protect.intercept(d ⇒ protect(slot, d))
       }
-      p.otherPlayer.slots.update.after{ _ => refreshRoc()  }
+      p.otherPlayer.slots.update.after { _ ⇒ refreshRoc() }
     }
   }
 }
 
 case object EtherealAttackSource extends AttackStateFunc {
-  def apply(attack : Int, player : PlayerUpdate) = {
+  def apply(attack: Int, player: PlayerUpdate) = {
     val nbCreatures = player.slots.filleds.size
     attack + nbCreatures - 1
   }
 }
 
 case object RocAttackSource extends AttackSlotStateFunc {
-  def apply(attack : Int, slot : SlotUpdate) = {
+  def apply(attack: Int, slot: SlotUpdate) = {
     if (slot.otherPlayer.getSlots.isDefinedAt(slot.num)) {
       attack
     } else {
@@ -131,7 +131,7 @@ case object RocAttackSource extends AttackSlotStateFunc {
 }
 
 case object SwordAttackSource extends AttackSlotStateFunc {
-  def apply(attack : Int, slot : SlotUpdate) = {
+  def apply(attack: Int, slot: SlotUpdate) = {
     val nbAdjacents = slot.adjacentSlots.count(_.value.isDefined)
     attack + nbAdjacents
   }
@@ -140,18 +140,18 @@ case object SwordAttackSource extends AttackSlotStateFunc {
 class SwordAttack extends RunAttack {
   isMultiTarget = true
 
-  def apply(target : List[Int], d : Damage, player : PlayerUpdate) {
+  def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val otherPlayer = player.otherPlayer
-    val oppSlot     = otherPlayer.slots(num)
-    val targets     = oppSlot :: oppSlot.adjacentSlots
+    val oppSlot = otherPlayer.slots(num)
+    val targets = oppSlot :: oppSlot.adjacentSlots
 
-    targets.foreach{ slot =>
+    targets.foreach { slot ⇒
       if (slot.num == num && slot.value.isEmpty) {
         player.otherPlayer.inflict(d)
       }
 
-      if (slot.value.isDefined){
+      if (slot.value.isDefined) {
         slot.inflict(d)
       }
     }
@@ -159,8 +159,8 @@ class SwordAttack extends RunAttack {
 }
 
 class CastleReaction extends Reaction {
-  final override def onProtect(d : DamageEvent) = {
-    if (d.target.isDefined){
+  final override def onProtect(d: DamageEvent) = {
+    if (d.target.isDefined) {
       d.damage.copy(amount = math.max(0, d.damage.amount - 2))
     } else d.damage
   }

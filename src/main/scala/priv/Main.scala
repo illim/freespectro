@@ -3,7 +3,7 @@ package priv
 import javax.swing._
 import java.awt.event._
 import sp._
-import org.lwjgl.opengl.{AWTGLCanvas, PixelFormat}
+import org.lwjgl.opengl.{ AWTGLCanvas, PixelFormat }
 import priv.util.Utils._
 
 object Main extends JFrame with App {
@@ -13,7 +13,7 @@ object Main extends JFrame with App {
   setSize(mode.getWidth, mode.getHeight)
   setExtendedState(java.awt.Frame.MAXIMIZED_VERT)
   setUndecorated(true)
-  setLocation(gbounds.width/2 - mode.getWidth/2, gbounds.height/2 - mode.getHeight / 2)
+  setLocation(gbounds.width / 2 - mode.getWidth / 2, gbounds.height / 2 - mode.getHeight / 2)
 
   val panel = getContentPane
   panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS))
@@ -25,21 +25,21 @@ object Main extends JFrame with App {
   show()
   canvas.requestFocus()
 
-  thread("render"){
+  thread("render") {
     val r = new MainRender(canvas, mode, settingsPanel)
-    if (!Shader.isSupported){
+    if (!Shader.isSupported) {
       r.world.ended = true
       println("Shader not supported")
     }
     addWindowListener(new WindowAdapter {
-      override def windowClosing(e : WindowEvent) {
+      override def windowClosing(e: WindowEvent) {
         r.world.ended = true
       }
     })
     doInDispatch {
       settingsPanel.tabs.addTab("houses", new GameSettings(r.resources))
-      settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { () => r.currentGame.server.abort() }, { gameServer =>
-        r.resources.aiExecutor.submit(runnable{ // shitty wait ai finish :S (doesn't ensure player will do something just after)
+      settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { () ⇒ r.currentGame.server.abort() }, { gameServer ⇒
+        r.resources.aiExecutor.submit(runnable { // shitty wait ai finish :S (doesn't ensure player will do something just after)
           r.world.doInRenderThread {
             r.currentGame = r.createGame(gameServer)
           }
@@ -73,9 +73,9 @@ object Main extends JFrame with App {
       }
     }
 
-    def actionPerformed(e : ActionEvent){
+    def actionPerformed(e: ActionEvent) {
       e.getActionCommand() match {
-        case "hide" => display()
+        case "hide" ⇒ display()
       }
     }
   }

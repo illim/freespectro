@@ -18,31 +18,31 @@ class Trooper {
     new Creature("ScienceVessel", Attack(6), 60, "When summoned deals 12 damage to opponent creatures", effects = effects(Direct -> damageCreatures(12, isAbility = true)))))
 
   val marine = Trooper.cards(1)
-  Trooper.initCards({ i: Int => if (i == 0) i else i + 1 })
+  Trooper.initCards({ i: Int ⇒ if (i == 0) i else i + 1 })
 
-  private def siege = { env: Env =>
+  private def siege = { env: Env ⇒
     import env._
 
-    otherPlayer.slots.filleds.sortBy(_.get.life).lastOption foreach { slot =>
+    otherPlayer.slots.filleds.sortBy(_.get.life).lastOption foreach { slot ⇒
       slot.inflict(Damage(8, env, isAbility = true))
     }
   }
 
   class GoliathReaction extends Reaction {
-    override def selfProtect(d : Damage) = {
+    override def selfProtect(d: Damage) = {
       if (d.isEffect) d.copy(amount = 0) else d.copy(amount = math.max(0, d.amount - 1))
     }
   }
 
   class MarineReaction extends Reaction {
 
-      final override def onSummon(summoned : SummonEvent) {
-        import summoned._
-        if (selected.playerId != player.id){
-          val damage = Damage(4, Context(selected.playerId, Some(marine), selected.num), isAbility = true)
-          selected.focus()
-          player.slots(num).inflict(damage)
-        }
+    final override def onSummon(summoned: SummonEvent) {
+      import summoned._
+      if (selected.playerId != player.id) {
+        val damage = Damage(4, Context(selected.playerId, Some(marine), selected.num), isAbility = true)
+        selected.focus()
+        player.slots(num).inflict(damage)
       }
+    }
   }
 }

@@ -16,11 +16,11 @@ class JunkMage {
 
   private val trashCyborg = new Creature("Trash Cyborg", Attack(3), 30, "Fill the board with trash 2/11 and one cyborg.\nEvery turn 2 pieces of trash assemble into the cyborg", effects = effects(Direct -> spawnTrash, OnTurn -> gatherTrash))
 
-  val Junk : House = House("Junk", List(
+  val Junk: House = House("Junk", List(
     new Creature("Screamer", AttackSources(Some(2), Vector(ScreamerAttackSource)), 14, "+1 attack for each screamer in play", reaction = new ScreamerReaction),
     Spell("Poison flower", "Deals 5 damage to owner target creature, his opposite creature, \nthen the opposite neighbors.\nDeals -1 mana for target and opposite creature.",
-          inputSpec = Some(SelectOwnerCreature),
-          effects = effects(Direct -> poisonFlower)),
+      inputSpec = Some(SelectOwnerCreature),
+      effects = effects(Direct -> poisonFlower)),
     new Creature("Junkyard fortune", Attack(3), 15, "Absorb 4 of first damage done to owner", reaction = new JFReaction, effects = effects(OnEndTurn -> resetProtect), data = java.lang.Boolean.FALSE),
     new Creature("Chain controller", Attack(4), 18, "Mirror spawn of adjacent creature of cost <4.\n When adjacent creature of cost <6 die,\n fill the slot with another weak creature nearby", reaction = new ChainControllerReaction),
     new Creature("Roaming assassin", Attack(6), 27, "At end of turn, if unblocked, move to the closest next unblocked opponent\n and deals 5 damage to it", effects = effects(OnEndTurn -> roam)),
@@ -31,7 +31,7 @@ class JunkMage {
   val jf = Junk.cards(2).asCreature
   Junk.initCards(Houses.basicCostFunc)
 
-  private val trash = new Creature("Trash", Attack(2), 11){
+  private val trash = new Creature("Trash", Attack(2), 11) {
     cost = 1
     houseIndex = Junk.houseIndex
     houseId = Junk.houseId
@@ -39,12 +39,12 @@ class JunkMage {
 
   private val screamer = Junk.cards(0)
 
-  private def resetProtect = { env: Env =>
+  private def resetProtect = { env: Env ⇒
     env.player.slots(env.selected).setData(Boolean.box(false))
   }
 
-  private def spawnTrash = { env: Env =>
-    def spawnTrashAt(num : Int){
+  private def spawnTrash = { env: Env ⇒
+    def spawnTrashAt(num: Int) {
       val slot = env.player.slots(num)
       if (slot.value.isEmpty) {
         slot.add(trash)
@@ -53,22 +53,22 @@ class JunkMage {
     env.player.value.slotList.foreach(spawnTrashAt _)
   }
 
-  private def gatherTrash : CardSpec.Effect = { env: Env =>
+  private def gatherTrash: CardSpec.Effect = { env: Env ⇒
     val slots = env.player.slots
     // bugged with card moves
-    val trashStates = (List.empty[SlotState] /: baseSlotRange){ (acc, i) =>
+    val trashStates = (List.empty[SlotState] /: baseSlotRange) { (acc, i) ⇒
       val slot = slots(i)
-      if (acc.size < 2 && slot.value.isDefined && slot.get.card == trash){
+      if (acc.size < 2 && slot.value.isDefined && slot.get.card == trash) {
         val state = slot.get
         slot.destroy()
         state :: acc
       } else acc
     }
-    if (trashStates.nonEmpty){
+    if (trashStates.nonEmpty) {
       val life = trashStates.map(_.life).sum
       val attack = trashStates.size * trash.attack.base.get
       // get first !
-      slots.slots find (x => x.value.isDefined && x.get.card == trashCyborg) foreach { slot =>
+      slots.slots find (x ⇒ x.value.isDefined && x.get.card == trashCyborg) foreach { slot ⇒
         env.updater.focus(slot.num, env.playerId)
         val s = slot.get
         slot.write(Some(s.copy(life = s.life + life)))
@@ -77,11 +77,11 @@ class JunkMage {
     }
   }
 
-  private def roam = { env: Env =>
+  private def roam = { env: Env ⇒
     import env._
     val otherSlots = otherPlayer.slots
     if (otherSlots(selected).value.isEmpty) {
-      nearestSlotOpposed(selected, player).foreach{ n =>
+      nearestSlotOpposed(selected, player).foreach { n ⇒
         val slots = player.slots
         val dest = slots(n)
         otherSlots(n) inflict Damage(5, env, isAbility = true)
@@ -90,36 +90,36 @@ class JunkMage {
     }
   }
 
-  private def poisonFlower = { env: Env =>
+  private def poisonFlower = { env: Env ⇒
     import env._
 
     val damage = Damage(5, env, isSpell = true)
     val slot = getSelectedSlot
     val h = slot.get.card.houseIndex
     slot.inflict(damage)
-    player.houses.incrMana(-1 , h)
-    if (slot.oppositeSlot.value.isDefined){
+    player.houses.incrMana(-1, h)
+    if (slot.oppositeSlot.value.isDefined) {
       val hopp = slot.oppositeSlot.get.card.houseIndex
-      slotInterval(selected-1, selected +1) flatMap { num =>
+      slotInterval(selected - 1, selected + 1) flatMap { num ⇒
         val oppSlot = otherPlayer.slots(num)
-        oppSlot.value map { slot =>
+        oppSlot.value map { slot ⇒
           oppSlot inflict damage
         }
       }
-      otherPlayer.houses.incrMana(-1 , hopp)
+      otherPlayer.houses.incrMana(-1, hopp)
     }
   }
 
   private class ScreamerReaction extends Reaction {
-    final override def onAdd(slot : SlotUpdate) = {
-      if (slot.get.card == screamer){
+    final override def onAdd(slot: SlotUpdate) = {
+      if (slot.get.card == screamer) {
         setScreamerDirty(slot.slots)
       }
     }
-    final override def onMyDeath(dead : Dead) = setScreamerDirty(dead.player.slots)
-    def setScreamerDirty(slots : SlotsUpdate){
-      slots.foreach{ s =>
-        if (s.get.card == screamer){
+    final override def onMyDeath(dead: Dead) = setScreamerDirty(dead.player.slots)
+    def setScreamerDirty(slots: SlotsUpdate) {
+      slots.foreach { s ⇒
+        if (s.get.card == screamer) {
           s.attack.setDirty()
         }
       }
@@ -127,8 +127,8 @@ class JunkMage {
   }
 
   case object ScreamerAttackSource extends AttackStateFunc {
-    def apply(attack : Int, player : PlayerUpdate) = {
-      val nbScreamers = player.slots.slots.count{ s =>
+    def apply(attack: Int, player: PlayerUpdate) = {
+      val nbScreamers = player.slots.slots.count { s ⇒
         s.value.isDefined && s.get.card == screamer
       }
       attack + nbScreamers
@@ -136,54 +136,54 @@ class JunkMage {
   }
 
   class JunkEventListener extends HouseEventListener with OwnerDeathEventListener {
-    def protect(slot : SlotUpdate, damage : Damage) = {
-      player.slots.foldl(damage) { (acc, s) =>
+    def protect(slot: SlotUpdate, damage: Damage) = {
+      player.slots.foldl(damage) { (acc, s) ⇒
         val sc = s.get.card
-        if (sc == jf){
+        if (sc == jf) {
           s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
         } else acc
       }
     }
 
-    override def init(p : PlayerUpdate){
+    override def init(p: PlayerUpdate) {
       super.init(p)
-      p.slots.slots foreach { slot =>
-        slot.protect.intercept(d => protect(slot, d))
+      p.slots.slots foreach { slot ⇒
+        slot.protect.intercept(d ⇒ protect(slot, d))
       }
     }
   }
 }
 
 class JFReaction extends Reaction {
-  final override def onProtect(d : DamageEvent) = {
+  final override def onProtect(d: DamageEvent) = {
     import d._
     if (!selected.get.data.asInstanceOf[Boolean]
       && d.target.isEmpty
-      && d.damage.amount > 0){
-        player.updater.focus(selected.num, player.id, blocking = false)
-        selected setData java.lang.Boolean.TRUE
-        d.damage.copy(amount = math.max(0, d.damage.amount - 4))
+      && d.damage.amount > 0) {
+      player.updater.focus(selected.num, player.id, blocking = false)
+      selected setData java.lang.Boolean.TRUE
+      d.damage.copy(amount = math.max(0, d.damage.amount - 4))
     } else d.damage
   }
 }
 
 trait MirrorSummon extends Reaction {
-  def maxCost : Int
+  def maxCost: Int
   var healOnSummon = 0
-  final override def onSummon(summoned : SummonEvent) {
+  final override def onSummon(summoned: SummonEvent) {
     import summoned._
     val step = selected.num - num
     if (selected.playerId == player.id
-        && math.abs(step) == 1
-        && card.cost < maxCost + 1){
+      && math.abs(step) == 1
+      && card.cost < maxCost + 1) {
       val pos = selected.num + step
-      if (player.value.isInSlotRange(pos)){
+      if (player.value.isInSlotRange(pos)) {
         val slot = player.slots(pos)
-        if (slot.value.isEmpty){
+        if (slot.value.isEmpty) {
           selected.focus()
           slot.add(card)
         }
-        if (healOnSummon != 0){
+        if (healOnSummon != 0) {
           selected heal healOnSummon
         }
       }
@@ -192,20 +192,20 @@ trait MirrorSummon extends Reaction {
 }
 class ChainControllerReaction extends MirrorSummon {
   val maxCost = 3
-  final override def onDeath(dead : Dead){
+  final override def onDeath(dead: Dead) {
     import dead._
     val step = num - selected.num
-    if (card.cost < 6 && math.abs(step) == 1){
-      def getAt(n : Int) = {
-        if (player.value.isInSlotRange(n)){
+    if (card.cost < 6 && math.abs(step) == 1) {
+      def getAt(n: Int) = {
+        if (player.value.isInSlotRange(n)) {
           player.slots(n).value match {
-            case Some(slot) if slot.card.cost < 6 => Some(n)
-            case _ => None
+            case Some(slot) if slot.card.cost < 6 ⇒ Some(n)
+            case _                                ⇒ None
           }
         } else None
       }
 
-      (getAt(num + step) orElse getAt(selected.num - step)).foreach{ dest =>
+      (getAt(num + step) orElse getAt(selected.num - step)).foreach { dest ⇒
         selected.focus()
         player.slots.move(dest, num)
       }
@@ -219,9 +219,9 @@ class FactoryReaction extends MirrorSummon {
 }
 
 class RecyclingBotReaction extends Reaction {
-  final override def onDeath(dead : Dead){
+  final override def onDeath(dead: Dead) {
     import dead._
-    selected.value foreach{ botSlot =>
+    selected.value foreach { botSlot ⇒
       selected.focus()
       player heal 2
       selected heal 10

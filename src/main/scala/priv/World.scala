@@ -10,7 +10,7 @@ import org.lwjgl.opengl.GL20._
 import org.lwjgl.util.glu.GLU._
 import priv.util.Utils.iterate
 
-class World(displayConf : DisplayConf) extends Attachable {
+class World(displayConf: DisplayConf) extends Attachable {
   var time: Long = 0
   var ended = false
   val resolution = displayConf.resolution
@@ -29,30 +29,30 @@ trait Attachable extends Entity {
   def spawn(entity: Entity) {
     entity.setWorld(world)
     entity match {
-      case s : ShaderEntity => shaderOpt = Some(s)
-      case _ => entities.add(entity)
+      case s: ShaderEntity ⇒ shaderOpt = Some(s)
+      case _               ⇒ entities.add(entity)
     }
   }
 
   def unspawn(entity: Entity) {
     entity match {
-      case s : ShaderEntity => shaderOpt = None
-      case _ => entities.remove(entity)
+      case s: ShaderEntity ⇒ shaderOpt = None
+      case _               ⇒ entities.remove(entity)
     }
   }
-  override def setWorld(w : World){
+  override def setWorld(w: World) {
     super.setWorld(w)
     iterate(entities.iterator)(_.setWorld(w))
     shaderOpt.foreach(_.setWorld(w))
   }
 
   def render() {
-    val shader = shaderOpt.map{ s =>
+    val shader = shaderOpt.map { s ⇒
       s.shader.begin()
       s.render()
       s.shader
     }
-    iterate(tasks.iterator()) { task =>
+    iterate(tasks.iterator()) { task ⇒
       if (world.time - task.start > task.duration) {
         tasks.remove(task)
         task.finish()
@@ -62,16 +62,16 @@ trait Attachable extends Entity {
     shader.foreach(_.end())
   }
 
-  def forEntity[A : reflect.ClassTag](f : A => Unit){
+  def forEntity[A: reflect.ClassTag](f: A ⇒ Unit) {
     var ls = List.empty[A]
-    iterate(entities.iterator){
-      case elem : A => ls = elem :: ls
-      case _ =>
+    iterate(entities.iterator) {
+      case elem: A ⇒ ls = elem :: ls
+      case _       ⇒
     }
     ls.foreach(f)
   }
 
-  def clear(){
+  def clear() {
     entities.clear()
     tasks.clear()
     shaderOpt.foreach(_.shader.end())
@@ -85,7 +85,7 @@ trait Attachable extends Entity {
     tasks.add(task)
   }
 
-  def doInRenderThread(f: => Unit) = addTask(new SimpleTask(f))
+  def doInRenderThread(f: ⇒ Unit) = addTask(new SimpleTask(f))
 }
 
 object Entity {
@@ -96,79 +96,79 @@ object Entity {
 trait Entity {
   var creationTime = System.currentTimeMillis
   val id = Entity.lastId.incrementAndGet()
-  protected var world : World = null
+  protected var world: World = null
 
   def render()
 
-  def setWorld(w : World){  world = w }
+  def setWorld(w: World) { world = w }
   protected def getDelta() = world.time - creationTime
   @inline def stdspeed = Entity.stdspeed
   override def hashCode() = id
 }
 
-class SimpleEntity(f : => Unit) extends Entity {
+class SimpleEntity(f: ⇒ Unit) extends Entity {
   def render() = f
 }
 
 trait TimedEntity extends Entity {
-  def duration : Long
-  def onEnd(){}
+  def duration: Long
+  def onEnd() {}
 }
 
 trait ShaderEntity extends Entity {
   type S <: Shader
-  def shader : S
+  def shader: S
 }
 
 trait Task[A] {
   var start = 0L
   var result = Option.empty[A]
-  var cont = List.empty[() => Unit]
-  protected var world : World = null
+  var cont = List.empty[() ⇒ Unit]
+  protected var world: World = null
 
   def duration: Long
   def init()
-  def end() : A
-  def setWorld(w : World){  world = w }
-  private[priv] def finish(){
+  def end(): A
+  def setWorld(w: World) { world = w }
+  private[priv] def finish() {
     result = Some(end())
     cont.foreach(_())
   }
 }
 
-class SimpleTask(f : => Unit) extends Task[Unit]{
+class SimpleTask(f: ⇒ Unit) extends Task[Unit] {
   val duration = 0L
-  def init(){}
-  def end(){f}
+  def init() {}
+  def end() { f }
 }
 
-class BlockingTask(f : => Unit, lock : AnyRef) extends Task[Unit]{
+class BlockingTask(f: ⇒ Unit, lock: AnyRef) extends Task[Unit] {
   val duration = 0L
-  def init(){}
-  def end(){
+  def init() {}
+  def end() {
     f
     lock.synchronized(lock.notifyAll())
   }
 }
 
-case class TaskSpawn(entity : TimedEntity, lockOption : Option[AnyRef] = None) extends Task[Unit]{
+case class TaskSpawn(entity: TimedEntity, lockOption: Option[AnyRef] = None) extends Task[Unit] {
   val duration = entity.duration
-  def init(){
+  def init() {
     entity.creationTime = start
     world.spawn(entity)
   }
-  def end(){
+  def end() {
     world.unspawn(entity)
     entity.onEnd()
-    lockOption.foreach{ lock =>
+    lockOption.foreach { lock ⇒
       lock.synchronized(lock.notifyAll())
     }
   }
 }
 
 class TexAnim(
-  val animationTextures: Array[Texture],
-  val ratio: Float = 1 / 500f) {
+    val animationTextures: Array[Texture],
+    val ratio: Float = 1 / 500f) {
 
   def this(path: String, x: Int, y: Int, w: Int, h: Int) = this(loadAnimation(path, x, y, w, h))
 
@@ -184,7 +184,7 @@ class TexAnim(
   def ended = (cursor == length - 1)
 
   def clean() {
-    animationTextures.foreach { tex =>
+    animationTextures.foreach { tex ⇒
       glDeleteTextures(tex.id)
     }
   }

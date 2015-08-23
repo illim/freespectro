@@ -6,9 +6,9 @@ import java.awt.event._
 import priv.util.Utils._
 import collection.JavaConversions._
 
-class GameSettings(resources : GameResources) extends JPanel  {
+class GameSettings(resources: GameResources) extends JPanel {
 
-  class PlayerChoice(id : PlayerId) extends JPanel {
+  class PlayerChoice(id: PlayerId) extends JPanel {
     val specials = resources.sp.houses.special
     val choices = specials.map(_.name).toArray
     val l = new JList(choices)
@@ -25,32 +25,32 @@ class GameSettings(resources : GameResources) extends JPanel  {
       addBtn("sinist", this)
       addBtn("others", this)
       addBtn("bs", this)
-      def actionPerformed(e : ActionEvent){
+      def actionPerformed(e: ActionEvent) {
         e.getActionCommand() match {
-          case "clear" => selModel.clearSelection()
-          case "all" => selModel.addSelectionInterval(0, choices.size -1)
-          case "sinist" => select(resources.sp.houses.sinist)
-          case "others" => select(resources.sp.houses.others)
-          case "bs" => select(resources.sp.houses.bs)
+          case "clear"  ⇒ selModel.clearSelection()
+          case "all"    ⇒ selModel.addSelectionInterval(0, choices.size - 1)
+          case "sinist" ⇒ select(resources.sp.houses.sinist)
+          case "others" ⇒ select(resources.sp.houses.others)
+          case "bs"     ⇒ select(resources.sp.houses.bs)
         }
       }
     }
     add(btnPane)
 
     selModel.addListSelectionListener(new ListSelectionListener {
-      override def valueChanged(e : ListSelectionEvent){ updateResources()  }
+      override def valueChanged(e: ListSelectionEvent) { updateResources() }
     })
 
-    def updateResources(){
+    def updateResources() {
       val selecteds = l.getSelectedValuesList.toSet
-      val choices = specials.filter(x => selecteds.contains(x.name))
+      val choices = specials.filter(x ⇒ selecteds.contains(x.name))
       resources.playerChoices = resources.playerChoices.updated(id, choices)
     }
 
-    def select(houses : List[House]){
-      houses.foreach{ h =>
+    def select(houses: List[House]) {
+      houses.foreach { h ⇒
         val idx = choices.indexOf(h.name)
-        if (idx != -1){
+        if (idx != -1) {
           selModel.addSelectionInterval(idx, idx)
         }
       }
@@ -58,7 +58,7 @@ class GameSettings(resources : GameResources) extends JPanel  {
 
   }
 
-  val choices = playerIds.map{ id =>
+  val choices = playerIds.map { id ⇒
     val c = new PlayerChoice(id)
     add(c)
     c
@@ -68,7 +68,7 @@ class GameSettings(resources : GameResources) extends JPanel  {
     val combo = new JComboBox((0 to 3).map(_.toString).toArray)
     combo.addActionListener(this)
     combo.setSelectedItem("3")
-    def actionPerformed(e : ActionEvent){
+    def actionPerformed(e: ActionEvent) {
       resources.heurisChoice = combo.getSelectedItem().toString.toInt
     }
   }
@@ -77,18 +77,18 @@ class GameSettings(resources : GameResources) extends JPanel  {
   //add(hc.combo)
 }
 
-class GameDebug(game : => Game) extends JPanel with ActionListener {
+class GameDebug(game: ⇒ Game) extends JPanel with ActionListener {
   val showCards = addBtn("showCards", this)
   val dump = addBtn("dump", this)
   val gimmeMana = addBtn("gimmeMana", this)
 
-  def actionPerformed(e : ActionEvent){
+  def actionPerformed(e: ActionEvent) {
     e.getActionCommand() match {
-      case "showCards" =>
+      case "showCards" ⇒
         game.cardPanels(game.otherPlayerId).cardButtons.foreach(_.visible = true)
-      case "gimmeMana" =>
+      case "gimmeMana" ⇒
         game.giveMeMana()
-      case "dump" =>
+      case "dump" ⇒
         println(game.state)
     }
   }

@@ -7,16 +7,16 @@ import priv.sp._
 import scala.util.Random._
 import Coord2i._
 
-class Stone(texture : Texture, val startPos : Coord2i, dir : Coord2i) extends Particle {
+class Stone(texture: Texture, val startPos: Coord2i, dir: Coord2i) extends Particle {
   val tfact = 10 + nextInt(10)
   val lifeTime = 4000 / tfact
   val size = texture.size * nextFloat
-  def render(t : Long) {
+  def render(t: Long) {
     val a = startPos + dir * (t / tfact.toFloat)
     tex.drawAt(a, texture.id, size)
   }
 }
-class StoneEmitter(sp : SpWorld) extends Emitter with Entity {
+class StoneEmitter(sp: SpWorld) extends Emitter with Entity {
   val rate = 20
   val maxTime = 1300
   def getRandomPoint = Coord2i(50 + nextInt(600), nextInt(50))
@@ -25,10 +25,10 @@ class StoneEmitter(sp : SpWorld) extends Emitter with Entity {
     stones(nextInt(stones.size))
   }
   val dir = Coord2i(2, 5)
-  def build(time : Long) = new Stone(getRandomTexture, getRandomPoint, dir)
+  def build(time: Long) = new Stone(getRandomTexture, getRandomPoint, dir)
 }
 
-class StoneRain(sp : SpWorld) extends TimedEntity with Attachable {
+class StoneRain(sp: SpWorld) extends TimedEntity with Attachable {
   val duration = 1500L
   val emitter = new StoneEmitter(sp)
   spawn(emitter)

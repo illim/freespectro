@@ -4,11 +4,11 @@ import priv._
 import org.lwjgl.opengl.GL11._
 import priv.sp._
 
-class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel : DescriptionPanel, infoPanel : InfoPanel, val sp: SpWorld) {
+class Board(playerId: PlayerId, slotPanels: List[SlotPanel], cardPanels: List[CardPanel], topCardPanel: TopCardPanel, descriptionPanel: DescriptionPanel, infoPanel: InfoPanel, val sp: SpWorld) {
 
   val panel = getPanel()
 
-  def refresh(silent : Boolean = false) {
+  def refresh(silent: Boolean = false) {
     slotPanels.foreach(_.refresh())
     cardPanels.foreach(_.refresh(silent))
     topCardPanel.refresh(silent)
@@ -19,7 +19,7 @@ class Board(playerId : PlayerId, slotPanels: List[SlotPanel], cardPanels: List[C
 
     Column(
       List(
-        Translate(Coord2i(500, - opponentPanel.size.y), opponentPanel),
+        Translate(Coord2i(500, -opponentPanel.size.y), opponentPanel),
         Translate(Coord2i(500, 0), topCardPanel.panel),
         Translate(
           Coord2i(320, 0),
@@ -42,7 +42,7 @@ import priv.util.TVar
 
 class CommandRecorder(game: Game) {
   private var value = Option.empty[Command]
-  var cont  = Option.empty[TVar[Option[Command]]]
+  var cont = Option.empty[TVar[Option[Command]]]
 
   def setCommand(command: Command) {
     game.slotPanels.foreach(_.disable())
@@ -50,35 +50,35 @@ class CommandRecorder(game: Game) {
     nextStep()
   }
 
-  def startWith(c : TVar[Option[Command]])(f: => Unit) {
+  def startWith(c: TVar[Option[Command]])(f: ⇒ Unit) {
     value = None
     cont = Some(c)
     f
   }
 
   def addInput(x: SlotInput) = {
-    value.foreach { command =>
+    value.foreach { command ⇒
       setCommand(command.copy(input = Some(x)))
     }
   }
 
-  def skip(){
+  def skip() {
     continue(None)
   }
 
-  private def continue(c : Option[Command]) = {
+  private def continue(c: Option[Command]) = {
     cont.foreach(_.set(c))
     cont = None
   }
 
   private def nextStep() {
-    value.foreach { command =>
+    value.foreach { command ⇒
       if (command.card.inputSpec.size == command.input.size) {
         continue(Some(command))
       } else {
         import game._
-        def addInputOrEnable(playerId : PlayerId, slots : Traversable[Int]){
-          if (slots.size == 1){
+        def addInputOrEnable(playerId: PlayerId, slots: Traversable[Int]) {
+          if (slots.size == 1) {
             addInput(new SlotInput(slots.head))
           } else {
             slotPanels(playerId).setSlotEnabled(slots)
@@ -86,17 +86,17 @@ class CommandRecorder(game: Game) {
         }
 
         command.card.inputSpec.get match {
-          case SelectOwner(f) =>
+          case SelectOwner(f) ⇒
             addInputOrEnable(myPlayerId, f(myPlayerId, state))
-          case SelectOwnerSlot =>
+          case SelectOwnerSlot ⇒
             addInputOrEnable(myPlayerId, PlayerState.openSlots(state.players(myPlayerId)))
-          case SelectOwnerCreature =>
+          case SelectOwnerCreature ⇒
             addInputOrEnable(myPlayerId, state.players(myPlayerId).slots.keys.toList)
-          case SelectTarget(f) =>
+          case SelectTarget(f) ⇒
             addInputOrEnable(otherPlayerId, f(otherPlayerId, state))
-          case SelectTargetSlot =>
+          case SelectTargetSlot ⇒
             addInputOrEnable(otherPlayerId, PlayerState.openSlots(state.players(otherPlayerId)))
-          case SelectTargetCreature =>
+          case SelectTargetCreature ⇒
             addInputOrEnable(otherPlayerId, state.players(otherPlayerId).slots.keys.toList)
         }
       }

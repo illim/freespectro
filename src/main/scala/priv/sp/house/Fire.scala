@@ -19,10 +19,9 @@ trait Fire {
     Spell("Inferno", "Deals 18 damage to target and 10 to other opponent creatures", inputSpec = Some(SelectTargetCreature), effects = effects(Direct -> inferno)),
     new Creature("Fire Elemental", AttackSources().add(ManaAttack(0)), 36, "Fire Elemental deals 3 damage to opponent creatures when summoned", effects = effects(Direct -> damageCreatures(3, isAbility = true), Direct -> focus(damage(3, isAbility = true)), OnTurn -> addMana(1, 0))),
     Spell("Apocalypse", "Damage any creature and opponent by 8 + fire mana", effects = effects(Direct -> armageddon)),
-    new Creature("Dragon", Attack(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x => math.ceil(x * 1.5).intValue))))
-    , houseIndex = 0)
+    new Creature("Dragon", Attack(9), 41, "Increase spell damage by 50%", mod = Some(new SpellMod(x ⇒ math.ceil(x * 1.5).intValue)))), houseIndex = 0)
 
-  private def goblinBerserker = { env: Env =>
+  private def goblinBerserker = { env: Env ⇒
     val damage = Damage(2, env, isAbility = true)
     val targets = env.player.slots(env.selected).adjacentSlots filter (_.value.isDefined)
     if (targets.nonEmpty) {
@@ -31,18 +30,17 @@ trait Fire {
     }
   }
 
-  private def inferno = { env: Env =>
+  private def inferno = { env: Env ⇒
     import env._
 
     val damage = Damage(10, env, isSpell = true)
-    otherPlayer.slots foreach { slot =>
+    otherPlayer.slots foreach { slot ⇒
       slot.inflict(
         if (slot.num == selected) Damage(18, env, isSpell = true) else damage)
     }
   }
 
-
-  private def armageddon = { env: Env =>
+  private def armageddon = { env: Env ⇒
     import env._
 
     val d = Damage(getMana(0) + 8, env, isSpell = true)
@@ -51,27 +49,27 @@ trait Fire {
   }
 }
 
-case class OrcAttackBonus(orcPos : Int) extends AttackFunc with UniqueAttack { def apply(attack : Int) = attack + 2 }
-case class BullAttackBonus(bullPos : Int) extends AttackFunc with UniqueAttack { def apply(attack : Int) : Int = attack + 1 }
+case class OrcAttackBonus(orcPos: Int) extends AttackFunc with UniqueAttack { def apply(attack: Int) = attack + 2 }
+case class BullAttackBonus(bullPos: Int) extends AttackFunc with UniqueAttack { def apply(attack: Int): Int = attack + 1 }
 
 private class OrcSlotReaction extends AttackBonusReaction {
-  final def cond(selected : Int, num : Int) = math.abs(selected - num) == 1
-  def getBonus(selected : Int) = OrcAttackBonus(selected)
+  final def cond(selected: Int, num: Int) = math.abs(selected - num) == 1
+  def getBonus(selected: Int) = OrcAttackBonus(selected)
 }
 
 private class BullSlotReaction extends AttackBonusReaction {
-  final def cond(selected : Int, num : Int) = selected != num
-  def getBonus(selected : Int) = BullAttackBonus(selected)
+  final def cond(selected: Int, num: Int) = selected != num
+  def getBonus(selected: Int) = BullAttackBonus(selected)
 }
 
 private abstract class AttackBonusReaction extends Reaction {
-  def cond(selected : Int, num : Int) : Boolean
-  def getBonus(selected : Int) : AttackSource
+  def cond(selected: Int, num: Int): Boolean
+  def getBonus(selected: Int): AttackSource
 
-  final override def onAdd(slot : SlotUpdate) = {
+  final override def onAdd(slot: SlotUpdate) = {
     val bonus = getBonus(selected.num)
-    if (selected.num == slot.num){
-      slot.slots foreach { s =>
+    if (selected.num == slot.num) {
+      slot.slots foreach { s ⇒
         if (cond(s.num, slot.num)) s.attack add bonus
       }
     } else if (cond(selected.num, slot.num)) {
@@ -79,15 +77,15 @@ private abstract class AttackBonusReaction extends Reaction {
     }
   }
 
-  final override def onRemove(slot : SlotUpdate) : Unit = {
+  final override def onRemove(slot: SlotUpdate): Unit = {
     if (selected.num != slot.num && cond(selected.num, slot.num)) {
       slot.attack removeFirst getBonus(selected.num)
     }
   }
 
-  final override def onMyRemove(dead : Option[Dead]) = {
+  final override def onMyRemove(dead: Option[Dead]) = {
     val bonus = getBonus(selected.num)
-    selected.slots foreach { slot =>
+    selected.slots foreach { slot ⇒
       if (cond(slot.num, selected.num)) {
         slot.attack removeFirst bonus
       }

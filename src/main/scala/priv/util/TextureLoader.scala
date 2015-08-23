@@ -18,12 +18,14 @@ trait TextureLoader {
     val buffImage = getBuffImage(name)
 
     val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
-/**    println(
-      "load " + name
-        + ", bpp " + bytesPerPixel
-        + ", height " + buffImage.getHeight
-        + ", width " + buffImage.getWidth
-        + ", type " + buffImage.getType)*/
+    /**
+     *   println(
+     * "load " + name
+     * + ", bpp " + bytesPerPixel
+     * + ", height " + buffImage.getHeight
+     * + ", width " + buffImage.getWidth
+     * + ", type " + buffImage.getType)
+     */
     val scratch = ByteBuffer.allocateDirect(buffImage.getWidth() * buffImage.getHeight() * bytesPerPixel).order(ByteOrder.nativeOrder())
     scratch.clear()
     scratch.put(buffImage.getData().getDataElements(0, 0, buffImage.getWidth(), buffImage.getHeight(), null).asInstanceOf[Array[Byte]])
@@ -52,16 +54,17 @@ trait TextureLoader {
     new SampleTexture(scratch, textWidth, textHeight, buffImage.getColorModel().hasAlpha(), bytesPerPixel)
   }
 
-  def loadSamples(name: String, offsets : List[(Int, Int)], textWidth: Int, textHeight: Int): List[Texture] = {
+  def loadSamples(name: String, offsets: List[(Int, Int)], textWidth: Int, textHeight: Int): List[Texture] = {
     val buffImage = getBuffImage(name)
     val bytesPerPixel = buffImage.getColorModel().getPixelSize() / 8
-    offsets.map{ case (xOffSet, yOffSet) =>
-      val scratch = ByteBuffer.allocateDirect(textWidth * textHeight * bytesPerPixel).order(ByteOrder.nativeOrder())
-      scratch.clear()
-      scratch.put(buffImage.getRaster().getDataElements(xOffSet, yOffSet, textWidth, textHeight, null).asInstanceOf[Array[Byte]])
-      scratch.rewind()
+    offsets.map {
+      case (xOffSet, yOffSet) ⇒
+        val scratch = ByteBuffer.allocateDirect(textWidth * textHeight * bytesPerPixel).order(ByteOrder.nativeOrder())
+        scratch.clear()
+        scratch.put(buffImage.getRaster().getDataElements(xOffSet, yOffSet, textWidth, textHeight, null).asInstanceOf[Array[Byte]])
+        scratch.rewind()
 
-      new SampleTexture(scratch, textWidth, textHeight, buffImage.getColorModel().hasAlpha(), bytesPerPixel)
+        new SampleTexture(scratch, textWidth, textHeight, buffImage.getColorModel().hasAlpha(), bytesPerPixel)
     }
   }
 
@@ -69,14 +72,14 @@ trait TextureLoader {
     val toReturntextures = new Array[Texture](cols * rows)
 
     for {
-      i <- 0 until rows
-      j <- 0 until cols
+      i ← 0 until rows
+      j ← 0 until cols
     } toReturntextures(i * cols + j) = loadTexture(path, j * textWidth, i * textHeight, textWidth, textHeight)
 
     toReturntextures
   }
 
-  private def getBuffImage(name : String) = {
+  private def getBuffImage(name: String) = {
     if (name.endsWith("tga")) {
       TargaReader.getImage(ResourceLoader.getResourceAsStream(name))
     } else {
@@ -119,15 +122,15 @@ object TargaReader {
       // TODO use indexcolormodel
       val crangelength = cmapEntrySize / 8
       val cbrange = 1 to crangelength
-      val cmap = (1 to cmapLength).map { _ =>
-        cbrange.map( _ => is.readByte())
+      val cmap = (1 to cmapLength).map { _ ⇒
+        cbrange.map(_ ⇒ is.readByte())
       }
       while (n > 0) {
         val c = is.readUnsignedByte()
         pixels(i + k) = cmap(c)(2)
         pixels(i + k + 1) = cmap(c)(1)
         pixels(i + k + 2) = cmap(c)(0)
-        pixels(i + k + 3) = if (crangelength == 4 ) cmap(c)(3) else 0
+        pixels(i + k + 3) = if (crangelength == 4) cmap(c)(3) else 0
         i += 4;
         if (i >= bwidth) {
           i = 0;
@@ -157,7 +160,7 @@ object TargaReader {
         n -= 1;
       }
     } else {
-      sys.error("format not managed " + imageType + ", " + pixelSize + ", "+cmapEntrySize)
+      sys.error("format not managed " + imageType + ", " + pixelSize + ", " + cmapEntrySize)
     }
     bimg.getRaster().setDataElements(0, 0, width, height, pixels)
     bimg
