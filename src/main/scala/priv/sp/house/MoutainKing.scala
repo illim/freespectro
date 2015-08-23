@@ -30,21 +30,21 @@ class MoutainKing {
     moutainKing),
     eventListener = Some(new CustomListener(new MKEventListener)))
 
-  MoutainKing.initCards(Houses.basicCostFunc)
+  MoutainKing initCards Houses.basicCostFunc
 
   def soldierEffect = { env: Env ⇒
     import env._
     val bonus = AttackAdd(3)
-    getSelectedSlot().filledAdjacents.foreach(_.attack.add(bonus))
-    player.addEffect(OnEndTurn -> new CountDown(1, { e ⇒
-      e.player.slots(selected).filledAdjacents.foreach(_.attack.removeFirst(bonus))
+    getSelectedSlot().filledAdjacents foreach (_.attack.add(bonus))
+    player addEffect (OnEndTurn -> new CountDown(1, { e ⇒
+      e.player.slots(selected).filledAdjacents foreach (_.attack.removeFirst(bonus))
     }))
   }
 
   def moutain = { env: Env ⇒
     import env._
     otherPlayer.slots.reduce(strongest _).foreach { s ⇒
-      s.toggle(CardSpec.stunFlag)
+      s toggle CardSpec.stunFlag
     }
   }
 
@@ -53,7 +53,7 @@ class MoutainKing {
       val otherPlayer = selected.otherPlayer
       otherPlayer.getSlots.get(selected.num) match {
         case Some(s) if s.attackSources.sources.contains(SoldierLowerAttack) ⇒
-          otherPlayer.slots(selected.num).attack.removeFirst(SoldierLowerAttack)
+          otherPlayer.slots(selected.num).attack removeFirst SoldierLowerAttack
         case _ ⇒
       }
       setSoldierOppAttackDirty(otherPlayer)
@@ -64,7 +64,7 @@ class MoutainKing {
       if (oppSlot.value.isDefined) {
         if (b) {
           if (!oppSlot.attack.has[SoldierLowerAttack.type]) {
-            oppSlot.attack.add(SoldierLowerAttack)
+            oppSlot.attack add SoldierLowerAttack
           }
         }
       }
@@ -72,7 +72,7 @@ class MoutainKing {
     }
 
     def setSoldierOppAttackDirty(otherPlayer: PlayerUpdate) {
-      otherPlayer.slots.foreach { s ⇒
+      otherPlayer.slots foreach { s ⇒
         if (s.attack.has[SoldierLowerAttack.type]) {
           s.attack.setDirty()
         }
@@ -120,7 +120,7 @@ class MoutainKing {
           val context = Context(player.id, someShieldman, selected.num)
           val amount = d.damage.amount
           val samount = math.ceil(amount / 2.0).intValue
-          selected.inflict(damage.copy(amount = samount, context = context))
+          selected inflict damage.copy(amount = samount, context = context)
           d.damage.copy(amount = amount - samount)
         case _ ⇒ d.damage
       }
@@ -163,9 +163,9 @@ class MoutainKing {
         val context = Context(selected.playerId, Some(ballista), selected.num)
         val damage = Damage(math.ceil(player.slots(num).get.life / 2.0).intValue, context, isAbility = true)
         selected.focus()
-        player.slots(num).inflict(damage)
+        player.slots(num) inflict damage
         val balSlot = player.otherPlayer.slots(selected.num)
-        balSlot.inflict(Damage(if (balSlot.get.data == Hird) 7 else 10, context, isAbility = true))
+        balSlot inflict Damage(if (balSlot.get.data == Hird) 7 else 10, context, isAbility = true)
       }
     }
   }
@@ -214,13 +214,13 @@ class MoutainKing {
     final override def onSummon(summoned: SummonEvent) {
       import summoned._
       if (selected.playerId == player.id && card.houseId == MoutainKing.houseId) {
-        selected.heal(6)
-        selected.attack.add(AttackAdd(2))
+        selected heal 6
+        selected.attack add AttackAdd(2)
       }
     }
     def setHird(b: Boolean, player: PlayerUpdate) {
-      if (b) player.addDescMod(LowerSpecialCostMod)
-      else player.removeDescMod(LowerSpecialCostMod)
+      if (b) player addDescMod LowerSpecialCostMod
+      else player removeDescMod LowerSpecialCostMod
     }
   }
 
@@ -231,7 +231,7 @@ class MoutainKing {
       player.slots.foldl(damage) { (acc, s) ⇒
         val sc = s.get.card
         if (sc.houseIndex == 4) {
-          s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
+          s.get.reaction onProtect DamageEvent(acc, Some(slot.num), player)
         } else acc
       }
     }
@@ -245,7 +245,7 @@ class MoutainKing {
     def onDeath(dead: Dead) {
       val c = dead.card
       if (dead.player.id == player.id && c.houseId == moutainHouseId) {
-        player.slots.foreach { s ⇒
+        player.slots foreach { s ⇒
           if (s.num != dead.num) {
             val c = s.get.card
             if (c.houseId == moutainHouseId) {
@@ -256,7 +256,7 @@ class MoutainKing {
                   setHird(s, false)
                 }
               }
-              s.get.reaction.onDeath(dead)
+              s.get.reaction onDeath dead
             }
           }
         }
@@ -282,7 +282,7 @@ class MoutainKing {
       } else {
         player.getSlots.get(slot.num) match {
           case Some(s) if s.card == soldier && s.data == Hird ⇒
-            slot.attack.add(SoldierLowerAttack)
+            slot.attack add SoldierLowerAttack
           case _ ⇒
         }
       }
@@ -301,13 +301,13 @@ class MoutainKing {
 
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.slots.onDead.after(onDeath _)
-      p.slots.slots.foreach { slot ⇒
-        slot.add.after(_ ⇒ onAdd(slot))
-        slot.protect.intercept(d ⇒ protect(slot, d))
+      p.slots.onDead after (onDeath _)
+      p.slots.slots foreach { slot ⇒
+        slot.add after (_ ⇒ onAdd(slot))
+        slot.protect intercept (d ⇒ protect(slot, d))
       }
       p.otherPlayer.slots.slots.foreach { slot ⇒
-        slot.protect.intercept(d ⇒ protectOpp(slot, d))
+        slot.protect intercept (d ⇒ protectOpp(slot, d))
       }
     }
 
@@ -340,9 +340,9 @@ class CrossbowAttack extends RunAttack {
     val num = target.head
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
-    otherPlayer.inflict(d)
+    otherPlayer inflict d
     if (slot.value.isDefined) {
-      slot.inflict(d)
+      slot inflict d
     }
   }
 }
@@ -351,7 +351,7 @@ class CrossbowReaction extends Reaction {
   // HACK should be on my death but the slot would already be empty
   final override def onMyRemove(dead: Option[Dead]) {
     if (selected.get.data == Hird) {
-      selected.setData(null)
+      selected setData null
       selected.player.runSlot(selected.num, selected.get)
     }
   }

@@ -38,9 +38,9 @@ class Dreamweaver {
     import env._
     val nbCreatures = player.getSlots.size
     val dp = getMana(4)
-    player.slots.foreach { s ⇒
+    player.slots foreach { s ⇒
       if (s.num != selected) { // bs? apply effect before interception!?
-        s.heal(dp)
+        s heal dp
       }
     }
     player.heal(nbCreatures * 3)
@@ -49,7 +49,7 @@ class Dreamweaver {
   def mare = { env: Env ⇒
     import env._
     val damage = Damage(6 * otherPlayer.slots.slots.count(_.value.isEmpty), env, isAbility = true)
-    otherPlayer.slots.inflictCreatures(damage)
+    otherPlayer.slots inflictCreatures damage
   }
 
   class EtherealReaction extends NightmareReaction {
@@ -88,7 +88,7 @@ class Dreamweaver {
 
   class DreamweaverEventListener extends HouseEventListener with OwnerDeathEventListener {
     def refreshRoc() {
-      if (player.getSlots.values.exists(_.card == roc)) {
+      if (player.getSlots.values exists (_.card == roc)) {
         player.slots.filleds.withFilter(_.get.card == roc).foreach { s ⇒
           s.attack.setDirty()
         }
@@ -98,17 +98,17 @@ class Dreamweaver {
       player.slots.foldl(damage) { (acc, s) ⇒
         val c = s.get.card
         if (c == castle) {
-          s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
+          s.get.reaction onProtect DamageEvent(acc, Some(slot.num), player)
         } else acc
       }
     }
 
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.slots.slots.foreach { slot ⇒
-        slot.protect.intercept(d ⇒ protect(slot, d))
+      p.slots.slots foreach { slot ⇒
+        slot.protect intercept (d ⇒ protect(slot, d))
       }
-      p.otherPlayer.slots.update.after { _ ⇒ refreshRoc() }
+      p.otherPlayer.slots.update after { _ ⇒ refreshRoc() }
     }
   }
 }
@@ -122,7 +122,7 @@ case object EtherealAttackSource extends AttackStateFunc {
 
 case object RocAttackSource extends AttackSlotStateFunc {
   def apply(attack: Int, slot: SlotUpdate) = {
-    if (slot.otherPlayer.getSlots.isDefinedAt(slot.num)) {
+    if (slot.otherPlayer.getSlots isDefinedAt slot.num) {
       attack
     } else {
       attack / 2
@@ -132,7 +132,7 @@ case object RocAttackSource extends AttackSlotStateFunc {
 
 case object SwordAttackSource extends AttackSlotStateFunc {
   def apply(attack: Int, slot: SlotUpdate) = {
-    val nbAdjacents = slot.adjacentSlots.count(_.value.isDefined)
+    val nbAdjacents = slot.adjacentSlots count (_.value.isDefined)
     attack + nbAdjacents
   }
 }
@@ -148,11 +148,11 @@ class SwordAttack extends RunAttack {
 
     targets.foreach { slot ⇒
       if (slot.num == num && slot.value.isEmpty) {
-        player.otherPlayer.inflict(d)
+        player.otherPlayer inflict d
       }
 
       if (slot.value.isDefined) {
-        slot.inflict(d)
+        slot inflict d
       }
     }
   }

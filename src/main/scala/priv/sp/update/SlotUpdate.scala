@@ -16,8 +16,8 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
   def otherPlayer = updater.players(otherPlayerId)
 
   def oppositeSlot = otherPlayer.slots(num)
-  def filledAdjacents = adjacentSlots.filter(_.value.isDefined)
-  def oppositeState: Option[SlotState] = otherPlayer.getSlots.get(num)
+  def filledAdjacents = adjacentSlots filter (_.value.isDefined)
+  def oppositeState: Option[SlotState] = otherPlayer.getSlots get num
 
   @inline def get = value.get
   // some crap
@@ -34,9 +34,9 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
   def setTarget(target: List[Int]) { write(value.map(_.copy(target = target))) }
 
   // -- code horror to intercept heal/inflict
-  def heal(amount: Int) { if (value.isDefined) get.reaction.heal(amount) }
+  def heal(amount: Int) { if (value.isDefined) get.reaction heal amount }
   def inflict(damage: Damage) {
-    if (value.isDefined) get.reaction.inflict(player.mod(damage))
+    if (value.isDefined) get.reaction inflict (player mod damage)
   }
   def destroy() { if (value.isDefined) { get.reaction.destroy() } }
   def stun() { if (value.isDefined) { get.reaction.stun() } }
@@ -55,8 +55,8 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
   def add(card: Creature) { add(slots.buildSlotState(this, card)) }
   val add = new priv.util.ObservableFunc1Unit({ slot: SlotState ⇒
     write(Some(slot))
-    slot.reaction.use(this)
-    slots.reactAdd(this)
+    slot.reaction use this
+    slots reactAdd this
   })
 
   // /!\ don't call it directly (use inflict)
@@ -65,7 +65,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
       val slotState = get
       val d = protect(slotState.reaction.selfProtect(damage)) // /!\ possible side effect (jf can protect herself once and toggle a flag)
       val slot = get
-      val amount = slot.inflict(d) match {
+      val amount = (slot inflict d) match {
         case None ⇒
           delayedDestroy(d)
           slot.life
@@ -73,7 +73,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
           write(Some(newslot))
           slot.life - newslot.life
       }
-      slotState.reaction.onMyDamage(amount)
+      slotState.reaction onMyDamage amount
       slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
     }
   }
@@ -89,7 +89,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
         write(Some(newslot))
         slot.life - newslot.life
       }
-      slot.reaction.onMyDamage(amount)
+      slot.reaction onMyDamage amount
       slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
     }
   }
@@ -102,12 +102,12 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
     val s = get
     val event = Dead(num, s, player, None)
     remove(Some(event))
-    slots.onDead(event)
+    slots onDead event
   }
 
   val remove = new priv.util.ObservableFunc1[Option[Dead], SlotState]({ deadOpt: Option[Dead] ⇒
     val slotState = get
-    slotState.reaction.onMyRemove(deadOpt)
+    slotState.reaction onMyRemove deadOpt
     slots.reactRemove(this)
     val result = apply().getOrElse(slotState) // ??? in case MK attack on die and die again against zen guard?
     slotState.reaction.cleanUp()
@@ -124,17 +124,17 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
     val s = get
     val event = Dead(num, s, player, Some(d))
     remove(Some(event))
-    slots.log(event)
+    slots log event
   }
 }
 
-class AttackUpdate(slot: SlotUpdate) extends FieldUpdate(Some(slot), slot.value.map(_.attackSources)) {
+class AttackUpdate(slot: SlotUpdate) extends FieldUpdate(Some(slot), slot.value map (_.attackSources)) {
   private val some0 = Option(0)
 
   @inline def get = value.getOrElse(error("can't get attack of empty slot " + slot.num))
-  def add(source: AttackSource) { if (get.base != some0) write(Some(get.add(source))) }
-  def removeFirst(source: AttackSource) { write(Some(get.removeFirst(source))) }
-  def removeAny(source: AttackSource) { write(Some(get.removeAny(source))) }
+  def add(source: AttackSource) { if (get.base != some0) write(Some(get add source)) }
+  def removeFirst(source: AttackSource) { write(Some(get removeFirst source)) }
+  def removeAny(source: AttackSource) { write(Some(get removeAny source)) }
   def has[A: reflect.ClassTag] = get.sources.exists {
     case _: A ⇒ true
     case _    ⇒ false

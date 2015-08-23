@@ -27,35 +27,35 @@ object GameCardEffect {
   }
   def damage(amount: Int, isAbility: Boolean = false, isSpell: Boolean = false) = { env: Env ⇒
     val d = Damage(amount, env, isAbility, isSpell)
-    env.otherPlayer.inflict(d)
+    env.otherPlayer inflict d
   }
   def damageCreatures(amount: Int, isAbility: Boolean = false, isSpell: Boolean = false): Effect = { env: Env ⇒
     val d = Damage(amount, env, isAbility, isSpell)
-    env.otherPlayer.slots.inflictCreatures(d)
+    env.otherPlayer.slots inflictCreatures d
   }
   def damageCreature(amount: Int, isAbility: Boolean = false, isSpell: Boolean = false): Effect = { env: Env ⇒
     val d = Damage(amount, env, isAbility, isSpell)
-    env.otherPlayer.slots(env.selected).inflict(d)
+    env.otherPlayer.slots(env.selected) inflict d
   }
   def massDamage(amount: Int, isAbility: Boolean = false, isSpell: Boolean = false, immuneSelf: Boolean = false) = { env: Env ⇒
     val d = Damage(amount, env, isAbility = isAbility, isSpell = isSpell)
-    env.otherPlayer.slots.inflictCreatures(d)
+    env.otherPlayer.slots inflictCreatures d
     if (immuneSelf) {
-      env.player.slots.value.foreach {
+      env.player.slots.value foreach {
         case (num, _) ⇒
-          if (num != env.selected) env.player.slots(num).inflict(d)
+          if (num != env.selected) env.player.slots(num) inflict d
       }
     } else {
-      env.player.slots.inflictCreatures(d)
+      env.player.slots inflictCreatures d
     }
   }
 
   def heal(amount: Int) = { env: Env ⇒ env.player.heal(amount) }
   def healCreature(amount: Int): Effect = { env: Env ⇒
-    env.player.slots(env.selected).heal(amount)
+    env.player.slots(env.selected) heal amount
   }
   def healCreatures(amount: Int): Effect = { env: Env ⇒
-    env.player.slots.healCreatures(amount)
+    env.player.slots healCreatures amount
   }
 
   def addMana(amount: Int, houseIndex: Int*) = { env: Env ⇒

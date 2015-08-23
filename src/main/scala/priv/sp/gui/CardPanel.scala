@@ -16,12 +16,12 @@ class CardPanel(playerId: PlayerId, game: Game) {
         new CardButton(getCard(i), getHouseState, game)
       }
   }
-  val cardButtons = houseCardButtons.flatMap(_._2)
-  val houseLabels = houseCardButtons.map(_._1)
+  val cardButtons = houseCardButtons flatMap (_._2)
+  val houseLabels = houseCardButtons map (_._1)
   var lastSelected = Option.empty[CardButton]
 
   if (playerId == game.myPlayerId) {
-    cardButtons.foreach { cardButton ⇒
+    cardButtons foreach { cardButton ⇒
       cardButton.visible = true
       cardButton.on {
         case MouseClicked(_) if cardButton.isActive ⇒
@@ -50,29 +50,29 @@ class CardPanel(playerId: PlayerId, game: Game) {
 
   def getPositionOf(card: Card) = {
     val someCard = Some(card)
-    cardButtons.find(_.card == someCard).map { cardButton ⇒
+    cardButtons.find(_.card == someCard) map { cardButton ⇒
       cardButton.coord + (cardButton.size * 0.5)
     }
   }
   val specialCardButtons = houseCardButtons(4)._2
   def refresh(silent: Boolean) {
-    houseLabels.foreach(_.mana.refresh(silent))
-    cardButtons.foreach(_.refresh())
-    cardButtons.foreach { cb ⇒
+    houseLabels foreach (_.mana.refresh(silent))
+    cardButtons foreach (_.refresh())
+    cardButtons foreach { cb ⇒
       cb.visible = playerId == game.myPlayerId || (cb.card.isDefined && visibleCards.contains(cb.card.get))
     }
   }
   def setEnabled(flag: Boolean) {
-    cardButtons.foreach { btn ⇒
+    cardButtons foreach { btn ⇒
       btn.enabled = flag
-      lastSelected.foreach(_.selected = false)
+      lastSelected foreach (_.selected = false)
       lastSelected = None
     }
   }
 }
 
 class TopCardPanel(playerId: PlayerId, game: Game) {
-  val houseLabels = game.desc.players(playerId).houses.zipWithIndex.map {
+  val houseLabels = game.desc.players(playerId).houses.zipWithIndex map {
     case (houseDesc, idx) ⇒
       new HouseLabel(new DamagableInt(game.state.players(playerId).houses(idx).mana, game), houseDesc.house, game, flip = true)
   }

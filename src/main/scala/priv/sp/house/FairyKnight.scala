@@ -35,13 +35,13 @@ Cannot block cards which have already been blocked previous turn""", effects = e
     gory),
     eventListener = Some(new CustomListener(new FKEventListener)))
 
-  Fairy.initCards(Houses.basicCostFunc)
+  Fairy initCards Houses.basicCostFunc
   val additionalCards = List(vodyanoy, thgorynych, ohgorynych)
-  additionalCards.foreach { c ⇒
+  additionalCards foreach { c ⇒
     c.houseIndex = Fairy.houseIndex
     c.houseId = Fairy.houseId
   }
-  additionalCards.foreach(_.cost = 8)
+  additionalCards foreach (_.cost = 8)
 
   trait OnOppSlotUpdate {
     def onOppAdd(slot: SlotUpdate)
@@ -65,7 +65,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
     def removeMod() {
       val data = selected.get.data
       if (data != null) {
-        selected.otherPlayer.removeDescMod(data.asInstanceOf[Destroyed])
+        selected.otherPlayer removeDescMod data.asInstanceOf[Destroyed]
       }
     }
   }
@@ -73,8 +73,8 @@ Cannot block cards which have already been blocked previous turn""", effects = e
   def addLesovikMod(selected: SlotUpdate, slot: SlotUpdate) {
     slot.value.foreach { s ⇒
       val destroyed = Destroyed(s.card)
-      slot.player.addDescMod(destroyed)
-      selected.setData(destroyed)
+      slot.player addDescMod destroyed
+      selected setData destroyed
     }
   }
 
@@ -90,7 +90,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
     val openSlots = player.slots.getOpenSlots
     if (openSlots.nonEmpty) {
       val slot = openSlots(updater.randLogs.get(openSlots.size))
-      slot.add(vodyanoy)
+      slot add vodyanoy
       slot.focus(blocking = false)
     }
   }
@@ -99,10 +99,10 @@ Cannot block cards which have already been blocked previous turn""", effects = e
   class RusalkaReaction extends Reaction {
     final override def onDeath(dead: Dead) {
       if (dead.player.id != selected.playerId && dead.num == selected.num) {
-        dead.damage.foreach { d ⇒
+        dead.damage foreach { d ⇒
           if (d.context.card == someRusalka) {
             val destroyed = Destroyed(dead.card)
-            dead.player.addDescMod(destroyed)
+            dead.player addDescMod destroyed
           }
         }
       }
@@ -117,9 +117,9 @@ Cannot block cards which have already been blocked previous turn""", effects = e
       dead.damage match {
         case Some(d) if (d.context.selected != Context.noSelection) && !d.isEffect ⇒
           val oppSlot = selected.player.otherPlayer.slots(d.context.selected)
-          oppSlot.value.foreach { s ⇒
+          oppSlot.value foreach { s ⇒
             val l = s.life
-            oppSlot.drain(Damage(if (l < 11) l else (l - 10), context, isAbility = true))
+            oppSlot drain Damage(if (l < 11) l else (l - 10), context, isAbility = true)
           }
         case _ ⇒ selected.player.houses.incrMana(2, selected.updater.randLogs.get(5))
       }
@@ -132,48 +132,48 @@ Cannot block cards which have already been blocked previous turn""", effects = e
     val slot = getSelectedSlot
     val oppSlot = slot.oppositeSlot
     if (oppSlot.value.isDefined) {
-      malus.temper(oppSlot)
+      malus temper oppSlot
     }
-    oppSlot.filledAdjacents.foreach(malus.temper)
+    oppSlot.filledAdjacents foreach malus.temper
   }
 
   class SirinReaction extends Reaction with OnOppSlotUpdate {
     lazy val malus = SirinMalus(selected.num)
 
     def isInRange(s: SlotUpdate) = math.abs(s.num - selected.num) < 2
-    final def onOppAdd(slot: SlotUpdate) = if (isInRange(slot)) { malus.temper(slot) }
-    final def onOppRemove(slot: SlotUpdate) = if (isInRange(slot)) { malus.untemper(slot) }
+    final def onOppAdd(slot: SlotUpdate) = if (isInRange(slot)) { malus temper slot }
+    final def onOppRemove(slot: SlotUpdate) = if (isInRange(slot)) { malus untemper slot }
     override def cleanUp() {
       val oppSlot = selected.oppositeSlot
       if (oppSlot.value.isDefined) {
-        malus.untemper(oppSlot)
+        malus untemper oppSlot
       }
-      oppSlot.filledAdjacents.foreach(malus.untemper)
+      oppSlot.filledAdjacents foreach malus.untemper
     }
   }
 
   def alko = { env: Env ⇒
     import env._
     val slot = getSelectedSlot
-    val cards = otherPlayer.value.desc.get.houses.flatMap(_.cards.map(_.card))
+    val cards = otherPlayer.value.desc.get.houses flatMap (_.cards.map(_.card))
     val filtereds = slot.value match {
       case Some(x) if x.data != null ⇒
         val olds = x.data.asInstanceOf[Destroyeds]
-        otherPlayer.removeDescMod(olds)
-        cards.filterNot(olds.excls.contains)
+        otherPlayer removeDescMod olds
+        cards filterNot olds.excls.contains
       case _ ⇒ cards
     }
     val excls = updater.randLogs.unorderedShuffle(filtereds, 6).to[Set]
     val destroyeds = Destroyeds(excls)
-    otherPlayer.addDescMod(destroyeds)
-    slot.setData(destroyeds)
+    otherPlayer addDescMod destroyeds
+    slot setData destroyeds
   }
 
   class AlkoReaction extends Reaction {
     override def cleanUp() {
       selected.value match {
         case Some(x) if x.data != null ⇒
-          selected.otherPlayer.removeDescMod(x.data.asInstanceOf[Destroyeds])
+          selected.otherPlayer removeDescMod x.data.asInstanceOf[Destroyeds]
         case _ ⇒
       }
     }
@@ -181,7 +181,7 @@ Cannot block cards which have already been blocked previous turn""", effects = e
 
   class FirebirdReaction extends Reaction {
     override def selfProtect(d: Damage) = {
-      val adjs = adjacents(selected.num).flatMap(x ⇒ selected.player.value.slots.get(x))
+      val adjs = adjacents(selected.num) flatMap (x ⇒ selected.player.value.slots.get(x))
       if (adjs.exists(_.card.houseIndex == 0) || selected.filledAdjacents.exists(_.get.card.houseIndex == 0)) {
         d.copy(amount = 0)
       } else d
@@ -195,19 +195,19 @@ Cannot block cards which have already been blocked previous turn""", effects = e
       if (summoned.card.houseIndex == 0) {
         val ss = summoned.player.otherPlayer.slots.filleds
         if (ss.nonEmpty) {
-          ss(Random.nextInt(ss.size)).inflict(Damage(6, context, isAbility = true))
+          ss(Random.nextInt(ss.size)) inflict Damage(6, context, isAbility = true)
         }
       }
     }
   }
   class ZGoryReaction extends GoryReaction {
-    override def destroy() { selected.add(thgorynych) }
-    override def onMyDeath(dead: Dead) { selected.add(thgorynych) }
+    override def destroy() { selected add thgorynych }
+    override def onMyDeath(dead: Dead) { selected add thgorynych }
   }
 
   class THGoryReaction extends GoryReaction {
-    override def destroy() { selected.add(ohgorynych) }
-    override def onMyDeath(dead: Dead) { selected.add(ohgorynych) }
+    override def destroy() { selected add ohgorynych }
+    override def onMyDeath(dead: Dead) { selected add ohgorynych }
   }
 
   class OHGoryReaction extends GoryReaction
@@ -215,19 +215,19 @@ Cannot block cards which have already been blocked previous turn""", effects = e
   class FKEventListener extends HouseEventListener with OppDeathEventListener {
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.otherPlayer.slots.slots.foreach { slot ⇒
-        slot.add.after { _ ⇒
-          player.slots.foreach { s ⇒
+      p.otherPlayer.slots.slots foreach { slot ⇒
+        slot.add after { _ ⇒
+          player.slots foreach { s ⇒
             s.get.reaction match {
-              case r: OnOppSlotUpdate ⇒ r.onOppAdd(slot)
+              case r: OnOppSlotUpdate ⇒ r onOppAdd slot
               case _                  ⇒
             }
           }
         }
-        slot.remove.before { _ ⇒
-          player.slots.foreach { s ⇒
+        slot.remove before { _ ⇒
+          player.slots foreach { s ⇒
             s.get.reaction match {
-              case r: OnOppSlotUpdate ⇒ r.onOppRemove(slot)
+              case r: OnOppSlotUpdate ⇒ r onOppRemove slot
               case _                  ⇒
             }
           }
@@ -239,6 +239,6 @@ Cannot block cards which have already been blocked previous turn""", effects = e
 
 case class SirinMalus(id: Int) extends AttackFunc {
   def apply(attack: Int) = math.max(0, math.ceil(attack / 2f).intValue)
-  def temper(s: SlotUpdate) { s.attack.add(this) }
-  def untemper(s: SlotUpdate) { s.attack.removeFirst(this) }
+  def temper(s: SlotUpdate) { s.attack add this }
+  def untemper(s: SlotUpdate) { s.attack removeFirst this }
 }

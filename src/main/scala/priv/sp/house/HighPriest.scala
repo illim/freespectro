@@ -55,7 +55,7 @@ object HighPriest {
     eventListener = Some(new CustomListener(new HPriestEventListener)),
     data = HPriestData())
 
-  HighPriest.initCards(Houses.basicCostFunc)
+  HighPriest initCards Houses.basicCostFunc
   HighPriest.initCards(Houses.basicCostFunc, hpSet)
   val additionalCards = hpSet
 
@@ -74,10 +74,10 @@ object HighPriest {
           (f, w + s.card.cost)
         } else acc
     }
-    val hasMod = player.value.desc.descMods.contains(PathSet)
+    val hasMod = player.value.desc.descMods contains PathSet
     if (fireearth >= waterair) {
-      if (hasMod) player.removeDescMod(PathSet)
-    } else if (!hasMod) player.addDescMod(PathSet)
+      if (hasMod) player removeDescMod PathSet
+    } else if (!hasMod) player addDescMod PathSet
   }
 
   def hpTurn = { env: Env ⇒
@@ -88,7 +88,7 @@ object HighPriest {
   case object PathSet extends DescMod {
     def apply(house: House, cards: Vector[CardDesc]): Vector[CardDesc] = {
       if (house.houseIndex == 4) {
-        cards.map { c ⇒
+        cards map { c ⇒
           CardDesc(hpSet(c.card.cost - 1)) // bs index is cost -1
         }
       } else cards
@@ -98,9 +98,9 @@ object HighPriest {
   def wajet = { env: Env ⇒
     import env._
     val nbRevealeds = getData(player.value).revealeds.size
-    player.heal(nbRevealeds)
-    player.slots.healCreatures(nbRevealeds)
-    otherPlayer.slots.inflictCreatures(Damage(nbRevealeds, env, isSpell = true))
+    player heal nbRevealeds
+    player.slots healCreatures nbRevealeds
+    otherPlayer.slots inflictCreatures Damage(nbRevealeds, env, isSpell = true)
   }
 
   def curse = { env: Env ⇒
@@ -108,7 +108,7 @@ object HighPriest {
     val slot = otherPlayer.slots(selected)
     val slots = slot :: slot.filledAdjacents
     val damage = Damage(slots.map(_.get.attack).sum, env, isSpell = true)
-    slots.foreach(_.inflict(damage))
+    slots foreach(_ inflict damage)
   }
 
   def apisEffect: Effect = { env: Env ⇒
@@ -118,23 +118,23 @@ object HighPriest {
       if (s.get.card == apis) (acc + 1) else acc
     }
     if (nbApis > 1) {
-      player.heal(3 * (nbApis - 1))
+      player heal (3 * (nbApis - 1))
       getSelectedSlot().focus()
     }
   }
 
   def ouro: Effect = { env: Env ⇒
     import env._
-    nearestEmptySlot(selected, player).foreach { pos ⇒
-      player.slots(pos).add(serpent)
+    nearestEmptySlot(selected, player) foreach { pos ⇒
+      player.slots(pos) add serpent
     }
-    otherPlayer.addEffect(OnEndTurn -> new SerpentDie(selected))
+    otherPlayer addEffect (OnEndTurn -> new SerpentDie(selected))
   }
 
   def ra: Effect = { env: Env ⇒
     import env._
-    nearestEmptySlot(selected, player).foreach { pos ⇒
-      player.slots(pos).add(sunStone)
+    nearestEmptySlot(selected, player) foreach { pos ⇒
+      player.slots(pos) add sunStone
     }
   }
 
@@ -143,22 +143,22 @@ object HighPriest {
     val nTurn = getData(player.value).numTurn
     val bonus = SimAttackReduction(nTurn)
     var maxAttack = 0
-    otherPlayer.slots.foreach { s ⇒
-      val att = s.get.attack
+    otherPlayer.slots foreach { slot ⇒
+      val att = slot.get.attack
       if (att > 1) {
         if (att > maxAttack) {
           maxAttack = att
         }
-        s.attack.add(bonus)
+        slot.attack add bonus
       }
     }
-    player.addEffect(OnEndTurn -> SimoomRefresh(bonus, math.ceil(maxAttack / 3f).toInt))
+    player addEffect (OnEndTurn -> SimoomRefresh(bonus, math.ceil(maxAttack / 3f).toInt))
   }
 
   def incrRaAttack = { env: Env ⇒
     import env._
-    player.slots.findCard(dragonOfRa).foreach { s ⇒
-      s.attack.add(AttackAdd(1))
+    (player.slots findCard dragonOfRa) foreach { slot ⇒
+      slot.attack add AttackAdd(1)
     }
   }
 
@@ -174,16 +174,16 @@ object HighPriest {
   class SerpentDie(ouronumslot: Int) extends Function[Env, Unit] {
     def apply(env: Env) {
       import env._
-      otherPlayer.getSlots.foreach {
+      otherPlayer.getSlots foreach {
         case (i, s) ⇒
           if (s.card == serpent) {
             val slots = otherPlayer.slots
             val slot = slots(i)
             val amount = s.life
-            otherPlayer.heal(amount)
-            otherPlayer.getSlots.get(ouronumslot) match {
-              case Some(s) if card == ouroboros ⇒ slots(ouronumslot).heal(amount)
-              case _                            ⇒ player.removeEffect(_ == this) // a bit bs should be in ouro reaction on his death
+            otherPlayer heal amount
+            (otherPlayer.getSlots get ouronumslot) match {
+              case Some(s) if card == ouroboros ⇒ slots(ouronumslot) heal amount
+              case _                            ⇒ player removeEffect (_ == this) // a bit bs should be in ouro reaction on his death
             }
             slot.focus()
             slot.destroy()
@@ -194,7 +194,7 @@ object HighPriest {
 
   class SphinxReaction extends Reaction {
     final override def onMyDeath(dead: Dead) {
-      dead.player.slots(dead.num).add(puzzle)
+      dead.player.slots(dead.num) add puzzle
     }
   }
   class PuzzleReaction extends Reaction {
@@ -204,7 +204,7 @@ object HighPriest {
         case Some(d) if !d.isEffect && d.context.playerId != player.id ⇒
           val slot = player.slots(dead.num)
           val slotState = player.slots.buildSlotState(slot, sphynx)
-          slot.add(slotState.copy(life = slotState.life / 2))
+          slot add slotState.copy(life = slotState.life / 2)
         case _ ⇒
           val otherPlayer = player.otherPlayer
           val houseId = (otherPlayer.getHouses.foldLeft((0, 0, 0)) {
@@ -221,7 +221,7 @@ object HighPriest {
       if (SingleTargetAttack.attack(target, d, player)) {
         nearestEmptySlot(d.context.selected, player).foreach { pos ⇒
           player.updater.focus(d.context.selected, player.id)
-          player.slots(pos).add(guardianMummy)
+          player.slots(pos) add guardianMummy
         }
       }
     }
@@ -231,7 +231,7 @@ object HighPriest {
     final override def onAdd(slot: SlotUpdate) = {
       if (selected.num == slot.num) {
         val mana = selected.otherPlayer.getHouses.map(_.mana).sum
-        selected.setData(new Integer(mana))
+        selected setData new Integer(mana)
       }
     }
 
@@ -239,11 +239,11 @@ object HighPriest {
       val old = selected.get.data.asInstanceOf[Integer]
       if (old != null) { // not working for stranger
         val mana = houses.map(_.mana).sum
-        selected.setData(new Integer(mana))
+        selected setData new Integer(mana)
         if (mana > old) {
           val oppSlot = selected.oppositeSlot
           if (oppSlot.value.isDefined) {
-            oppSlot.inflict(Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true))
+            oppSlot inflict Damage(mana - old, Context(selected.playerId, Some(babi), selected.num), isAbility = true)
             selected.focus()
           }
         }
@@ -254,7 +254,7 @@ object HighPriest {
   class AmitReaction extends Reaction {
     final override def onDeath(dead: Dead) {
       val power = dead.player.getHouses(dead.card.houseIndex).mana
-      dead.player.inflict(Damage(power, Context(selected.playerId, Some(amit), selected.num), isAbility = true))
+      dead.player inflict Damage(power, Context(selected.playerId, Some(amit), selected.num), isAbility = true)
       dead.player.houses.incrMana(1, 4)
       selected.focus()
     }
@@ -272,12 +272,12 @@ object HighPriest {
     def apply(env: Env) {
       import env._
       if (getData(player.value).numTurn > maxTurn) {
-        player.otherPlayer.slots.foreach { s ⇒
-          s.attack.removeAny(bonus)
+        player.otherPlayer.slots foreach { s ⇒
+          s.attack removeAny bonus
         }
-        player.removeEffect(_ == this)
+        player removeEffect (_ == this)
       } else {
-        player.otherPlayer.slots.foreach { s ⇒
+        player.otherPlayer.slots foreach { s ⇒
           s.attack.setDirty()
         }
       }
@@ -297,19 +297,19 @@ object HighPriest {
       super.init(p)
 
       if (p.value.desc.get.houses(4).house == HighPriest) { // hack for warp
-        p.slots.update.after { _ ⇒
+        p.slots.update after { _ ⇒
           choosePath(player)
         }
       }
       p.otherPlayer.houses.update.after { houses ⇒
-        player.slots.foreach { s ⇒ // crap
+        player.slots foreach { s ⇒ // crap
           s.get.reaction match {
             case br: BabiReaction ⇒ br.reactIncrMana(houses, s)
             case _                ⇒
           }
         }
       }
-      p.otherPlayer.submitCommand.after(onOppSubmit _)
+      p.otherPlayer.submitCommand after(onOppSubmit _)
     }
   }
 }
@@ -331,7 +331,7 @@ class SunPriestAttack extends RunAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     SingleTargetAttack.apply(target, d, player)
     val massD = d.copy(amount = player.getHouses.minBy(_.mana).mana)
-    player.otherPlayer.slots.inflictCreatures(massD)
+    player.otherPlayer.slots inflictCreatures massD
   }
 }
 
@@ -339,9 +339,9 @@ class CrocodileAttack extends RunAttack {
 
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     SingleTargetAttack.apply(target, d, player)
-    player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
-    player.addEffect(OnTurn -> new CountDown(2, { env: Env ⇒
-      env.player.slots(d.context.selected).toggleOff(CardSpec.pausedFlag)
+    player.slots(d.context.selected) toggle CardSpec.pausedFlag
+    player addEffect (OnTurn -> new CountDown(2, { env: Env ⇒
+      env.player.slots(d.context.selected) toggleOff CardSpec.pausedFlag
     }))
   }
 }
@@ -352,8 +352,8 @@ class BennuReaction extends Reaction {
   final override def onMyRemove(dead: Option[Dead]) {
     // Bullshit ?
     if (selected.get.data != BennuDead && !dead.exists(_.damage.exists(_.context.playerId == selected.playerId))) {
-      selected.attack.add(AttackFactor(3f))
-      selected.setData(BennuDead)
+      selected.attack add AttackFactor(3f)
+      selected setData BennuDead
       selected.updater.updateListener.refresh()
       selected.player.runSlot(selected.num, selected().get)
     }
@@ -370,11 +370,11 @@ class SerpoReaction extends Reaction {
         slots.move(selected.num, n)
         val att = slots(n).attack
         if (!att.has[SerpoBonus.type]) {
-          att.add(SerpoBonus)
-          player.addEffect(OnEndTurn -> { env: Env ⇒
+          att add SerpoBonus
+          player addEffect (OnEndTurn -> { env: Env ⇒
             val s = env.player.slots(n)
             if (s.value.isDefined) {
-              s.attack.removeFirst(SerpoBonus)
+              s.attack removeFirst SerpoBonus
             }
           })
         }

@@ -23,13 +23,13 @@ class MainRender(canvas: java.awt.Canvas, mode: DisplayMode, settingsPanel: Main
     offsety = 0
     world.forEntity[GuiElem](_.updateCoord(Coord2i(0, 0)))
     world.spawn(Repere)
-    gm.surrenderButton.on {
+    gm.surrenderButton on {
       case MouseClicked(c) ⇒
         gm.gameLock.release()
         gm.server.surrender()
         currentGame = createGame()
     }
-    gm.settingsButton.on {
+    gm.settingsButton on {
       case MouseClicked(c) ⇒
         settingsPanel.display()
     }
@@ -54,7 +54,7 @@ class MainRender(canvas: java.awt.Canvas, mode: DisplayMode, settingsPanel: Main
         glPushMatrix()
         world.render()
         glPopMatrix()
-        pollInput().foreach {
+        pollInput() foreach {
           case MouseDrag(y)  ⇒ scroll(world, y)
           case MouseWheel(w) ⇒ scroll(world, -w)
           case e: GuiEvent   ⇒ world.forEntity[GuiContainer](_.fireEvent(e))
@@ -81,7 +81,7 @@ class MainRender(canvas: java.awt.Canvas, mode: DisplayMode, settingsPanel: Main
         Some(MouseClicked(getMouseCoord))
       } else {
         val wheel = Mouse.getDWheel()
-        if (Mouse.isButtonDown(0)) {
+        if (Mouse isButtonDown 0) {
           Some(MouseDrag(Mouse.getDY()))
         } else if (wheel != 0) {
           Some(MouseWheel(wheel))

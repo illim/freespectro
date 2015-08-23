@@ -52,24 +52,21 @@ class Local(resources: GameResources) extends GameServer {
   val name = "AI"
   val seed = System.currentTimeMillis
   def waitNextCommand(c: TVar[Option[Option[Command]]], state: GameState) = {
-    resources.aiExecutor.submit(
-      runnable(c.set(Some(bot.executeAI(state)))))
+    resources.aiExecutor submit runnable(c.set(Some(bot.executeAI(state))))
   }
 
   def submitCommand(commandOption: Option[Command]) = {
     commandOption.foreach { c ⇒
-      val cardIdx = desc.players(owner).getIndexOfCardInHouse(c.card)
+      val cardIdx = desc.players(owner) getIndexOfCardInHouse c.card
       if (cardIdx != -1) {
-        resources.aiExecutor.submit(runnable {
-          bot.knowledge.updateKnowledge(c, cardIdx)
-        })
+        resources.aiExecutor submit(runnable(bot.knowledge.updateKnowledge(c, cardIdx)))
       }
     }
   }
 
   override def reset() {
     super.reset()
-    resources.aiExecutor.submit(runnable(bot.knowledge.reset()))
+    resources.aiExecutor submit runnable(bot.knowledge.reset())
   }
 }
 
@@ -128,7 +125,7 @@ class CommonGameServer(val playerId: PlayerId, val name: String, val initState: 
   // in
   def submit(turnId: Int, commandOption: Option[Command]) {
     require(turnId == currentTurnId.get, turnId + "!=" + currentTurnId.get)
-    cont.get.set(Some(commandOption))
+    cont.get set Some(commandOption)
     cont = None
   }
   override def surrender() {
@@ -155,7 +152,7 @@ class MasterBoot(k: Option[GameServer] ⇒ Unit, resources: GameResources) {
         c.peer.proxy.init(initState, desc, seed)
         k(Some(new CommonGameServer(opponent, c.address, initState, desc, startingPlayer, seed, c.peer)))
       } else {
-        c.peer.delegate.send(m)
+        c.peer.delegate send m
       }
   })
 }
@@ -184,7 +181,7 @@ class MasterPeerOut(channel: SocketChannel) extends InvocationHandler {
 
   def invoke(obj: Any, m: Method, args: Array[Object]) = {
     val bytes = ByteBuffer.wrap(toBytes(new Message(m.getName, args)))
-    channel.write(bytes)
+    channel write bytes
     println("server send " + m.getName)
     assert(m.getReturnType() == classOf[Unit], "not managing return value for " + m.getName)
     null
@@ -195,27 +192,27 @@ class SlaveBoot(k: Option[GameServer] ⇒ Unit, address: InetAddress, resources:
   resources.multi.release() // BS FIXME
   val socketAddress = new InetSocketAddress(address, resources.port)
   val socketOption = connect()
-  val peerOption = socketOption.map { socket ⇒
+  val peerOption = socketOption map { socket ⇒
     val interface = new SlavePeerInterface[MasterInterface](socket, this)
     interface.proxy.start()
     interface
   }
 
   def init(state: GameState, desc: GameDesc, seed: Long) = {
-    peerOption.foreach { peer ⇒
+    peerOption foreach { peer ⇒
       k(Some(new CommonGameServer(owner, socketAddress.toString, state, desc, owner, seed, peer)))
     }
   }
 
   def connect(i: Int = 3): Option[Socket] = {
     if (resources.ended) None else {
-      val addr = resources.getAddr(0)
+      val addr = resources getAddr 0
       val socket = new Socket()
-      socket.bind(addr)
+      socket bind addr
       try {
         println("Bound to " + addr + ", connect to " + socketAddress)
         socket.connect(socketAddress, 10 * 3000)
-        resources.clientSocket(socket)
+        resources clientSocket socket
         println("Connected")
         Some(socket)
       } catch {

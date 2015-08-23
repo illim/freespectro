@@ -42,8 +42,8 @@ class GameStateUpdater(initState: GameState, val desc: GameDesc) extends FieldUp
 
   def players(id: PlayerId) = playerFieldUpdates(id).reinit()
 
-  def resetStats() = { playerFieldUpdates.foreach(_.stats.reset()) }
-  def flush() = { playerFieldUpdates.foreach(_.flush()) }
+  def resetStats() = { playerFieldUpdates foreach (_.stats.reset()) }
+  def flush() = { playerFieldUpdates foreach (_.flush()) }
 
   def result = {
     flush()
@@ -96,7 +96,7 @@ class ProxyEventListener(inner: HouseEventListener) extends HouseEventListener {
   override def interceptSubmit(c: Option[Command]): (Boolean, Option[Command]) = inner.interceptSubmit(c)
   override def init(p: PlayerUpdate): Unit = {
     playerField = p
-    inner.init(p)
+    inner init p
   }
 }
 

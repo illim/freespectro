@@ -34,7 +34,7 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
     content._1 foreach { c ⇒
       val slotState = c._1
       val card = slotState.card
-      if (slotState.has(CardSpec.pausedFlag)) alpha = 0.5f
+      if (slotState has CardSpec.pausedFlag) alpha = 0.5f
       if (slotState.status > 1) {
         decorate = Some(() ⇒ decorateStatus(slotState))
       } else if (card.isInstanceOf[MereMortal]) {
@@ -45,7 +45,7 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
       for {
         before ← old._1
         val d = slotState.life - before._1.life if d != 0
-      } game.world.addTask(DamageAnimTask(d))
+      } game.world addTask DamageAnimTask(d)
     }
   }
   def isEmpty = content._1.isEmpty
@@ -76,10 +76,10 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
           fade.begin()
           glUniform1f(fade.fact, alpha)
         }
-        tex.draw(cardTex)
+        tex draw cardTex
         decorate.foreach(_())
         glTranslatef(-3, -8, 0)
-        tex.draw(game.sp.baseTextures.borderTex)
+        tex draw game.sp.baseTextures.borderTex
         Fonts.font.draw(72, 1, slotState.card.cost, 'blue)
         Fonts.font.draw(4, 80, slotState.attack, 'red)
         Fonts.font.draw(70, 80, slotState.life, 'green)

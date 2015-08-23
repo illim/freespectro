@@ -37,8 +37,8 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
         slotsUpdate.logs.reverseIterator.foreach {
           case dead: Dead ⇒
             stats.nbDead += 1
-            otherPlayerStats.addKill(dead.slot)
-            slots.onDead(dead)
+            otherPlayerStats addKill dead.slot
+            slots onDead dead
           case _ ⇒
         }
         slots.logs = Nil
@@ -51,9 +51,9 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
     getSlots.foreach {
       case (num, s) ⇒
         val slots = getSlots
-        slots.get(num).foreach { slot ⇒
+        (slots get num) foreach { slot ⇒
           if (slot.id != s.id) { // in case of a move
-            slots.find(_._2.id == s.id).foreach { case (num, slot) ⇒ runSlot(num, slot) }
+            slots.find(_._2.id == s.id) foreach { case (num, slot) ⇒ runSlot(num, slot) }
           } else runSlot(num, slot)
         }
     }
@@ -123,7 +123,7 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
       if (life <= 0) {
         updater.ended = true
       } else {
-        houseEventListener.onPlayerDamage(amount)
+        houseEventListener onPlayerDamage amount
       }
       write(value.copy(life = life))
     }

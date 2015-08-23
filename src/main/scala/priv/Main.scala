@@ -16,12 +16,12 @@ object Main extends JFrame with App {
   setLocation(gbounds.width / 2 - mode.getWidth / 2, gbounds.height / 2 - mode.getHeight / 2)
 
   val panel = getContentPane
-  panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS))
+  panel setLayout new BoxLayout(panel, BoxLayout.PAGE_AXIS)
   val canvas = new AWTGLCanvas(new PixelFormat().withDepthBits(24).withSamples(4).withSRGB(true))
   val settingsPanel = new SettingsPanel
-  settingsPanel.setVisible(false)
-  panel.add(settingsPanel)
-  panel.add(canvas)
+  settingsPanel setVisible false
+  panel add settingsPanel
+  panel add canvas
   show()
   canvas.requestFocus()
 
@@ -39,9 +39,9 @@ object Main extends JFrame with App {
     doInDispatch {
       settingsPanel.tabs.addTab("houses", new GameSettings(r.resources))
       settingsPanel.tabs.addTab("multi", new MultiSettings(r.world, r.resources, { () ⇒ r.currentGame.server.abort() }, { gameServer ⇒
-        r.resources.aiExecutor.submit(runnable { // shitty wait ai finish :S (doesn't ensure player will do something just after)
-          r.world.doInRenderThread {
-            r.currentGame = r.createGame(gameServer)
+        r.resources.aiExecutor submit (runnable { // shitty wait ai finish :S (doesn't ensure player will do something just after)
+          r.world doInRenderThread {
+            r.currentGame = r createGame gameServer
           }
         })
       }))
@@ -62,10 +62,10 @@ object Main extends JFrame with App {
         setVisible(!isVisible())
         if (isVisible()) {
           canvas.requestFocus() // dunno, black magic?
-          canvas.setEnabled(false)
+          canvas setEnabled false
           canvas.setSize(1024, 400)
         } else {
-          canvas.setEnabled(true)
+          canvas setEnabled true
           canvas.setSize(1024, 768)
         }
         panel.repaint()

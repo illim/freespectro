@@ -23,8 +23,8 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
   val commandRecorder = new CommandRecorder(this)
   val descriptionPanel = new DescriptionPanel(this)
   val infoPanel = new InfoPanel(this)
-  val cardPanels = playerIds.map(new CardPanel(_, this))
-  val slotPanels = playerIds.map(new SlotPanel(_, this))
+  val cardPanels = playerIds map (new CardPanel(_, this))
+  val slotPanels = playerIds map (new SlotPanel(_, this))
   val topCardPanel = new TopCardPanel(playerIds(otherPlayerId), this)
   val board = new Board(myPlayerId, slotPanels, cardPanels, topCardPanel, descriptionPanel, infoPanel, sp)
 
@@ -46,28 +46,28 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
   restartButton.on {
     case MouseClicked(_) ⇒
       world.forEntity[EndMessage](world.unspawn(_))
-      cardPanels.foreach(_.setEnabled(false))
+      cardPanels foreach (_.setEnabled(false))
       gameLock.release()
       gameLock = new priv.util.RichLock
       server.reset()
-      resources.gameExecutor.submit(runnable {
+      resources.gameExecutor submit (runnable {
         persistState(server.initState)
         start()
       })
   }
   world.spawn(board.panel)
   world.spawn(Translate(Coord2i(0, 20), Column(List(surrenderButton, restartButton, settingsButton, skipButton))))
-  resources.gameExecutor.submit(runnable(start()))
+  resources.gameExecutor submit (runnable(start()))
   server.abort = { () ⇒
-    commandRecorder.cont.foreach(_.set(None))
+    commandRecorder.cont foreach (_.set(None))
     endGame(owner)
   }
 
   private def start() {
     server.resetSeed()
-    persist(updater.lift { u ⇒
-      playerIds.foreach { id ⇒
-        u.players(id).applyEffects(CardSpec.OnStart)
+    persist(updater lift { u ⇒
+      playerIds foreach { id ⇒
+        u.players(id) applyEffects CardSpec.OnStart
       }
     })
     refresh()
@@ -80,7 +80,7 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
     if (player == server.playerId) {
       (autoSkip[Option[Option[Command]]](Some(None))
         orElse {
-          cardPanels(player).setEnabled(true)
+          cardPanels(player) setEnabled true
           updater.resetRand()
           gameLock.waitFor[Option[Option[Command]]] { c ⇒
             server.waitNextCommand(c, state)
@@ -90,7 +90,7 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
             case None ⇒ endGame(myPlayerId)
             case Some(nextCommand) ⇒
               nextCommand.foreach { c ⇒
-                cardPanels(player).addVisibleCard(c.card)
+                cardPanels(player) addVisibleCard c.card
               }
               submit(nextCommand, player)
           }
@@ -99,10 +99,10 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
       (autoSkip[Option[Command]](None)
         orElse gameLock.waitFor[Option[Command]] { c ⇒
           commandRecorder.startWith(c) {
-            cardPanels(player).setEnabled(true)
+            cardPanels(player) setEnabled true
           }
         }).foreach { nextCommand ⇒
-          server.submitCommand(nextCommand)
+          server submitCommand nextCommand
           submit(nextCommand, player)
         }
     }
@@ -110,7 +110,7 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
 
   private def endGame(player: PlayerId) {
     val msg = if (player == myPlayerId) "YOU WON" else (names(player) + " WON")
-    world.spawn(new EndMessage(msg))
+    world spawn new EndMessage(msg)
   }
 
   private def persist[A](stateFunc: State[GameState, A]): A = {
@@ -129,12 +129,12 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
     slotPanels.foreach(_.disable())
     persist(updater.lift(_.players(player).submit(commandOption)))
     refresh()
-    commandOption.foreach { c ⇒
-      infoPanel.add(c.card)
+    commandOption foreach { c ⇒
+      infoPanel add c.card
     }
 
     if (state.players(player).transitions.isEmpty) {
-      cardPanels.foreach(_.setEnabled(false))
+      cardPanels foreach (_.setEnabled(false))
       slotPanels(player).lifeLabel.phaseOption = None
       run(player)
     } else {
@@ -144,8 +144,8 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
       endOr {
         t match {
           case WaitPlayer(p, name) ⇒
-            if (p != player) cardPanels.foreach(_.setEnabled(false))
-            slotPanels(p).lifeLabel.setPhase(name)
+            if (p != player) cardPanels foreach (_.setEnabled(false))
+            slotPanels(p).lifeLabel setPhase name
             waitPlayer(p)
         }
       }
@@ -171,13 +171,13 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
         persistUpdater()
         refresh()
         endOr {
-          p.applyEffects(CardSpec.OnEndTurn)
+          p applyEffects CardSpec.OnEndTurn
           p.slots.toggleRun()
           persistUpdater()
           endOr {
             val otherPlayer = p.otherPlayer
             otherPlayer.prepareNextTurn()
-            otherPlayer.applyEffects(CardSpec.OnTurn)
+            otherPlayer applyEffects CardSpec.OnTurn
             persistUpdater()
             refresh(silent = true)
             endOr {
@@ -210,8 +210,8 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
     }
     def move(num: Int, dest: Int, playerId: PlayerId) {
       val slotButton = slotPanels(playerId).slots(num)
-      gameLock.waitLock { lock ⇒
-        world.addTask(new slotButton.MoveAnimTask(dest, lock))
+      gameLock waitLock { lock ⇒
+        world addTask new slotButton.MoveAnimTask(dest, lock)
       }
     }
     def runSlot(num: Int, playerId: PlayerId) {
@@ -233,12 +233,12 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
     }
     def refresh(silent: Boolean) = {
       persistUpdater()
-      game.refresh(silent)
-      state.checkEnded.foreach(endGame _)
+      game refresh silent
+      state.checkEnded foreach(endGame _)
     }
     def spellPlayed(c: Command) {
       spawn(new SpellNotif(sp, c.card))
-      val sourceCoord = cardPanels(c.player).getPositionOf(c.card).getOrElse(Coord2i(0, 0))
+      val sourceCoord = cardPanels(c.player) getPositionOf(c.card) getOrElse Coord2i(0, 0)
       val targetPlayer = if (c.card.inputSpec == Some(SelectOwnerCreature)) {
         c.player
       } else other(c.player)

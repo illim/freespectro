@@ -11,7 +11,7 @@ trait BotTree {
 
   // tree pointer
   class TreeP(var tree: Tree, val parent: Option[TreeP] = None, val depth: Int = 0) {
-    var pos = (0, parent.map(_.tree.subforest))
+    var pos = (0, parent map (_.tree.subforest))
     var forestCache = Vector((tree, pos._2))
 
     def gotoNext() = {
@@ -35,9 +35,9 @@ trait BotTree {
     def hasChild = tree.subforest.nonEmpty
     def child = new TreeP(tree.subforest.head, Some(this), depth + 1)
     def backPropagate(f: TreeLabel ⇒ Unit) {
-      parent.foreach { p ⇒
+      parent foreach { p ⇒
         f(p.tree.label)
-        p.backPropagate(f)
+        p backPropagate f
       }
     }
   }

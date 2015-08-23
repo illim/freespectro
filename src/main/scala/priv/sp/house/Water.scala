@@ -45,7 +45,7 @@ trait Water {
 private class OverlordSlotReaction extends Reaction {
   final override def onAdd(slot: SlotUpdate) = {
     if (math.abs(selected.num - slot.num) == 1) {
-      slot.toggle(runFlag)
+      slot toggle runFlag
     }
   }
 }

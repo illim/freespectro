@@ -28,7 +28,7 @@ class DamagableInt(getValue: ⇒ Int, world: World) extends Damagable {
     current = getValue
     val d = current - old
     if (d != 0 && !silent) {
-      world.addTask(DamageAnimTask(d))
+      world addTask DamageAnimTask(d)
     }
   }
 }

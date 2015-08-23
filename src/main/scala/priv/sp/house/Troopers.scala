@@ -18,13 +18,13 @@ class Trooper {
     new Creature("ScienceVessel", Attack(6), 60, "When summoned deals 12 damage to opponent creatures", effects = effects(Direct -> damageCreatures(12, isAbility = true)))))
 
   val marine = Trooper.cards(1)
-  Trooper.initCards({ i: Int ⇒ if (i == 0) i else i + 1 })
+  Trooper initCards { i: Int ⇒ if (i == 0) i else i + 1 }
 
   private def siege = { env: Env ⇒
     import env._
 
     otherPlayer.slots.filleds.sortBy(_.get.life).lastOption foreach { slot ⇒
-      slot.inflict(Damage(8, env, isAbility = true))
+      slot inflict Damage(8, env, isAbility = true)
     }
   }
 
@@ -41,7 +41,7 @@ class Trooper {
       if (selected.playerId != player.id) {
         val damage = Damage(4, Context(selected.playerId, Some(marine), selected.num), isAbility = true)
         selected.focus()
-        player.slots(num).inflict(damage)
+        player.slots(num) inflict damage
       }
     }
   }

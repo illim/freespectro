@@ -37,7 +37,7 @@ When enters the game, stuns all enemy creatures.""",
       reaction = new DragonReaction,
       effects = effects(Direct -> dragon))), eventListener = Some(new CustomListener(new DarksiderEventListener)))
 
-  Darksider.initCards(Houses.basicCostFunc)
+  Darksider initCards Houses.basicCostFunc
 
   class WolfSpiderReaction extends Reaction {
 
@@ -46,7 +46,7 @@ When enters the game, stuns all enemy creatures.""",
       if (selected.playerId != player.id) {
         val damage = Damage(card.cost, Context(selected.playerId, Some(wolfSpider), selected.num), isAbility = true)
         selected.focus()
-        player.slots(selected.num).inflict(damage)
+        player.slots(selected.num) inflict damage
       }
     }
   }
@@ -61,22 +61,22 @@ When enters the game, stuns all enemy creatures.""",
         } else {
           selected.num :: slotState.target
         }
-        s.setTarget(target)
+        s setTarget target
       }
     }
 
     def undoEffect(s: SlotUpdate) = {
       val slotState = s.get
       if (slotState.card != blackKnight) {
-        val target = slotState.target.filterNot(_ == selected.num)
-        if (target.isEmpty) s.setTarget(List(s.num))
-        else s.setTarget(target)
+        val target = slotState.target filterNot (_ == selected.num)
+        if (target.isEmpty) s setTarget List(s.num)
+        else s setTarget target
       }
     }
 
     final override def onAdd(slot: SlotUpdate) = {
       if (selected.num == slot.num) {
-        selected.filledAdjacents.foreach { s ⇒
+        selected.filledAdjacents foreach { s ⇒
           applyEffect(s)
         }
       } else if (cond(slot.num)) {
@@ -105,7 +105,7 @@ When enters the game, stuns all enemy creatures.""",
 
   def horror = { env: Env ⇒
     env.getSelectedSlot().oppositeSlot.value.foreach { s ⇒
-      env.otherPlayer.addDescMod(Destroyed(s.card))
+      env.otherPlayer addDescMod Destroyed(s.card)
     }
   }
 
@@ -113,12 +113,12 @@ When enters the game, stuns all enemy creatures.""",
   class LakeReaction extends ReactionWithData[LakeData] {
     def onCommand(c: Command) {
       val destroyed = Destroyed(c.card)
-      selected.otherPlayer.addDescMod(destroyed)
+      selected.otherPlayer addDescMod destroyed
       updateData(d ⇒ d.copy(destroyeds = destroyed :: d.destroyeds))
     }
     override def cleanUp() {
-      getData.destroyeds.foreach { d ⇒
-        selected.otherPlayer.removeDescMod(d)
+      getData.destroyeds foreach { d ⇒
+        selected.otherPlayer removeDescMod d
       }
     }
   }
@@ -126,7 +126,7 @@ When enters the game, stuns all enemy creatures.""",
   class WarlockReaction extends Reaction {
     final def interceptSubmit(command: Command, updater: GameStateUpdater) = {
       if (command.card.isSpell) {
-        selected.inflict(Damage(3 * command.card.cost, Context(selected.playerId, Some(warlock), selected.num), isAbility = true))
+        selected inflict Damage(3 * command.card.cost, Context(selected.playerId, Some(warlock), selected.num), isAbility = true)
         selected.otherPlayer.houses.incrMana(-command.cost, command.card.houseIndex)
         (true, None)
       } else (false, None)
@@ -134,7 +134,7 @@ When enters the game, stuns all enemy creatures.""",
   }
 
   def dragon = { env: Env ⇒
-    env.otherPlayer.slots.foreach(_.stun())
+    env.otherPlayer.slots foreach (_.stun())
   }
 
   class DragonReaction extends Reaction {
@@ -163,8 +163,8 @@ When enters the game, stuns all enemy creatures.""",
     }
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.otherPlayer.submitCommand.after { c ⇒
-        player.slots.foreach { s ⇒
+      p.otherPlayer.submitCommand after { c ⇒
+        player.slots foreach { s ⇒
           s.get.reaction match {
             case r: LakeReaction ⇒ r.onCommand(c)
             case _               ⇒

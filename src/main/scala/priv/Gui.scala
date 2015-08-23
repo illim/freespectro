@@ -20,8 +20,8 @@ trait GuiElem extends Entity {
     handlers ::= handler
   }
   def handle(mouseEvent: GuiEvent) = {
-    handlers.foreach { handler ⇒
-      if (handler.isDefinedAt(mouseEvent)) {
+    handlers foreach { handler ⇒
+      if (handler isDefinedAt mouseEvent) {
         handler(mouseEvent)
       }
     }
@@ -36,13 +36,13 @@ trait GuiContainer extends GuiElem {
     elems ::= (coord, elem)
   }
   def findElem(c: Coord2i): Option[GuiElem] = {
-    (elems.collectFirst {
+    (elems collectFirst {
       case (pos, elem) if (c.x > pos.x
         && c.x < pos.x + elem.size.x
         && c.y > pos.y
         && c.y < pos.y + elem.size.y) ⇒
         elem match {
-          case cont: GuiContainer ⇒ cont.findElem(Coord2i(c.x - pos.x, c.y - pos.y)) // sucks
+          case cont: GuiContainer ⇒ cont findElem Coord2i(c.x - pos.x, c.y - pos.y) // sucks
           case e                  ⇒ Some(e)
         }
     }).flatten
@@ -52,16 +52,16 @@ trait GuiContainer extends GuiElem {
   def fireEvent(mouseEvent: GuiEvent) = {
     val elemOption = findElem(mouseEvent.coord)
     if (lastElem.isDefined && elemOption != lastElem) {
-      lastElem.get.handle(MouseLeaved(mouseEvent.coord))
+      lastElem.get handle MouseLeaved(mouseEvent.coord)
     }
     elemOption.foreach { elem ⇒
-      elem.handle(mouseEvent) // todo filter redondant move?
+      elem handle mouseEvent // todo filter redondant move?
       lastElem = Some(elem)
     }
   }
   override def setWorld(w: World) {
     super.setWorld(w)
-    elems.foreach(_._2.setWorld(w)) // supposing no elem is added to the container after spawn
+    elems foreach (_._2.setWorld(w)) // supposing no elem is added to the container after spawn
   }
 }
 
@@ -77,7 +77,7 @@ case class Translate(at: Coord2i, elt: GuiElem) extends GuiContainer {
   }
   override def updateCoord(c: Coord2i) {
     super.updateCoord(c)
-    elt.updateCoord(c + at)
+    elt updateCoord (c + at)
   }
 }
 
@@ -98,7 +98,7 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends Attachable with GuiCon
   spawn(new Entity {
     def render() {
       glPushMatrix()
-      elts.foreach { elt ⇒
+      elts foreach { elt ⇒
         elt.render()
         glTranslatef(dirx * elt.size.x, diry * elt.size.y, 0)
       }
@@ -110,7 +110,7 @@ abstract class Flow(dirx: Int = 0, diry: Int = 0) extends Attachable with GuiCon
     super.updateCoord(c)
     // todo update attached stuff?
     (c /: elts) { (acc, elt) ⇒
-      elt.updateCoord(acc)
+      elt updateCoord acc
       acc.copy(x = acc.x + dirx * elt.size.x, y = acc.y + diry * elt.size.y)
     }
   }
@@ -121,7 +121,7 @@ case class Column(elts: Traversable[GuiElem]) extends Flow(diry = 1)
 case class Row(elts: Traversable[GuiElem]) extends Flow(dirx = 1)
 
 class GuiButton(name: String, font: PimpFont = Fonts.font) extends GuiElem {
-  val (w, h) = (font.getWidth(name), font.getHeight(name))
+  val (w, h) = (font getWidth name, font getHeight name)
   val size = Coord2i(w, h)
 
   def render() {

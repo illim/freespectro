@@ -12,8 +12,8 @@ class GameSettings(resources: GameResources) extends JPanel {
     val specials = resources.sp.houses.special
     val choices = specials.map(_.name).toArray
     val l = new JList(choices)
-    l.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-    l.setLayoutOrientation(JList.VERTICAL_WRAP)
+    l setSelectionMode ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
+    l setLayoutOrientation JList.VERTICAL_WRAP
     val selModel = l.getSelectionModel
     select(resources.playerChoices(id))
     updateResources()
@@ -43,13 +43,13 @@ class GameSettings(resources: GameResources) extends JPanel {
 
     def updateResources() {
       val selecteds = l.getSelectedValuesList.toSet
-      val choices = specials.filter(x ⇒ selecteds.contains(x.name))
+      val choices = specials filter (x ⇒ selecteds.contains(x.name))
       resources.playerChoices = resources.playerChoices.updated(id, choices)
     }
 
     def select(houses: List[House]) {
       houses.foreach { h ⇒
-        val idx = choices.indexOf(h.name)
+        val idx = choices indexOf h.name
         if (idx != -1) {
           selModel.addSelectionInterval(idx, idx)
         }

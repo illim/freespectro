@@ -84,7 +84,7 @@ class BoundedBot2AI(simulator: BotSimulator) {
     }
     val result = node.subforest.foldLeft(Option.empty[TreeLabel]) {
       case (acc, childTree) ⇒
-        val childStat = observer.getNodeStat(childTree.label)
+        val childStat = observer getNodeStat childTree.label
         println(childStat.statString)
         acc match {
           case Some(node) ⇒
@@ -95,7 +95,7 @@ class BoundedBot2AI(simulator: BotSimulator) {
         }
     }
     (node, result.flatMap { node ⇒
-      val nodeStat = observer.getNodeStat(node)
+      val nodeStat = observer getNodeStat node
       println(s"ai spent $timeSpent, numSim : ${nodeStat.numSim}, ${nodeStat.nbWin}/${nodeStat.nbLoss},  ${nbIterations} iterations")
       node.commandOpt
     })
@@ -165,7 +165,7 @@ class BoundedBot2AI(simulator: BotSimulator) {
   }
 
   private def select(t: TreeP) = {
-    t.parent.foreach { p ⇒
+    t.parent foreach { p ⇒
       var best = (t.tree, t.pos._1)
       val isFairOnly = p.tree.label.playerId == humanId
       while (t.gotoNext()) {
@@ -247,7 +247,7 @@ class BotObserver(context: BotContext, knowledge: BotKnowledge) {
   def updateStats(loc: TreeP, st: GameState, end: Option[PlayerId], playerStats: List[PlayerStats], cardUsage: CardUsage) = {
     val node = loc.tree.label
     val nodeStat = getNodeStat(node)
-    val stats = playerIds.map { i ⇒
+    val stats = playerIds map { i ⇒
       playerStats(i) + node.playerStats(i)
     }
     val h = heuris(st) //, stats, loc.depth)
@@ -256,9 +256,9 @@ class BotObserver(context: BotContext, knowledge: BotKnowledge) {
     nodeStat.numSim += 1
     nodeStat.rewards += reward
 
-    loc.backPropagate { n ⇒
+    loc backPropagate { n ⇒
       val parentStat = getNodeStat(n)
-      end.foreach { p ⇒
+      end foreach { p ⇒
         if (p == botPlayerId) { parentStat.nbWin += 1 } else { parentStat.nbLoss += 1 }
       }
       parentStat.numSim += 1

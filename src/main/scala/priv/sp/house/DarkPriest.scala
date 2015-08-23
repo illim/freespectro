@@ -24,12 +24,12 @@ object DarkPriest {
     effects = List(OnStart -> initRestless))
 
   val ghost = DarkPriest.cards(0).asCreature
-  DarkPriest.initCards(Houses.basicCostFunc)
+  DarkPriest initCards Houses.basicCostFunc
 
   val oppCards = List(restlessSoul, shadowPriest)
-  oppCards.foreach { c ⇒
-    c.houseIndex = 4
-    c.houseId = DarkPriest.houseId
+  oppCards foreach { card ⇒
+    card.houseIndex = 4
+    card.houseId = DarkPriest.houseId
   }
 
   def missionar = { env: Env ⇒
@@ -63,7 +63,7 @@ object DarkPriest {
           }
         }
       }
-      weakestOther.foreach { s ⇒ s.inflict(Damage(s.get.life / 2, env, isAbility = true)) }
+      weakestOther foreach { slot ⇒ slot inflict Damage(slot.get.life / 2, env, isAbility = true) }
     }
   }
   def betray = { env: Env ⇒
@@ -71,42 +71,42 @@ object DarkPriest {
     val slot = env.player.slots(selected)
     val d = Damage(4, env, isAbility = true)
     focus()
-    player.inflict(d)
-    slot.inflict(d)
-    slot.adjacentSlots.foreach(_.inflict(d))
+    player inflict d
+    slot inflict d
+    slot.adjacentSlots foreach (_.inflict(d))
   }
   def evampire = { env: Env ⇒
     import env._
-    val adjacentHouses = player.slots(selected).adjacentSlots.flatMap(_.value).map(_.card.houseIndex)
+    val adjacentHouses = player.slots(selected).adjacentSlots flatMap(_.value) map (_.card.houseIndex)
     player.houses.incrMana(1, adjacentHouses: _*)
   }
   def blackMass = { env: Env ⇒
     import env._
     val slots = otherPlayer.slots.filleds
     val nbElems = slots.map { s ⇒ s.get.card.houseId }.distinct.size
-    otherPlayer.slots.inflictCreatures(Damage(4 * nbElems, env, isSpell = true))
+    otherPlayer.slots inflictCreatures Damage(4 * nbElems, env, isSpell = true)
     player.slots(selected).destroy()
   }
   def occult: Effect = { env: Env ⇒
     import env._
     val slot = otherPlayer.slots(selected)
     if (slot.value.isEmpty) {
-      slot.add(shadowPriest)
+      slot add shadowPriest
     }
   }
   def shadowHeal = { env: Env ⇒
     import env._
     focus()
-    otherPlayer.heal(1)
-    otherPlayer.slots.healCreatures(1)
+    otherPlayer heal 1
+    otherPlayer.slots healCreatures 1
   }
   def ghostHeal = { env: Env ⇒
     import env._
     val nbSlots = player.getSlots.size
-    player.heal(nbSlots)
+    player heal nbSlots
   }
   def initRestless = { env: Env ⇒
-    env.otherPlayer.addEffect(OnEndTurn -> new SpawnRestless)
+    env.otherPlayer addEffect (OnEndTurn -> new SpawnRestless)
     spawnRestless(env.otherPlayer)
   }
 
@@ -123,7 +123,7 @@ object DarkPriest {
     val openSlots = player.slots.getOpenSlots
     if (openSlots.nonEmpty) {
       val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
-      slot.add(restlessSoul)
+      slot add restlessSoul
       slot.focus(blocking = false)
     }
   }
@@ -140,7 +140,7 @@ object DarkPriest {
         val openSlots = dead.otherPlayer.slots.getOpenSlots
         if (openSlots.nonEmpty) {
           val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
-          slot.add(ghost)
+          slot add ghost
           slot.focus(blocking = false)
         }
       }
@@ -152,11 +152,11 @@ object DarkPriest {
       if (selected.playerId == player.id) {
         if (card.houseIndex == 4) {
           selected.destroy()
-          selected.add(blackAngel)
+          selected add blackAngel
         } else {
           val slot = player.slots(num)
           slot.destroy()
-          slot.add(heretic)
+          slot add heretic
         }
       }
     }
@@ -169,12 +169,12 @@ object DarkPriest {
       val otherPlayer = player.otherPlayer
       val slot = otherPlayer.slots(num)
       if (slot.value.isEmpty) {
-        otherPlayer.inflict(d)
+        otherPlayer inflict d
       } else {
-        slot.inflict(d)
+        slot inflict d
         // FIXME maybe not good at all and should add source in damage?
         if (slot.value.isEmpty) {
-          player.slots(num).heal(blackAngel.life)
+          player.slots(num) heal blackAngel.life
         }
       }
     }
@@ -183,7 +183,7 @@ object DarkPriest {
 
 class BlackMonkReaction extends Reaction {
   override def onMyDamage(amount: Int) {
-    selected.player.heal(amount)
+    selected.player heal amount
   }
 }
 
@@ -192,12 +192,12 @@ class DarkHydraAttack extends RunAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val otherPlayer = player.otherPlayer
-    otherPlayer.inflict(d)
-    otherPlayer.slots.inflictCreatures(d)
-    player.heal(d.amount)
+    otherPlayer inflict d
+    otherPlayer.slots inflictCreatures d
+    player heal d.amount
     val slot = player.slots(num)
     if (slot.value.isDefined) {
-      slot.attack.add(OneAttackBonus) // TODO refactor
+      slot.attack add OneAttackBonus // TODO refactor
     }
   }
 }

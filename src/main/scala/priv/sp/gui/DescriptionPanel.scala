@@ -32,7 +32,7 @@ class DescriptionPanel(game: Game) extends GuiElem {
   val show = DescriptionPanel.show(0, 'white) _
 
   def render() {
-    cardOption.foreach(show)
+    cardOption foreach show
   }
 }
 
@@ -47,6 +47,6 @@ class InfoPanel(game: Game) extends GuiElem {
 
   def render() {
     Fonts.font.draw(0, 0, "last play : ", 'gray)
-    cardOption.foreach(show)
+    cardOption foreach show
   }
 }

@@ -38,9 +38,9 @@ case class PlayerState(
     data: AnyRef = null,
     transitions: List[Transition] = Nil) { // not great using this field to pass parameter
 
-  def isDisabled = desc.get.houses.forall { h ⇒
+  def isDisabled = desc.get.houses forall { h ⇒
     val hs = houses(h.house.houseIndex)
-    h.cards.forall(c ⇒ !c.isAvailable(hs))
+    h.cards forall (c ⇒ !c.isAvailable(hs))
   }
 
   def isInSlotRange(n: Int) = slotList.contains(n)

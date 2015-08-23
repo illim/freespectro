@@ -17,8 +17,8 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
 
   def apply() = updated {
     var res = PlayerState.emptySlots
-    slotUpdates.foreach { slot ⇒
-      slot().foreach { s ⇒
+    slotUpdates foreach { slot ⇒
+      slot() foreach { s ⇒
         res += (slot.num -> s)
       }
     }
@@ -28,12 +28,12 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
   def slots = { ensureInited(); slotUpdates }
   def filledsM = { ensureInited(); filledSlots }
   def filleds = slots.filter(_.value.isDefined)
-  def getOpenSlots = { ensureInited(); slotUpdates.filter(s ⇒ s.value.isEmpty && player.value.isInSlotRange(s.num)) }
+  def getOpenSlots = { ensureInited(); slotUpdates filter (s ⇒ s.value.isEmpty && player.value.isInSlotRange(s.num)) }
   def apply(n: Int) = slots(n)
   def ensureInited() = if (!first.isInited) {
     slotUpdates.foreach { s ⇒
       s.reinit()
-      s.value.foreach(_.reaction.use(s))
+      s.value foreach (_.reaction.use(s))
     }
   }
 
@@ -45,9 +45,9 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
   def summon(num: Int, card: Creature) {
     val slot = slots(num)
     var slotState = buildSlotState(slot, card)
-    slot.value.foreach { s ⇒
-      s.reaction.onOverwrite(card)
-      slotState.reaction.onSpawnOver.foreach { m ⇒
+    slot.value foreach { s ⇒
+      s.reaction onOverwrite card
+      slotState.reaction.onSpawnOver foreach { m ⇒
         slotState = m(slotState)
       }
     }
@@ -55,27 +55,26 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
     if (slot.value.isEmpty) {
       slot.add(slotState)
       val summonEvent = SummonEvent(num, card, player)
-      otherPlayer.slots.reactSummon(summonEvent)
+      otherPlayer.slots reactSummon summonEvent
       reactSummon(summonEvent)
     }
   }
 
   def move(num: Int, dest: Int) {
-    if (player.value.isInSlotRange(dest)) {
+    if (player.value isInSlotRange dest) {
       val slot = slots(num)
-      slot.value.foreach { s ⇒
+      slot.value foreach { s ⇒
         updateListener.move(num, dest, id)
-        val removed = slot.remove(None)
+        val removed = slot remove None
         if (slots(dest).value.isDefined) {
           move(dest, num)
         }
         val slotDest = slots(dest)
-        slotDest.add(
-          SlotState(
-            removed.card, removed.life, removed.status,
-            removed.attackSources, getAttack(slotDest, removed.attackSources),
-            List(dest), removed.id, removed.reaction, removed.data))
-        removed.reaction.use(slotDest)
+        slotDest add SlotState(
+          removed.card, removed.life, removed.status,
+          removed.attackSources, getAttack(slotDest, removed.attackSources),
+          List(dest), removed.id, removed.reaction, removed.data)
+        removed.reaction use slotDest
       }
     }
   }
@@ -83,12 +82,12 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
   // If observed , because of simple onMyDeath(ie selfProtect, onMyDamage) method to be preferred, selected slot may be filtered out
   val onDead = new priv.util.ObservableFunc1Unit({ dead: Dead ⇒
     updateListener.die(dead.num, playerId)
-    dead.slot.reaction.onMyDeath(dead)
+    dead.slot.reaction onMyDeath dead
   })
 
   def buildSlotState(slot: SlotUpdate, card: Creature, id: Int = SlotState.currentId.incrementAndGet) = {
     val reaction = card.newReaction
-    reaction.use(slot)
+    reaction use slot
     SlotState(card, card.life, card.status, card.attack, getAttack(slot, card.attack), List(slot.num), id, reaction, card.data)
   }
   def getAttack(slot: SlotUpdate, attackSources: AttackSources) = {
@@ -109,10 +108,10 @@ class SlotsUpdate(val player: PlayerUpdate) extends FieldUpdate(Some(player), pl
     }
   }
   def reactAdd(slot: SlotUpdate) = foreach { s ⇒
-    s.get.reaction.onAdd(slot)
+    s.get.reaction onAdd slot
   }
   def reactRemove(slot: SlotUpdate) = foreach { s ⇒
-    s.get.reaction.onRemove(slot)
+    s.get.reaction onRemove slot
   }
   def log(evt: BoardEvent) { logs = evt :: logs }
   def foreach(f: SlotUpdate ⇒ Unit) = slots.foreach { s ⇒

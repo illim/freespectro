@@ -13,7 +13,7 @@ class SlotPanel(playerId: PlayerId, val game: Game) {
         playerId,
         {
           val p = game.state.players(playerId)
-          (p.slots.get(num), p.slotList.contains(num))
+          (p.slots get num, p.slotList contains num)
         },
         game)).toList
   val elts = lifeLabel :: /**testButton ::: */ slots

@@ -32,10 +32,9 @@ autoCompilerPlugins := true
 
 test in assembly := {}
 
-scalariformSettings
+defaultScalariformSettings
 
 ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
   .setPreference(RewriteArrowSymbols, true)
   .setPreference(AlignParameters, true)
-  .setPreference(PreserveDanglingCloseParenthesis, true)

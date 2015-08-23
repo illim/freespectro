@@ -38,7 +38,7 @@ trait EarthHouse {
 
     // hack attack at start of transaction!
     val attack = (player.value.slots.values.map(_.attack)(breakOut): Seq[Int]).sorted(math.Ordering.Int.reverse).take(2).sum
-    env.otherPlayer.inflict(Damage(attack, env, isSpell = true))
+    env.otherPlayer inflict Damage(attack, env, isSpell = true)
   }
 
   private def spider = { env: Env ⇒

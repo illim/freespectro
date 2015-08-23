@@ -17,7 +17,7 @@ object Fonts {
 class PimpFont(awtFont: Font) {
   val font = new UnicodeFont(awtFont)
   font.addAsciiGlyphs();
-  font.getEffects().asInstanceOf[java.util.List[Effect]].add(new ColorEffect())
+  font.getEffects().asInstanceOf[java.util.List[Effect]] add new ColorEffect()
   font.loadGlyphs()
 
   val darkGreen = Color.green.darker()
@@ -38,6 +38,6 @@ class PimpFont(awtFont: Font) {
     //    glColor4f(1, 1, 1, 1) // recover color
   }
 
-  def getWidth(s: String) = font.getWidth(s)
-  def getHeight(s: String) = font.getHeight(s)
+  def getWidth(s: String) = font getWidth s
+  def getHeight(s: String) = font getHeight s
 }

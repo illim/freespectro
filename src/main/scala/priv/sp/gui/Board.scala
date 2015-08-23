@@ -9,9 +9,9 @@ class Board(playerId: PlayerId, slotPanels: List[SlotPanel], cardPanels: List[Ca
   val panel = getPanel()
 
   def refresh(silent: Boolean = false) {
-    slotPanels.foreach(_.refresh())
-    cardPanels.foreach(_.refresh(silent))
-    topCardPanel.refresh(silent)
+    slotPanels foreach (_.refresh())
+    cardPanels foreach (_.refresh(silent))
+    topCardPanel refresh silent
   }
 
   private def getPanel() = {
@@ -45,7 +45,7 @@ class CommandRecorder(game: Game) {
   var cont = Option.empty[TVar[Option[Command]]]
 
   def setCommand(command: Command) {
-    game.slotPanels.foreach(_.disable())
+    game.slotPanels foreach(_.disable())
     value = Some(command)
     nextStep()
   }
@@ -57,7 +57,7 @@ class CommandRecorder(game: Game) {
   }
 
   def addInput(x: SlotInput) = {
-    value.foreach { command ⇒
+    value foreach { command ⇒
       setCommand(command.copy(input = Some(x)))
     }
   }
@@ -72,7 +72,7 @@ class CommandRecorder(game: Game) {
   }
 
   private def nextStep() {
-    value.foreach { command ⇒
+    value foreach { command ⇒
       if (command.card.inputSpec.size == command.input.size) {
         continue(Some(command))
       } else {
@@ -81,7 +81,7 @@ class CommandRecorder(game: Game) {
           if (slots.size == 1) {
             addInput(new SlotInput(slots.head))
           } else {
-            slotPanels(playerId).setSlotEnabled(slots)
+            slotPanels(playerId) setSlotEnabled slots
           }
         }
 

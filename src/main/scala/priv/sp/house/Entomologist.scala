@@ -42,8 +42,7 @@ object Entomologist {
 
   def beetle: Effect = { env: Env ⇒
     val selected = env.getSelectedSlot()
-    selected.oppositeSlot.inflict(
-      Damage(4, env, isAbility = true))
+    selected.oppositeSlot inflict Damage(4, env, isAbility = true)
   }
 
   class FireBeetleReaction extends Reaction {
@@ -56,7 +55,7 @@ object Entomologist {
   class MothReaction extends Reaction {
     override def onMyDeath(dead: Dead) {
       selected.focus()
-      selected.otherPlayer.slots.inflictCreatures(Damage(3, Context(selected.playerId, Some(dead.slot.card), dead.num), isAbility = true))
+      selected.otherPlayer.slots inflictCreatures Damage(3, Context(selected.playerId, Some(dead.slot.card), dead.num), isAbility = true)
     }
   }
 
@@ -64,10 +63,10 @@ object Entomologist {
     import env._
     val target = otherPlayer.slots(selected).get
     player.updateData[EntoState](x ⇒ x.copy(hivemind = Some(target.id)))
-    player.slots.foreach { s ⇒
+    player.slots foreach { s ⇒
       s.write(s.value.map(_.copy(target = List(selected))))
     }
-    player.addEffect(OnEndTurn -> new RecoverHiveMind)
+    player addEffect (OnEndTurn -> new RecoverHiveMind)
   }
 
   class RecoverHiveMind extends Function[Env, Unit] {
@@ -75,13 +74,13 @@ object Entomologist {
       if (getData(env.player).hivemind.isDefined) {
         recoverTarget(env.player)
       }
-      env.player.removeEffect(_ == this)
+      env.player removeEffect (_ == this)
     }
   }
 
   def recoverTarget(player: PlayerUpdate) {
-    player.slots.foreach { s ⇒
-      s.write(s.value.map(_.copy(target = List(s.num))))
+    player.slots foreach { s ⇒
+      s write s.value.map(_.copy(target = List(s.num)))
     }
     player.updateData[EntoState](x ⇒ x.copy(hivemind = None))
   }
@@ -89,12 +88,12 @@ object Entomologist {
   def locust = { env: Env ⇒
     import env._
     val s = otherPlayer.slots(selected)
-    s.toggle(CardSpec.cursedFlag)
-    player.addEffect(OnEndTurn -> Locust(s.get.id))
+    s toggle CardSpec.cursedFlag
+    player addEffect (OnEndTurn -> Locust(s.get.id))
   }
 
   def ant = { env: Env ⇒
-    env.player.addDescMod(LowerGiantCostMod)
+    env.player addDescMod LowerGiantCostMod
   }
 
   class GiantReaction extends Reaction {
@@ -102,7 +101,7 @@ object Entomologist {
       d.copy(amount = math.max(0, d.amount - 2))
     }
     override def cleanUp() {
-      selected.player.removeDescMod(LowerGiantCostMod)
+      selected.player removeDescMod LowerGiantCostMod
     }
   }
 
@@ -122,7 +121,7 @@ object Entomologist {
       if (env.player.value.isInSlotRange(num)) {
         val slot = env.player.slots(num)
         if (slot.value.isEmpty) {
-          slot.add(drone)
+          slot add drone
         }
       }
     }
@@ -143,7 +142,7 @@ object Entomologist {
     final override def onAdd(slot: SlotUpdate) { setAssassinDirty(selected.slots) }
     override def onMyRemove(dead: Option[Dead]) { setAssassinDirty(selected.slots) }
     def setAssassinDirty(slots: SlotsUpdate) {
-      slots.foreach { s ⇒
+      slots foreach { s ⇒
         if (s.get.card == assassinWasp) {
           s.attack.setDirty()
         }
@@ -155,7 +154,7 @@ object Entomologist {
     val openSlots = env.player.slots.getOpenSlots
     if (openSlots.nonEmpty) {
       val slot = openSlots(scala.util.Random.nextInt(openSlots.size))
-      slot.add(insect)
+      slot add insect
       slot.focus(blocking = false)
     }
   }
@@ -169,20 +168,20 @@ object Entomologist {
   def mantis: Effect = { env: Env ⇒
     import env._
     val slot = getSelectedSlot()
-    slot.oppositeSlot.value.foreach { s ⇒
+    slot.oppositeSlot.value foreach { s ⇒
       env.otherPlayer.houses.incrMana(-1, s.card.houseIndex)
     }
   }
 
   class MantisReaction extends Reaction {
     override def onMyDeath(dead: Dead) {
-      selected.oppositeSlot.inflict(Damage(5, Context(selected.playerId, Some(dead.slot.card), dead.num), isAbility = true))
+      selected.oppositeSlot inflict Damage(5, Context(selected.playerId, Some(dead.slot.card), dead.num), isAbility = true)
     }
   }
 
   class EntoEventListener extends HouseEventListener {
     def reactDead(dead: Dead) {
-      getData(player).hivemind.foreach { id ⇒
+      getData(player).hivemind foreach { id ⇒
         if (id == dead.slot.id) {
           recoverTarget(player)
         }
@@ -190,20 +189,20 @@ object Entomologist {
     }
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.otherPlayer.slots.onDead.after(reactDead)
+      p.otherPlayer.slots.onDead after reactDead
     }
   }
 }
 
 case class Locust(id: Int) extends Function[Env, Unit] {
   def apply(env: Env) {
-    env.otherPlayer.slots.findSlot(id) match {
+    (env.otherPlayer.slots findSlot id) match {
       case Some(s) ⇒
         val damage = Damage(8, Context(env.playerId, None), isSpell = true)
         val playerDamage = damage.copy(amount = 4)
-        env.otherPlayer.inflict(playerDamage)
-        s.inflict(damage)
-      case None ⇒ env.player.removeEffect(_ == this)
+        env.otherPlayer inflict playerDamage
+        s inflict damage
+      case None ⇒ env.player removeEffect (_ == this)
     }
   }
 }

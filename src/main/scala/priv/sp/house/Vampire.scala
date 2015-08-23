@@ -28,7 +28,7 @@ class Vampire {
   val ghoul = Vampire.cards(2).asCreature
   val acolyte = Vampire.cards(3).asCreature
   val aristocrat = Vampire.cards(6).asCreature
-  Vampire.initCards(Houses.basicCostFunc)
+  Vampire initCards Houses.basicCostFunc
 
   val neophyte = new Creature("Neophyte", Attack(5), 14, "Heals himself half of damage dealt to enemies.", runAttack = new NeophyteAttack)
 
@@ -177,6 +177,6 @@ class NeophyteAttack extends RunAttack with DamageAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val healAmount = damageAndGet(num, d, player)
-    player.slots(num).heal(math.ceil(healAmount / 2f).toInt)
+    player.slots(num) heal math.ceil(healAmount / 2f).toInt
   }
 }

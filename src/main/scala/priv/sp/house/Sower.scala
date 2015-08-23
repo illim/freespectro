@@ -34,9 +34,9 @@ class Sower {
     val slot = getSelectedSlot()
     val oppSlot = slot.oppositeSlot
     val damage = Damage(oppSlot.get.attack, env, isSpell = true)
-    oppSlot.inflict(damage)
+    oppSlot inflict damage
     if (slot.value.isDefined) {
-      slot.heal(damage.amount)
+      slot heal damage.amount
     }
   }
 
@@ -44,8 +44,8 @@ class Sower {
     import env._
     getSelectedSlot().destroy()
     val factor = AttackFactor(2f)
-    player.slots.foreach(_.attack.add(factor))
-    player.addEffect(OnEndTurn -> new RemoveAttack(factor))
+    player.slots foreach (_.attack.add(factor))
+    player addEffect (OnEndTurn -> new RemoveAttack(factor))
   }
 
   private def pollinate: Effect = { env: Env ⇒
@@ -58,7 +58,7 @@ class Sower {
         player.slots.summon(selected, c)
       case _ ⇒
     }
-    player.heal(cost)
+    player heal cost
   }
 
   private def fieryFlower = { env: Env ⇒
@@ -74,9 +74,9 @@ class Sower {
     def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
       if (SingleTargetAttack.attack(target, d, player)) {
         // FIXME maybe not good at all and should add source in damage?
-        player.slots.foreach { slot ⇒
+        player.slots foreach { slot ⇒
           if (slot.get.card == monsterPlant) {
-            slot.heal(monsterPlant.life)
+            slot heal monsterPlant.life
           }
         }
       }
@@ -89,11 +89,11 @@ class Sower {
       import summoned._
       if (selected.playerId == player.id && selected.num != num && card.houseId == Sower.houseId) {
         val slots = player.slots
-        if (selected.get.has(CardSpec.runFlag)) { // to avoid looping
+        if (selected.get has CardSpec.runFlag) { // to avoid looping
           player.updater.focus(selected.num, player.id)
 
-          nearestEmptySlot(selected.num, player).foreach { pos ⇒
-            slots(pos).add(card)
+          nearestEmptySlot(selected.num, player) foreach { pos ⇒
+            slots(pos) add card
           }
         }
       }
@@ -108,7 +108,7 @@ private class BloodSundewAttack extends RunAttack with DamageAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val healAmount = damageAndGet(num, d, player)
-    player.slots(num).heal(healAmount)
+    player.slots(num) heal healAmount
   }
 }
 
@@ -119,10 +119,10 @@ private class PredatorPlantAttack extends RunAttack {
     val otherPlayer = player.otherPlayer
     val slot = otherPlayer.slots(num)
     slot.value match {
-      case None ⇒ otherPlayer.inflict(d)
+      case None ⇒ otherPlayer inflict d
       case Some(slotState) ⇒
         val x = slotState.card.life - slotState.life
-        slot.inflict(d.copy(amount = d.amount + x))
+        slot inflict d.copy(amount = d.amount + x)
     }
   }
 }

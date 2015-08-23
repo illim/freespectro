@@ -24,17 +24,17 @@ class GameResources {
 
   import java.net._
   import scala.collection.JavaConversions._
-  val networkInterfaces = NetworkInterface.getNetworkInterfaces.toList.filter { _.isUp() }
+  val networkInterfaces = NetworkInterface.getNetworkInterfaces.toList filter { _.isUp() }
   var networkInterface = networkInterfaces.headOption
   def getAddr(port: Int = 0) = networkInterface.flatMap { n ⇒
-    n.getInetAddresses.toList.headOption.map { a ⇒
+    n.getInetAddresses.toList.headOption map { a ⇒
       new InetSocketAddress(a, port)
     }
   }.get
 
   var heurisChoice = 3
   var playerChoices: List[List[House]] = List(sp.houses.sinist, sp.houses.sinist)
-  def resolveChoices = playerChoices.map { o ⇒
+  def resolveChoices = playerChoices map { o ⇒
     val l = (if (o.isEmpty) sp.houses.special else o)
     l(scala.util.Random.nextInt(l.size))
   }
@@ -73,7 +73,7 @@ abstract class One[A] extends Resource {
   }
   def release(v: A)
   def release() {
-    x.foreach(release _)
+    x foreach (release _)
   }
 }
 

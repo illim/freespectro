@@ -31,7 +31,7 @@ trait Emitter { _: Entity ⇒
       particles = particles :+ p
       lastEmit = delta
     }
-    particles.foreach { p ⇒
+    particles foreach { p ⇒
       if (delta - p.creationTime > p.lifeTime) {
         particles = particles.filterNot(_ == p)
       } else {

@@ -37,7 +37,7 @@ trait Attachable extends Entity {
   def unspawn(entity: Entity) {
     entity match {
       case s: ShaderEntity ⇒ shaderOpt = None
-      case _               ⇒ entities.remove(entity)
+      case _               ⇒ entities remove entity
     }
   }
   override def setWorld(w: World) {
@@ -54,7 +54,7 @@ trait Attachable extends Entity {
     }
     iterate(tasks.iterator()) { task ⇒
       if (world.time - task.start > task.duration) {
-        tasks.remove(task)
+        tasks remove task
         task.finish()
       }
     }
@@ -79,10 +79,10 @@ trait Attachable extends Entity {
   }
 
   def addTask(task: Task[_]) {
-    task.setWorld(world)
+    task setWorld world
     task.start = System.currentTimeMillis
     task.init()
-    tasks.add(task)
+    tasks add task
   }
 
   def doInRenderThread(f: ⇒ Unit) = addTask(new SimpleTask(f))
@@ -147,7 +147,7 @@ class BlockingTask(f: ⇒ Unit, lock: AnyRef) extends Task[Unit] {
   def init() {}
   def end() {
     f
-    lock.synchronized(lock.notifyAll())
+    lock synchronized lock.notifyAll()
   }
 }
 
@@ -155,13 +155,13 @@ case class TaskSpawn(entity: TimedEntity, lockOption: Option[AnyRef] = None) ext
   val duration = entity.duration
   def init() {
     entity.creationTime = start
-    world.spawn(entity)
+    world spawn entity
   }
   def end() {
-    world.unspawn(entity)
+    world unspawn entity
     entity.onEnd()
-    lockOption.foreach { lock ⇒
-      lock.synchronized(lock.notifyAll())
+    lockOption foreach { lock ⇒
+      lock synchronized lock.notifyAll()
     }
   }
 }
@@ -184,7 +184,7 @@ class TexAnim(
   def ended = (cursor == length - 1)
 
   def clean() {
-    animationTextures.foreach { tex ⇒
+    animationTextures foreach { tex ⇒
       glDeleteTextures(tex.id)
     }
   }

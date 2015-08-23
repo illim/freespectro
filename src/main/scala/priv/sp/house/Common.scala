@@ -11,17 +11,17 @@ case class AttackAdd(bonus: Int) extends AttackFunc { def apply(attack: Int) = a
 
 class RemoveAttack(attack: AttackSource) extends Function[Env, Unit] {
   def apply(env: Env) {
-    env.player.slots.foreach(_.attack.removeFirst(attack))
-    env.player.removeEffect(_ == this)
+    env.player.slots foreach (_.attack.removeFirst(attack))
+    env.player removeEffect (_ == this)
   }
 }
 
 case class RemoveInvincible(slotId: Int) extends Function[Env, Unit] {
   def apply(env: Env) {
-    env.player.slots.slots.find(s ⇒ s.value.isDefined && s.get.id == slotId).foreach { s ⇒
+    env.player.slots.slots.find(s ⇒ s.value.isDefined && s.get.id == slotId) foreach { s ⇒
       s.toggleOff(CardSpec.invincibleFlag)
     }
-    env.player.removeEffect(_ == this)
+    env.player removeEffect (_ == this)
   }
 }
 
@@ -31,7 +31,7 @@ trait UniqueAttack
 //crap
 case class UnMod(mod: DescMod) extends Function[Env, Unit] {
   def apply(env: Env) {
-    env.player.removeDescMod(mod)
+    env.player removeDescMod mod
   }
 }
 
@@ -71,11 +71,11 @@ case object SkipTurn extends DescMod {
 trait OwnerDeathEventListener extends HouseEventListener {
   def reactDead(dead: Dead) {
     if (dead.player.id == player.id) {
-      player.slots.foreach { s ⇒
+      player.slots foreach { s ⇒
         if (s.num != dead.num) {
           val card = s.get.card
           if (card.isSpecial) {
-            s.get.reaction.onDeath(dead)
+            s.get.reaction onDeath dead
           }
         }
       }
@@ -83,40 +83,40 @@ trait OwnerDeathEventListener extends HouseEventListener {
   }
   override def init(p: PlayerUpdate) {
     super.init(p)
-    p.slots.onDead.after { dead ⇒ reactDead(dead) }
+    p.slots.onDead after { dead ⇒ reactDead(dead) }
   }
 }
 
 trait AnyDeathEventListener extends HouseEventListener {
   def reactDead(dead: Dead) {
-    player.slots.foreach { s ⇒
+    player.slots foreach { s ⇒
       if (dead.player.id != player.id || s.num != dead.num) {
         val card = s.get.card
         if (card.isSpecial) {
-          s.get.reaction.onDeath(dead)
+          s.get.reaction onDeath dead
         }
       }
     }
   }
   override def init(p: PlayerUpdate) {
     super.init(p)
-    p.slots.onDead.after(reactDead)
-    p.otherPlayer.slots.onDead.after(reactDead)
+    p.slots.onDead after reactDead
+    p.otherPlayer.slots.onDead after reactDead
   }
 }
 
 trait OppDeathEventListener extends HouseEventListener {
   def reactDead(dead: Dead) {
-    player.slots.foreach { s ⇒
+    player.slots foreach { s ⇒
       val card = s.get.card
       if (card.isSpecial) {
-        s.get.reaction.onDeath(dead)
+        s.get.reaction onDeath dead
       }
     }
   }
   override def init(p: PlayerUpdate) {
     super.init(p)
-    p.otherPlayer.slots.onDead.after(reactDead)
+    p.otherPlayer.slots.onDead after reactDead
   }
 }
 
@@ -129,7 +129,7 @@ trait DamageAttack {
     slot.value match {
       case None ⇒
         val oldl = otherPlayer.value.life
-        otherPlayer.inflict(d)
+        otherPlayer inflict d
         oldl - otherPlayer.value.life
       case Some(slotState) ⇒
         val oldl = slotState.life
@@ -161,9 +161,9 @@ class CountDown(val count: Int, f: Env ⇒ Unit, val id: Int = PlayerTask.curren
     val c = count - 1
     if (c == 0) {
       f(env)
-      env.player.removeEffect(_ == this)
+      env.player removeEffect (_ == this)
     } else {
-      env.player.mapEffect { e ⇒
+      env.player mapEffect { e ⇒
         if (e == this) {
           new CountDown(count - 1, f, id)
         } else e
@@ -181,7 +181,7 @@ class CountDown(val count: Int, f: Env ⇒ Unit, val id: Int = PlayerTask.curren
 
 trait ReactionWithData[A <: AnyRef] extends Reaction {
   def updateData(f: A ⇒ A) {
-    selected.write(selected.value.map(x ⇒ x.copy(data = f(x.data.asInstanceOf[A]))))
+    selected write selected.value.map(x ⇒ x.copy(data = f(x.data.asInstanceOf[A])))
   }
   def getData = selected.get.data.asInstanceOf[A]
 }
@@ -189,12 +189,12 @@ trait ReactionWithData[A <: AnyRef] extends Reaction {
 case class Destroyed(card: Card) extends DescMod {
   def apply(house: House, cards: Vector[CardDesc]): Vector[CardDesc] = {
     if (house.houseIndex != card.houseIndex) cards
-    else cards.filter { c ⇒ c.card != card }
+    else cards filter { c ⇒ c.card != card }
   }
 }
 
 case class Destroyeds(excls: Set[Card]) extends DescMod {
   def apply(house: House, cards: Vector[CardDesc]): Vector[CardDesc] = {
-    cards.filterNot { c ⇒ excls.contains(c.card) }
+    cards filterNot { c ⇒ excls contains c.card }
   }
 }

@@ -10,15 +10,15 @@ import collection.JavaConversions._
 import java.lang.reflect.{ Proxy, Method, InvocationHandler }
 
 class Client(out: OutputStream) {
-  val b = ByteBuffer.allocate(4)
-  val channel = Channels.newChannel(out)
+  val b = ByteBuffer allocate 4
+  val channel = Channels newChannel out
   def send(m: Message) {
     println("client send " + m.name)
     val bytes = toBytes(m)
     b.rewind()
-    b.putInt(bytes.length)
+    b putInt bytes.length
     b.flip()
-    channel.write(b)
+    channel write b
     try {
       out.write(bytes)
     } catch {
@@ -31,7 +31,7 @@ class ClientPeerOut(out: OutputStream) extends InvocationHandler {
   val client = new Client(out)
 
   def invoke(obj: Any, m: Method, args: Array[Object]) = {
-    client.send(new Message(m.getName, args))
+    client send new Message(m.getName, args)
     assert(m.getReturnType() == classOf[Unit], "not managing return value for " + m.getName)
     null
   }

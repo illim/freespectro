@@ -23,10 +23,10 @@ object InitDisplay {
   }
 
   def apply(canvas: java.awt.Canvas, mode: DisplayMode) = {
-    Display.setDisplayMode(mode)
-    Display.setParent(canvas)
+    Display setDisplayMode mode
+    Display setParent canvas
     Display.create()
-    Display.setVSyncEnabled(true)
+    Display setVSyncEnabled true
     initGLState(mode)
     DisplayConf(Display.getWidth, Display.getHeight)
   }

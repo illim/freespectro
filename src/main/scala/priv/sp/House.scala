@@ -23,7 +23,7 @@ case class House(
   def costs = cards.map(_.cost)
 
   def initCards(costFn: Int ⇒ Int, cs: List[Card] = cards) {
-    cs.zipWithIndex.foreach {
+    cs.zipWithIndex foreach {
       case (c, i) ⇒
         c.cost = costFn(i)
         c.houseIndex = houseIndex
@@ -105,5 +105,5 @@ class Houses
 
   def isSpecial(house: House) = specialNames contains house.name
 
-  base.zipWithIndex foreach { case (house, index) ⇒ house.initCards(Houses.basicCostFunc) }
+  base.zipWithIndex foreach { case (house, index) ⇒ house initCards Houses.basicCostFunc }
 }

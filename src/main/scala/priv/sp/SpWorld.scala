@@ -59,7 +59,7 @@ class Shaders extends ResourceCache[String, Shader] {
   def load(path: String) = new BasicShader(path)
 
   def clean() {
-    resources.values.foreach(res ⇒ glDeleteProgram(res.program))
+    resources.values foreach (res ⇒ glDeleteProgram(res.program))
   }
 
   class BasicShader(name: String) extends Shader {
@@ -78,7 +78,7 @@ class BaseShaders(shaders: Shaders, sp: SpWorld) {
 class HoverShader(name: String, texture: Texture) extends Shader {
   val (program, _, _) = GShader.createProgram(name, name)
   val grad :: width :: height :: cursor :: _ = getUniformLocations("grads", "width", "height", "cursor")
-  val fbuffer = GBufferUtils.createFloatBuffer(200)
+  val fbuffer = GBufferUtils createFloatBuffer 200
 
   fillBuffer(fbuffer)
   used {
@@ -103,8 +103,8 @@ class HoverShader(name: String, texture: Texture) extends Shader {
       val y = i / 10
       val x = i - 10 * y
       val (gx, gy) = rad(x, y, math.cos(arr(i)).floatValue, math.sin(arr(i)).floatValue)
-      fbuffer.put(gx)
-      fbuffer.put(gy)
+      fbuffer put gx
+      fbuffer put gy
     }
     fbuffer.rewind()
   }

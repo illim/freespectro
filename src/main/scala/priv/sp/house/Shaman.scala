@@ -37,21 +37,21 @@ object Shaman {
   wolf.cost = 2
   wolf.houseIndex = 4
   wolf.houseId = Shaman.houseId
-  Shaman.initCards(Houses.basicCostFunc)
+  Shaman initCards Houses.basicCostFunc
 
   def getData(p: PlayerUpdate) = p.value.data.asInstanceOf[WolfState]
 
   def initWolf = { env: Env ⇒
     val openSlots = env.player.slots.getOpenSlots
     val slot = openSlots.last
-    slot.add(wolf)
+    slot add wolf
     slot.focus(blocking = false)
   }
 
   def wolfSummoned = { env: Env ⇒
     import env._
-    player.removeDescMod(WolfMod)
-    getData(player).shadows.foreach { n ⇒
+    player removeDescMod WolfMod
+    getData(player).shadows foreach { n ⇒
       player.slots(n).attack.setDirty()
     }
   }
@@ -82,17 +82,17 @@ object Shaman {
     import env._
     var maxAttack = getMaxAttack(player)
     maxAttack = getMaxAttack(player.otherPlayer, maxAttack)
-    player.slots.findCard(wolf).foreach { s ⇒
+    player.slots.findCard(wolf) foreach { s ⇒
       val bonus = AttackAdd(maxAttack)
-      s.attack.add(bonus)
-      player.addEffect(OnEndTurn -> new RemoveAttack(bonus))
+      s.attack add bonus
+      player addEffect (OnEndTurn -> new RemoveAttack(bonus))
     }
   }
 
   def rage = { env: Env ⇒
-    env.getSelectedSlot.filledAdjacents.foreach { s ⇒
+    env.getSelectedSlot.filledAdjacents foreach { s ⇒
       env.player.updateData[WolfState](x ⇒ x.copy(enhanceds = x.enhanceds + (s.get.card.id -> (x.enhanceds(s.get.card.id) + 1))))
-      s.attack.add(OneAttackBonus)
+      s.attack add OneAttackBonus
     }
   }
 
@@ -102,54 +102,54 @@ object Shaman {
   def fullMoon = { env: Env ⇒
     import env._
     player.updateData[WolfState](x ⇒ x.copy(protection = x.protection + 1))
-    player.slots.findCard(wolf).foreach(_.filledAdjacents.foreach(_.heal(8)))
-    player.heal(8)
+    player.slots.findCard(wolf) foreach (_.filledAdjacents.foreach(_.heal(8)))
+    player heal 8
   }
 
   def phantomFury = { env: Env ⇒
     import env._
     val damage = Damage(7, Context(env.playerId, None), isSpell = true)
-    otherPlayer.slots.inflictCreatures(damage)
+    otherPlayer.slots inflictCreatures damage
     env.player.updateData[WolfState](_.copy(furyWolf = player.slots.findCard(wolf).map(_.num)))
-    player.addEffect(OnEndTurn -> new RemoveFury)
+    player addEffect (OnEndTurn -> new RemoveFury)
   }
 
   val huntBonus = AttackAdd(2)
   def hunt = { env: Env ⇒
     env.player.updateData[WolfState](x ⇒ x.copy(hunting = x.hunting + 1))
-    env.player.slots.findCard(wolf).foreach(_.attack.add(huntBonus))
+    (env.player.slots findCard wolf) foreach (_.attack.add(huntBonus))
   }
 
   def shade = { env: Env ⇒
     import env._
     player.updateData[WolfState](x ⇒ x.copy(shadows = x.shadows + env.selected))
-    getSelectedSlot.filledAdjacents.foreach { slot ⇒
-      player.runSlot(slot)
+    getSelectedSlot.filledAdjacents foreach { slot ⇒
+      player runSlot slot
     }
   }
 
   def mate = { env: Env ⇒
     env.player.updateData[WolfState](x ⇒ x.copy(mates = x.mates + env.selected))
-    env.player.addDescMod(DecrSpecialCostMod)
+    env.player addDescMod DecrSpecialCostMod
   }
 
   class HunterReaction extends Reaction {
     final override def onAdd(slot: SlotUpdate) = {
       if (slot.get.card == wolf) {
-        slot.attack.add(huntBonus)
+        slot.attack add huntBonus
       }
     }
 
     final override def onRemove(slot: SlotUpdate) {
       if (slot.get.card == wolf) {
-        slot.attack.removeFirst(huntBonus)
+        slot.attack removeFirst huntBonus
       }
     }
     final override def onMyRemove(dead: Option[Dead]) = {
       selected.slots.findCard(wolf).foreach { s ⇒
-        s.attack.removeFirst(huntBonus)
+        s.attack removeFirst huntBonus
       }
-      dead.foreach(_.player.updateData[WolfState](x ⇒ x.copy(hunting = x.hunting - 1)))
+      dead foreach (_.player.updateData[WolfState](x ⇒ x.copy(hunting = x.hunting - 1)))
     }
   }
 
@@ -164,7 +164,7 @@ object Shaman {
           slot.value match {
             case Some(s) if s.card == wolf ⇒
               selected.focus(blocking = false)
-              slot.heal(d.damage.amount)
+              slot heal d.damage.amount
               d.damage.copy(amount = 0)
             case _ ⇒ d.damage
           }
@@ -193,23 +193,23 @@ object Shaman {
     def shadows = getData(selected.player).shadows.map(x ⇒ selected.slots(x))
     override def heal(amount: Int) {
       super.heal(amount)
-      shadows.foreach(_.heal(amount))
+      shadows foreach (_.heal(amount))
     }
     override def inflict(damage: Damage) {
       super.inflict(damage)
-      shadows.foreach(_.inflict(damage))
+      shadows foreach (_.inflict(damage))
     }
     override def destroy() {
       super.destroy()
-      shadows.foreach(_.destroy())
+      shadows foreach (_.destroy())
     }
     override def stun() {
       super.stun()
-      shadows.foreach { _.stun() }
+      shadows foreach { _.stun() }
     }
     override def cleanUp() {
-      selected.player.insertDescMod(WolfMod)
-      shadows.foreach { _.attack.setDirty() }
+      selected.player insertDescMod WolfMod
+      shadows foreach { _.attack.setDirty() }
     }
   }
 
@@ -233,7 +233,7 @@ object Shaman {
         }
       }
       if (wolfState.hunting > 0) {
-        player.slots(num).heal(healAmount)
+        player.slots(num) heal healAmount
       }
     }
   }
@@ -243,7 +243,7 @@ object Shaman {
       player.slots.foldl(damage) { (acc, s) ⇒
         val sc = s.get.card
         if (sc == protector) {
-          s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
+          s.get.reaction onProtect DamageEvent(acc, Some(slot.num), player)
         } else acc
       }
     }
@@ -252,7 +252,7 @@ object Shaman {
         val furyWolf = getData(player).furyWolf
         if (furyWolf.nonEmpty) {
           player.updateData[WolfState](x ⇒ x.copy(attackBonus = x.attackBonus + 1))
-          furyWolf.foreach { n ⇒
+          furyWolf foreach { n ⇒
             player.slots(n).attack.setDirty()
           }
         }
@@ -260,14 +260,12 @@ object Shaman {
     }
     override def init(p: PlayerUpdate) {
       super.init(p)
-      p.otherPlayer.slots.onDead.after { dead ⇒
-        reactDead(dead)
-      }
+      p.otherPlayer.slots.onDead after reactDead
       val slots = p.slots.slots // ! empty includeds
       slots.foreach { s ⇒
-        s.attackUpdate.update.after { _ ⇒
+        s.attackUpdate.update after { _ ⇒
           if (s.value.isDefined && s.get.card == wolf) {
-            getData(p).shadows.foreach { n ⇒
+            getData(p).shadows foreach { n ⇒
               slots(n).attack.setDirty()
             }
           }
@@ -276,11 +274,11 @@ object Shaman {
       p.slots.slots.foreach { slot ⇒
         slot.protect.intercept(d ⇒ protect(slot, d))
       }
-      p.submitCommand.after { c ⇒
-        c.input.foreach { input ⇒
-          getData(p).enhanceds.get(c.card.id).foreach { bonus ⇒
+      p.submitCommand after { c ⇒
+        c.input foreach { input ⇒
+          getData(p).enhanceds.get(c.card.id) foreach { bonus ⇒
             val slot = p.slots(input.num)
-            if (slot.value.isDefined) slot.attack.add(AttackAdd(bonus))
+            if (slot.value.isDefined) slot.attack add AttackAdd(bonus)
           }
         }
       }

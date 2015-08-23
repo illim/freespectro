@@ -10,7 +10,7 @@ object Coord2i {
   class Proj(lens: Lens[Coord2i, Int], c: Coord2i) {
     def *[N](fact: N)(implicit num: Numeric[N]) = lens.mod(x ⇒ (num.toFloat(fact) * x).intValue, c)
     def +[N](x: N)(implicit num: Numeric[N]) = lens.mod(v ⇒ (num.toFloat(x) + v).intValue, c)
-    def -[N](x: N)(implicit num: Numeric[N]) = this.+(num.negate(x))
+    def -[N](x: N)(implicit num: Numeric[N]) = this.+(num negate x)
   }
 
   @inline def pow2[N](x: N)(implicit num: Numeric[N]) = num.times(x, x)

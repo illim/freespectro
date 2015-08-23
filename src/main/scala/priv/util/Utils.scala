@@ -143,9 +143,9 @@ object Utils {
   def doInDispatch(f: ⇒ Unit) = SwingUtilities.invokeLater(runnable(f))
   def addBtn(name: String, target: java.awt.Container with ActionListener) = {
     val b = new JButton(name)
-    b.setActionCommand(name)
-    b.addActionListener(target)
-    target.add(b)
+    b setActionCommand name
+    b addActionListener target
+    target add b
     b
   }
   def alignX[A <: JComponent](component: A, alignment: Float = java.awt.Component.LEFT_ALIGNMENT): A = {

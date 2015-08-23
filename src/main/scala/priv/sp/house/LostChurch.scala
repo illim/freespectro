@@ -44,7 +44,7 @@ Can switch with prisoner to nearest empty slot""",
 
   val additionalCards = List(windOfOppression, darkMonk)
 
-  LostChurch.initCards(Houses.basicCostFunc)
+  LostChurch initCards Houses.basicCostFunc
   List(prisoner, enragedPrisoner, windOfOppression, darkMonk).foreach { c ⇒
     c.houseIndex = LostChurch.houseIndex
     c.houseId = LostChurch.houseId

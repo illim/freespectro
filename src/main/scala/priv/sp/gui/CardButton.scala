@@ -12,7 +12,7 @@ class CardButton(getDesc: ⇒ Option[CardDesc], getHouseState: ⇒ HouseState, g
   var holder = getDesc.map(d ⇒ new CardHolder(d, getHouseState))
   val size = holder.map(_.borderTex).getOrElse(sp.baseTextures.borderTex).size
   private var hovered = false
-  private val grey = sp.shaders.get("grey")
+  private val grey = sp.shaders get "grey"
   private val hoverGlow = sp.baseShaders.hoverGlow
   private val selectedGlow = sp.baseShaders.selectedGlow("selcard", 200)
   var selected = false
@@ -23,8 +23,8 @@ class CardButton(getDesc: ⇒ Option[CardDesc], getHouseState: ⇒ HouseState, g
 
   class CardHolder(val desc: CardDesc, houseState: HouseState) {
     val cardTex = sp.textures.get("Images/Cards/" + desc.card.image)
-    val borderTex = sp.baseTextures.getBorder(desc.card)
-    def isActive = desc.isAvailable(houseState) && enabled
+    val borderTex = sp.baseTextures getBorder desc.card
+    def isActive = (desc isAvailable houseState) && enabled
   }
 
   def refresh() {

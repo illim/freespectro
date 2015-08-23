@@ -12,7 +12,7 @@ class Knowledge(gameDesc: GameDesc, botPlayerId: PlayerId, knownCards: Set[(Card
    */
   // bs
   def ripDescReader(gs: GameState) = {
-    GameState(gs.players.zipWithIndex.map {
+    GameState(gs.players.zipWithIndex map {
       case (p, i) ⇒
         p.copy(desc = new DescReader(desc.players(i), p.desc.descMods))
     })
@@ -59,7 +59,7 @@ class BotKnowledge(
     println("generating AI fake player")
     val start = System.currentTimeMillis
     val guess = new CardGuess(gameDesc, spHouses)
-    guess.createAIPlayer(botPlayerId, knownCards, timeLimit).map { fakePlayerDesc ⇒
+    guess.createAIPlayer(botPlayerId, knownCards, timeLimit) map { fakePlayerDesc ⇒
       println("generated k in " + (System.currentTimeMillis - start) + " ms")
       new Knowledge(gameDesc, botPlayerId, knownCards, fakePlayerDesc)
     }
@@ -84,17 +84,17 @@ class BotSimulator(val knowledge: BotKnowledge, val context: BotContext) {
       updater.lift { u ⇒
         val p = u.players(playerId)
 
-        p.submit(commandOption)
+        p submit commandOption
         u.flush()
         p.popTransition getOrElse {
           p.runSlots()
           if (!u.ended) {
-            p.applyEffects(CardSpec.OnEndTurn)
+            p applyEffects CardSpec.OnEndTurn
             p.slots.toggleRun()
             val otherPlayer = p.otherPlayer
             otherPlayer.prepareNextTurn()
             if (!u.ended) {
-              otherPlayer.applyEffects(CardSpec.OnTurn)
+              otherPlayer applyEffects CardSpec.OnTurn
             }
           }
           WaitPlayer(other(playerId))
@@ -169,9 +169,9 @@ class Choices(cardStats: List[CardStats], settings: Settings) {
     import board._
 
     val cardStat = cardStats(playerId)
-    val cardOption = cardStat.getRandomCard(board)
+    val cardOption = cardStat getRandomCard board
 
-    cardOption.flatMap { cardDesc ⇒
+    cardOption flatMap { cardDesc ⇒
       import cardDesc.card
       card.inputSpec match {
         case None ⇒ Some(Command(playerId, card, None, cardDesc.cost))

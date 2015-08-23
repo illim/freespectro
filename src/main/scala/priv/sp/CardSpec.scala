@@ -129,19 +129,19 @@ object CardSpec {
 
   def toEffectMap(effects: Traversable[PhaseEffect]) = {
     def effectAt(phase: Phase): Option[Effect] = {
-      val filtereds = effects.collect { case (ph, f) if ph == phase ⇒ f }
+      val filtereds = effects collect { case (ph, f) if ph == phase ⇒ f }
       if (filtereds.isEmpty) None
       else if (filtereds.size == 1) Some(filtereds.head)
       else Some(new ComposedEffect(filtereds))
     }
 
-    phases.map(effectAt _)
+    phases map (effectAt _)
   }
-  val noEffects = phases.map(_ ⇒ Option.empty[Effect])
+  val noEffects = phases map (_ ⇒ Option.empty[Effect])
 
   class ComposedEffect(effects: Traversable[Effect]) extends Function[GameCardEffect.Env, Unit] {
     def apply(env: GameCardEffect.Env) = {
-      effects.foreach(_(env))
+      effects foreach (_(env))
     }
   }
   val defaultReaction = () ⇒ new Reaction
@@ -172,10 +172,10 @@ trait SlotMod {
 trait Actions {
   protected var selected: SlotUpdate = null
   def use(s: SlotUpdate) { selected = s }
-  def heal(amount: Int) { selected.write(Some(SlotState.addLife(selected.get, amount))) }
-  def inflict(damage: Damage) { selected.damageSlot(damage) }
+  def heal(amount: Int) { selected write Some(SlotState.addLife(selected.get, amount)) }
+  def inflict(damage: Damage) { selected damageSlot damage }
   def destroy() { selected.privDestroy() }
-  def stun() { selected.toggle(CardSpec.stunFlag) }
+  def stun() { selected toggle CardSpec.stunFlag }
 }
 object Reaction {
   val falseNone = (false, None)
@@ -214,17 +214,17 @@ object SingleTargetAttack extends RunAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val otherPlayer = player.otherPlayer
     if (target.isEmpty) {
-      otherPlayer.inflict(d)
+      otherPlayer inflict d
     } else {
       val hits = target.count { num ⇒
         val slot = otherPlayer.slots(num)
         val test = slot.value.isDefined
         if (test) {
-          slot.inflict(d)
+          slot inflict d
         }
         test
       }
-      if (hits < target.size) otherPlayer.inflict(d)
+      if (hits < target.size) otherPlayer inflict d
     }
   }
 
@@ -232,7 +232,7 @@ object SingleTargetAttack extends RunAttack {
   // return true if killed a creature
   def attack(target: List[Int], d: Damage, player: PlayerUpdate) = {
     val otherSlots = player.otherPlayer.slots
-    val targetExists = target.filter { num ⇒ otherSlots(num).value.isDefined }
+    val targetExists = target filter { num ⇒ otherSlots(num).value.isDefined }
     apply(target, d, player)
     targetExists.nonEmpty && targetExists.exists(num ⇒ otherSlots(num).value.isEmpty)
   }
@@ -241,8 +241,8 @@ object MultiTargetAttack extends RunAttack {
   isMultiTarget = true
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val otherPlayer = player.otherPlayer
-    otherPlayer.inflict(d)
-    otherPlayer.slots.inflictCreatures(d)
+    otherPlayer inflict d
+    otherPlayer.slots inflictCreatures d
   }
 }
 

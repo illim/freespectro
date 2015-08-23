@@ -24,7 +24,7 @@ class Warp {
     new Creature("Warp Queen", Attack(6), 32, "Opponent creatures lose their ability until end of next owner turn.\nDeals 4 damage to each of them", effects = effects(Direct -> warp))), eventListener = Some(OpponentListener(new WarpEventListener(_))))
 
   val stranger = Warp.cards(6)
-  Warp.initCards(Houses.basicCostFunc)
+  Warp initCards Houses.basicCostFunc
 
   val shadow = new Creature("Shadow", Attack(0), 4)
   shadow.houseIndex = Warp.houseIndex
@@ -38,7 +38,7 @@ class Warp {
       val d = Damage(
         math.abs(houses(hidx).mana - otherPlayer.getHouses(slot.get.card.houseIndex).mana),
         env, isSpell = true)
-      slot.inflict(d)
+      slot inflict d
     }
   }
 
@@ -50,25 +50,25 @@ class Warp {
       val s = slot.get
       slot.destroy()
       val merged = new MergeStranger(s.card, opp.card)
-      slot.add(SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, merged.data))
+      slot add SlotState(merged, s.life, s.status, s.card.attack, player.slots.getAttack(slot, s.card.attack), s.target, s.id, merged.newReaction, merged.data)
     }
   }
   def ram = { env: Env ⇒
     import env._
     val oppSlot = otherPlayer.slots(selected)
-    oppSlot.value.foreach { s ⇒
+    oppSlot.value foreach { s ⇒
       oppSlot.destroy()
       otherPlayer.houses.incrMana(math.max(0, s.card.cost - 2), s.card.houseIndex)
     }
   }
   def warp = { env: Env ⇒
     import env._
-    otherPlayer.slots.foreach { slot ⇒
+    otherPlayer.slots foreach { slot ⇒
       bridle(slot.remove(None), slot)
     }
-    otherPlayer.slots.inflictCreatures(Damage(4, env, isAbility = true))
-    player.addEffect(OnEndTurn -> new CountDown(2, { env: Env ⇒
-      env.otherPlayer.slots.foreach(unbridle)
+    otherPlayer.slots inflictCreatures Damage(4, env, isAbility = true)
+    player addEffect (OnEndTurn -> new CountDown(2, { env: Env ⇒
+      env.otherPlayer.slots foreach unbridle
     }))
   }
 
@@ -77,8 +77,8 @@ class Warp {
   def bridle(s: SlotState, slot: SlotUpdate) {
     val c = if (s.card.isInstanceOf[MergeStranger]) new MereMortal(s.card) else cache.getOrElseUpdate(s.card, new MereMortal(s.card)) // hack
     val reaction = c.newReaction
-    reaction.use(slot)
-    slot.write(Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data)))
+    reaction use slot
+    slot write Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data))
   }
   def unbridle(slot: SlotUpdate) {
     slot.value.foreach { s ⇒
@@ -116,8 +116,8 @@ class Warp {
       if (selected.num == slot.num) {
         val oppSlot = selected.oppositeSlot
         oppSlot.value.foreach { s ⇒
-          oppSlot.remove(None)
-          selected.setData(new Integer(s.id))
+          oppSlot remove None
+          selected setData new Integer(s.id)
           bridle(s, oppSlot)
         }
       }
@@ -147,9 +147,9 @@ class Warp {
     override def init(p: PlayerUpdate) {
       super.init(p)
       if (p.otherPlayer.value.data != null) {
-        player.setData(p.otherPlayer.value.data)
+        player setData p.otherPlayer.value.data
       }
-      p.otherPlayer.houses.update.after { _ ⇒ refreshStranger() }
+      p.otherPlayer.houses.update after { _ ⇒ refreshStranger() }
     }
 
     def refreshStranger() {
@@ -166,7 +166,7 @@ class ErrantAttack extends RunAttack {
 
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     if (SingleTargetAttack.attack(target, d, player)) {
-      player.slots(d.context.selected).toggle(CardSpec.pausedFlag)
+      player.slots(d.context.selected) toggle CardSpec.pausedFlag
     }
   }
 }
@@ -175,7 +175,7 @@ class ErrantReaction extends Reaction {
   override def onMyDamage(amount: Int) {
     selected.value.foreach { s ⇒
       if (s.has(pausedFlag)) {
-        selected.toggleOff(pausedFlag)
+        selected toggleOff pausedFlag
       }
     }
   }
@@ -190,7 +190,7 @@ class StrangerAttack extends AttackStateFunc {
 class CloakReaction extends Reaction {
   override def onSpawnOver = {
     val s = selected.get
-    selected.remove(None)
+    selected remove None
     Some(new CloakSlotMod(s))
   }
 
@@ -200,7 +200,7 @@ class CloakReaction extends Reaction {
     if (cloaked != null) {
       val slot = player.slots(num)
       val card = cloaked.card
-      slot.add(SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), List(slot.num), cloaked.id, cloaked.reaction, card.data))
+      slot add SlotState(card, cloaked.life, cloaked.status, card.attack, player.slots.getAttack(slot, card.attack), List(slot.num), cloaked.id, cloaked.reaction, card.data)
     }
   }
 }

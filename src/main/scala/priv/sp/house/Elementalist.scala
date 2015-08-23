@@ -25,28 +25,28 @@ class Elementalist {
   val sPhase = "sylph phase"
   def sylphEffect = { env: Env ⇒
     import env._
-    player.addDescMod(IncrSylphCostMod)
-    player.addDescMod(HideBasicMod)
-    player.addTransition(WaitPlayer(env.playerId, sPhase))
-    player.addEffect(OnEndTurn -> UnMod(HideBasicMod))
+    player addDescMod IncrSylphCostMod
+    player addDescMod HideBasicMod
+    player addTransition WaitPlayer(env.playerId, sPhase)
+    player addEffect (OnEndTurn -> UnMod(HideBasicMod))
   }
 
   def freeze = { env: Env ⇒
-    env.otherPlayer.addDescMod(SkipTurn)
-    env.otherPlayer.addEffect(OnEndTurn -> new Unfreeze(true))
+    env.otherPlayer addDescMod SkipTurn
+    env.otherPlayer addEffect (OnEndTurn -> new Unfreeze(true))
   }
 
   // horror!
   class Unfreeze(chain: Boolean) extends Function[Env, Unit] {
     def apply(env: Env) {
       import env._
-      player.removeDescMod(SkipTurn)
-      player.removeEffect(_.isInstanceOf[Unfreeze])
-      player.addDescMod(HideSpecialMod)
-      player.addEffect(OnEndTurn -> UnMod(HideSpecialMod))
+      player removeDescMod SkipTurn
+      player removeEffect (_.isInstanceOf[Unfreeze])
+      player addDescMod HideSpecialMod
+      player addEffect (OnEndTurn -> UnMod(HideSpecialMod))
       if (chain) {
-        otherPlayer.addDescMod(SkipTurn)
-        otherPlayer.addEffect(OnEndTurn -> new Unfreeze(false))
+        otherPlayer addDescMod SkipTurn
+        otherPlayer addEffect (OnEndTurn -> new Unfreeze(false))
       }
     }
   }
@@ -55,15 +55,15 @@ class Elementalist {
     import env._
     if (player.getHouses(0).mana > otherPlayer.getHouses(0).mana) {
       focus()
-      otherPlayer.inflict(Damage(5, env, isAbility = true))
+      otherPlayer inflict Damage(5, env, isAbility = true)
     }
   }
 
   def aval = { env: Env ⇒
     import env._
     val x = player.getHouses(3).mana
-    otherPlayer.slots.inflictCreatures(Damage(2 * x, env, isSpell = true))
-    player.heal(2 * x)
+    otherPlayer.slots inflictCreatures Damage(2 * x, env, isSpell = true)
+    player heal (2 * x)
     player.houses.incrMana(-x, 3)
   }
 
@@ -72,16 +72,16 @@ class Elementalist {
     def destroy(s: SlotUpdate) {
       val card = s.get.card
       s.destroy()
-      s.slots.player.addDescMod(Destroyed(card))
+      s.slots.player addDescMod Destroyed(card)
     }
-    player.slots.reduce(lowestLife).foreach(destroy)
-    otherPlayer.slots.reduce(highestLife).foreach(destroy)
+    (player.slots reduce lowestLife) foreach destroy
+    (otherPlayer.slots reduce highestLife) foreach destroy
   }
 
   def stoneGole = { env: Env ⇒
     import env._
     if (otherPlayer.getSlots.isDefinedAt(selected)) {
-      player.slots(selected).heal(4)
+      player.slots(selected) heal 4
     }
   }
 
@@ -90,7 +90,7 @@ class Elementalist {
     val opp = otherPlayer.getHouses.reduceLeft((h1, h2) ⇒ if (h1.mana < h2.mana) h1 else h2).mana
     val own = player.getHouses.reduceLeft((h1, h2) ⇒ if (h1.mana > h2.mana) h1 else h2).mana
     val x = math.max(0, own - opp)
-    otherPlayer.inflict(Damage(x, env, isSpell = true))
+    otherPlayer inflict Damage(x, env, isSpell = true)
     otherPlayer.blockSlot(selected)
   }
 
@@ -117,7 +117,7 @@ class Elementalist {
     override def selfProtect(d: Damage) = {
       d.context.card match {
         case Some(c) if c.houseIndex == 0 ⇒
-          selected.heal(d.amount)
+          selected heal d.amount
           d.copy(amount = 0)
         case _ ⇒ d
       }
