@@ -43,7 +43,7 @@ class Dreamweaver {
         s heal dp
       }
     }
-    player.heal(nbCreatures * 3)
+    player heal (nbCreatures * 3)
   }
 
   def mare = { env: Env ⇒
@@ -89,7 +89,7 @@ class Dreamweaver {
   class DreamweaverEventListener extends HouseEventListener with OwnerDeathEventListener {
     def refreshRoc() {
       if (player.getSlots.values exists (_.card == roc)) {
-        player.slots.filleds.withFilter(_.get.card == roc).foreach { s ⇒
+        player.slots.filleds.withFilter(_.get.card == roc) foreach { s ⇒
           s.attack.setDirty()
         }
       }

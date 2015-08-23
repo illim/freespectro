@@ -28,10 +28,10 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
       }
     }
   }
-  def toggle(flag: Int) { write(value.map(x ⇒ x.copy(status = x.status | flag))) }
-  def toggleOff(flag: Int) { write(value.map(x ⇒ x.copy(status = x.status & (~flag)))) }
-  def setData(data: AnyRef) { write(value.map(_.copy(data = data))) }
-  def setTarget(target: List[Int]) { write(value.map(_.copy(target = target))) }
+  def toggle(flag: Int) { write(value map (x ⇒ x.copy(status = x.status | flag))) }
+  def toggleOff(flag: Int) { write(value map (x ⇒ x.copy(status = x.status & (~flag)))) }
+  def setData(data: AnyRef) { write(value map (_.copy(data = data))) }
+  def setTarget(target: List[Int]) { write(value map (_.copy(target = target))) }
 
   // -- code horror to intercept heal/inflict
   def heal(amount: Int) { if (value.isDefined) get.reaction heal amount }
@@ -63,7 +63,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
   def damageSlot(damage: Damage) = {
     if (value.isDefined) {
       val slotState = get
-      val d = protect(slotState.reaction.selfProtect(damage)) // /!\ possible side effect (jf can protect herself once and toggle a flag)
+      val d = protect(slotState.reaction selfProtect damage) // /!\ possible side effect (jf can protect herself once and toggle a flag)
       val slot = get
       val amount = (slot inflict d) match {
         case None ⇒
@@ -74,7 +74,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
           slot.life - newslot.life
       }
       slotState.reaction onMyDamage amount
-      slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
+      slots.player.updater.houseEventListeners foreach (_.onDamaged(slot.card, amount, this))
     }
   }
 
@@ -90,7 +90,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
         slot.life - newslot.life
       }
       slot.reaction onMyDamage amount
-      slots.player.updater.houseEventListeners.foreach(_.onDamaged(slot.card, amount, this))
+      slots.player.updater.houseEventListeners foreach (_.onDamaged(slot.card, amount, this))
     }
   }
 
@@ -108,7 +108,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
   val remove = new priv.util.ObservableFunc1[Option[Dead], SlotState]({ deadOpt: Option[Dead] ⇒
     val slotState = get
     slotState.reaction onMyRemove deadOpt
-    slots.reactRemove(this)
+    slots reactRemove this
     val result = apply().getOrElse(slotState) // ??? in case MK attack on die and die again against zen guard?
     slotState.reaction.cleanUp()
     attackUpdate.invalidate() // FIXME hack?
@@ -131,8 +131,9 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
 class AttackUpdate(slot: SlotUpdate) extends FieldUpdate(Some(slot), slot.value map (_.attackSources)) {
   private val some0 = Option(0)
 
-  @inline def get = value.getOrElse(error("can't get attack of empty slot " + slot.num))
+  @inline def get = value getOrElse error("can't get attack of empty slot " + slot.num)
   def add(source: AttackSource) { if (get.base != some0) write(Some(get add source)) }
+  def forceAdd(source: AttackSource) { write(Some(get add source)) }
   def removeFirst(source: AttackSource) { write(Some(get removeFirst source)) }
   def removeAny(source: AttackSource) { write(Some(get removeAny source)) }
   def has[A: reflect.ClassTag] = get.sources.exists {

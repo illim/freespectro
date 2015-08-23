@@ -17,7 +17,7 @@ class Warp {
     new Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to\ndifference between owner and opponent mana", effects = effects(Direct -> quake)),
     new Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    new Creature("Photographer", Attack(3), 19, "If owner creature die, his shadow remains", reaction = new PhotoReaction),
+    new Creature("Photographer", Attack(3), 19, "If adjacent creature die, his shadow remains", reaction = new PhotoReaction),
     new Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     new Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     new Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.(at least try to!)\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
@@ -26,7 +26,7 @@ class Warp {
   val stranger = Warp.cards(6)
   Warp initCards Houses.basicCostFunc
 
-  val shadow = new Creature("Shadow", Attack(0), 4)
+  val shadow = new Creature("Shadow", Attack(0), 4, status = runFlag)
   shadow.houseIndex = Warp.houseIndex
   shadow.houseId = Warp.houseId
 
@@ -64,7 +64,7 @@ class Warp {
   def warp = { env: Env ⇒
     import env._
     otherPlayer.slots foreach { slot ⇒
-      bridle(slot.remove(None), slot)
+      bridle(slot remove None, slot)
     }
     otherPlayer.slots inflictCreatures Damage(4, env, isAbility = true)
     player addEffect (OnEndTurn -> new CountDown(2, { env: Env ⇒
@@ -81,18 +81,17 @@ class Warp {
     slot write Some(SlotState(c, s.life, s.status, s.attackSources, slot.slots.getAttack(slot, s.attackSources), s.target, s.id, reaction, s.data))
   }
   def unbridle(slot: SlotUpdate) {
-    slot.value.foreach { s ⇒
+    slot.value foreach { s ⇒
       s.card match {
         case m: MereMortal ⇒
-          val removed = slot.remove(None)
+          val removed = slot remove None
           val reaction = m.c.newReaction
-          reaction.use(slot)
+          reaction use slot
 
-          slot.add(
-            SlotState(
+          slot add SlotState(
               m.c, removed.life, removed.status,
               removed.attackSources, slot.slots.getAttack(slot, removed.attackSources),
-              removed.target, removed.id, reaction, removed.data))
+              removed.target, removed.id, reaction, removed.data)
         case _ ⇒
       }
     }
@@ -105,7 +104,7 @@ class Warp {
         && Math.abs(dead.num - selected.num) == 1) {
         val slot = dead.player.slots(dead.num)
         slot add shadow
-        slot.attack add AttackAdd(dead.card.attack.base.getOrElse(0))
+        slot.attack forceAdd AttackAdd(dead.card.attack.base getOrElse 0)
       }
     }
   }
@@ -115,7 +114,7 @@ class Warp {
     override def onAdd(slot: SlotUpdate) {
       if (selected.num == slot.num) {
         val oppSlot = selected.oppositeSlot
-        oppSlot.value.foreach { s ⇒
+        oppSlot.value foreach { s ⇒
           oppSlot remove None
           selected setData new Integer(s.id)
           bridle(s, oppSlot)
@@ -125,8 +124,8 @@ class Warp {
     override def onMyRemove(dead: Option[Dead]) {
       val s = selected.get
       if (s.data != null) {
-        selected.otherPlayer.slots.slots.find { t ⇒ // in case he has moved !
-          t.value.exists { y ⇒
+        selected.otherPlayer.slots.slots find { t ⇒ // in case he has moved !
+          t.value exists { y ⇒
             if (y.id == s.data.asInstanceOf[Integer].intValue) {
               unbridle(t)
               true
@@ -154,7 +153,7 @@ class Warp {
 
     def refreshStranger() {
       if (player.getSlots.values.exists(s ⇒ isStranger(s.card))) {
-        player.slots.filleds.withFilter(s ⇒ isStranger(s.get.card)).foreach { s ⇒
+        player.slots.filleds.withFilter(s ⇒ isStranger(s.get.card)) foreach { s ⇒
           s.attack.setDirty()
         }
       }
@@ -173,8 +172,8 @@ class ErrantAttack extends RunAttack {
 
 class ErrantReaction extends Reaction {
   override def onMyDamage(amount: Int) {
-    selected.value.foreach { s ⇒
-      if (s.has(pausedFlag)) {
+    selected.value foreach { s ⇒
+      if (s has pausedFlag) {
         selected toggleOff pausedFlag
       }
     }

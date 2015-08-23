@@ -15,9 +15,9 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
     case OpponentListener(f) ⇒
       updater.desc.players(other(id)).houses(4).house.eventListener.collect {
         case c: CustomListener ⇒ f(c())
-      }.getOrElse(f(new HouseEventListener))
+      } getOrElse f(new HouseEventListener)
     case c: CustomListener ⇒ c()
-  }.getOrElse(new HouseEventListener)
+  } getOrElse new HouseEventListener
 
   val stats = PlayerStats()
   val otherId = other(id)
@@ -34,7 +34,7 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
   def flush() = {
     if (isDirty) {
       if (slotsUpdate.isDirty) {
-        slotsUpdate.logs.reverseIterator.foreach {
+        slotsUpdate.logs.reverseIterator foreach {
           case dead: Dead ⇒
             stats.nbDead += 1
             otherPlayerStats addKill dead.slot
@@ -140,11 +140,11 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
   }
 
   def removeEffect(cond: CardSpec.Effect ⇒ Boolean) = {
-    write(value.copy(effects = value.effects.filter(e ⇒ !cond(e._2))))
+    write(value.copy(effects = value.effects filter (e ⇒ !cond(e._2))))
   }
 
   def mapEffect(f: CardSpec.Effect ⇒ CardSpec.Effect) = {
-    write(value.copy(effects = value.effects.map(x ⇒ (x._1, f(x._2)))))
+    write(value.copy(effects = value.effects map (x ⇒ (x._1, f(x._2)))))
   }
 
   def setData(data: AnyRef) = { write(value.copy(data = data)) }
@@ -176,9 +176,9 @@ class PlayerUpdate(val id: PlayerId, val updater: GameStateUpdater) extends Fiel
       case (num, s) ⇒
         if (!ended) {
           val slots = getSlots
-          slots.get(num) foreach { slot ⇒ // looks weird because slots can change at each iteration
+          (slots get num) foreach { slot ⇒ // looks weird because slots can change at each iteration
             if (slot.id != s.id) { // in case of moved creature
-              slots.find(_._2.id == s.id) foreach { case (num, slot) ⇒ applyEffect(phase, slot, num) }
+              (slots find (_._2.id == s.id)) foreach { case (num, slot) ⇒ applyEffect(phase, slot, num) }
             } else applyEffect(phase, slot, num)
           }
         }
