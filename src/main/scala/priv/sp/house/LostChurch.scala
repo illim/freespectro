@@ -66,9 +66,9 @@ Can switch with prisoner to nearest empty slot""",
       p.slotList.foldLeft(List.empty[Int]) {
         case (acc, i) ⇒
           p.slots.get(i) match {
-            case None                            ⇒ i :: acc
-            case Some(s) if (s.card == prisoner) ⇒ i :: acc
-            case _                               ⇒ acc
+            case None                          ⇒ i :: acc
+            case Some(s) if s.card == prisoner ⇒ i :: acc
+            case _                             ⇒ acc
           }
       }
     }
@@ -79,7 +79,7 @@ Can switch with prisoner to nearest empty slot""",
     if (!player.slots().exists { case (n, slot) ⇒ slot.card == prisoner || slot.card == enragedPrisoner }) {
       val openSlots = player.slots.getOpenSlots
       if (openSlots.nonEmpty) {
-        val slot = openSlots(updater.randLogs.get(openSlots.size))
+        val slot = openSlots(updater.randLogs get openSlots.size)
         slot add prisoner
         if ((player.slots findCard preacher).isDefined) {
           slot.attack add PreacherAttackBonus
@@ -140,15 +140,15 @@ Can switch with prisoner to nearest empty slot""",
     val slot = env.otherPlayer.slots(env.selected)
     if (slot.value.isDefined) {
       env.focus()
-      slot.inflict(Damage(5, env, isAbility = true))
+      slot inflict Damage(5, env, isAbility = true)
       slot.stun()
     }
-    env.player.addDescMod(scarecrowAbility)
+    env.player addDescMod scarecrowAbility
   }
   def oppress = { env: Env ⇒
     import env._
     (player.slots findCard scarecrow) foreach { slot ⇒
-      slotInterval(slot.num - 1, slot.num + 1).foreach { n ⇒
+      slotInterval(slot.num - 1, slot.num + 1) foreach { n ⇒
         val oppSlot = otherPlayer.slots(n)
         if (oppSlot.value.isDefined) {
           oppSlot inflict Damage(5, env, isAbility = true)
@@ -159,8 +159,8 @@ Can switch with prisoner to nearest empty slot""",
   }
   class ScarecrowReaction extends Reaction {
     override def onSpawnOver = {
-      selected.value.foreach { old ⇒
-        nearestEmptySlot(selected.num, selected.player).foreach { n ⇒
+      selected.value foreach { old ⇒
+        nearestEmptySlot(selected.num, selected.player) foreach { n ⇒
           selected.slots.move(selected.num, n)
         }
       }
@@ -183,7 +183,7 @@ Can switch with prisoner to nearest empty slot""",
 
   def speedDrug = { env: Env ⇒
     import env._
-    player.slots foreach (_.attack.add(LCAttackBonus(env.player.id)))
+    player.slots foreach (_.attack add LCAttackBonus(env.player.id))
     player.slots inflictCreatures Damage(4, env, isSpell = true)
   }
 
@@ -199,7 +199,7 @@ Can switch with prisoner to nearest empty slot""",
         player heal 3
       }
     }
-    player.slots foreach { _.attack.add(maddenBonus) }
+    player.slots foreach { _.attack add maddenBonus }
   }
   def falcon = { env: Env ⇒
     import env._
@@ -228,8 +228,8 @@ Can switch with prisoner to nearest empty slot""",
 
   class LiberatorReaction extends Reaction {
     final override def onMyDeath(dead: Dead) = {
-      (dead.player.slots findCard enragedPrisoner).foreach { slot ⇒
-        slot.inflict(Damage(liberatorLife, Context(dead.player.id)))
+      (dead.player.slots findCard enragedPrisoner) foreach { slot ⇒
+        slot inflict Damage(liberatorLife, Context(dead.player.id))
       }
     }
 
@@ -252,7 +252,7 @@ Can switch with prisoner to nearest empty slot""",
         player.houses.incrMana(1, 4)
       }
       val bonus = LCAttackBonus(dead.player.id)
-      player.slots foreach { _.attack.removeAny(bonus) }
+      player.slots foreach { _.attack removeAny bonus }
     }
   }
 
@@ -264,7 +264,7 @@ Can switch with prisoner to nearest empty slot""",
         player.slots.foldl(damage) { (acc, s) ⇒
           val sc = s.get.card
           if (sc == astralEscape || sc == liberator) {
-            s.get.reaction.onProtect(DamageEvent(acc, Some(slot.num), player))
+            s.get.reaction onProtect DamageEvent(acc, Some(slot.num), player)
           } else acc
         }
       } else damage
@@ -282,11 +282,11 @@ Can switch with prisoner to nearest empty slot""",
 class DarkMonkReaction extends Reaction {
   final override def onAdd(slot: SlotUpdate) = {
     if (selected.num == slot.num) {
-      slot.otherPlayer.addDescMod(IncrFireCostMod)
+      slot.otherPlayer addDescMod IncrFireCostMod
     }
   }
   final override def onMyRemove(dead: Option[Dead]) = {
-    selected.otherPlayer.removeDescMod(IncrFireCostMod)
+    selected.otherPlayer removeDescMod IncrFireCostMod
   }
 }
 object PreacherAttackBonus extends AttackAdd(1) with UniqueAttack

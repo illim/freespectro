@@ -43,7 +43,7 @@ object CardModel {
     val playerCards = p.houses.map { h ⇒ h.house.name -> h.cards.map(_.cost).to[immutable.Set] }.toMap
     def apply(house: House) = {
       playerCards.get(house.name) match {
-        case Some(cards) ⇒ house.costs.filterNot(cards.contains _)
+        case Some(cards) ⇒ house.costs filterNot (cards.contains _)
         case None        ⇒ house.costs
       }
     }
@@ -69,7 +69,7 @@ class CardModel(val cp: CPSolver, val houses: List[HModel]) {
  * Dunno what's better. The alldifferent constraint could be a bit consuming, on the other side there's less variables.
  */
 class HModel(cp: CPSolver, val house: House, spHouses: Houses, getCardRange: GetCardRange) {
-  val isSpecial = spHouses.isSpecial(house)
+  val isSpecial = spHouses isSpecial house
   val cards = if (isSpecial) {
     val (c0, ctemp) = range.partition(_ < 3)
     val (c1, ctemp2) = ctemp.partition(_ < 5)
@@ -92,7 +92,7 @@ class CardShuffler(cardModel: CardModel) extends CpHelper {
 
   def solve(timeLimit: Int = Int.MaxValue) = {
     val vars = allCards
-    houses.foreach { house ⇒
+    houses foreach { house ⇒
       import house.cards
 
       if (!house.isSpecial) {

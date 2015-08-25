@@ -18,7 +18,7 @@ class Lightning(sp: SpWorld, points: Coord2i*) extends TimedEntity {
     glDisable(GL_TEXTURE_2D)
     glColor4f(1, 1, 1, 1 - (getDelta() / duration.toFloat))
     glBegin(GL_LINES)
-    lines.foreach { line ⇒
+    lines foreach { line ⇒
       glVertex2f(line.a.x, line.a.y)
       glVertex2f(line.b.x, line.b.y)
     }
@@ -41,7 +41,7 @@ class Lightning(sp: SpWorld, points: Coord2i*) extends TimedEntity {
     if (n == 0) {
       ss
     } else {
-      split(ss.flatMap(_.split()), n - 1)
+      split(ss flatMap (_.split()), n - 1)
     }
   }
 }

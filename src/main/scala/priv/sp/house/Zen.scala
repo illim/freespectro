@@ -74,15 +74,15 @@ class ZenMage {
     val factor = AttackFactor(0.5f)
     val amount = player.slots.foldl(0)((acc, x) ⇒ acc + math.ceil(x.get.attack / 2f).toInt)
     otherPlayer.slots(env.selected) inflict Damage(amount, env, isSpell = true)
-    player.slots foreach (_.attack.add(factor))
+    player.slots foreach (_.attack add factor)
     player addEffect (OnEndTurn -> new RemoveAttack(factor))
   }
 
   private def spiral = { env: Env ⇒
     import env._
 
-    slotInterval(selected - 2, selected + 2).foreach { num ⇒
-      val amount = 3 - (selected - num)
+    slotInterval(selected - 2, selected + 2) foreach { num ⇒
+      val amount = 3 - math.abs(selected - num)
       val slot = player.slots(num)
       if (slot.value.isDefined) slot heal amount
     }
@@ -197,7 +197,7 @@ class ElemAttack extends RunAttack {
   def apply(target: List[Int], d: Damage, player: PlayerUpdate) {
     val num = target.head
     val otherPlayer = player.otherPlayer
-    otherPlayer.getSlots.get(num) match {
+    (otherPlayer.getSlots get num) match {
       case None ⇒ otherPlayer inflict d
       case Some(oppositeSlot) ⇒
         val h = oppositeSlot.card.houseIndex

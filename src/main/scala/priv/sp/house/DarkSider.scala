@@ -22,7 +22,7 @@ equal to cost of that card.""", reaction = new WolfSpiderReaction)
 of opposite creature.""", runAttack = new ElemAttack),
     wolfSpider,
     blackKnight,
-    new Creature("Dark mystic", AttackSources().add(new ManaAttack(4)), 21,
+    new Creature("Dark mystic", AttackSources() add new ManaAttack(4), 21,
       """attack is equal to owner special power.
 When friendly elemental creature dies,
 increases owner special power by 1.""", reaction = new DarkMysticReaction),
@@ -91,9 +91,7 @@ When enters the game, stuns all enemy creatures.""",
     }
 
     final override def onMyRemove(dead: Option[Dead]) = {
-      selected.filledAdjacents.foreach { s ⇒
-        undoEffect(s)
-      }
+      selected.filledAdjacents foreach undoEffect
     }
   }
 
@@ -104,7 +102,7 @@ When enters the game, stuns all enemy creatures.""",
   }
 
   def horror = { env: Env ⇒
-    env.getSelectedSlot().oppositeSlot.value.foreach { s ⇒
+    env.getSelectedSlot().oppositeSlot.value foreach { s ⇒
       env.otherPlayer addDescMod Destroyed(s.card)
     }
   }

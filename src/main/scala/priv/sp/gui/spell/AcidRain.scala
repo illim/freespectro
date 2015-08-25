@@ -33,7 +33,7 @@ trait Emitter { _: Entity ⇒
     }
     particles foreach { p ⇒
       if (delta - p.creationTime > p.lifeTime) {
-        particles = particles.filterNot(_ == p)
+        particles = particles filterNot (_ == p)
       } else {
         p.render(delta - p.creationTime)
       }

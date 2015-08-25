@@ -36,10 +36,10 @@ class SlotPanel(playerId: PlayerId, val game: Game) {
       if (!blocking) {
         unlock()
       }
-      attach.spawn(entity)
+      attach spawn entity
     }
     def end() = {
-      attach.unspawn(entity)
+      attach unspawn entity
       if (blocking) {
         unlock()
       }
@@ -55,11 +55,11 @@ class SlotPanel(playerId: PlayerId, val game: Game) {
       (slots(0).coord.xProj + (slotSize.x * slotInput.num)) + slotCenter
     }
     if (card == Fire.cards(5)) {
-      panel.addTask(new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize)))
+      panel addTask new SpellAnim(lock, new Flame(game.sp, slotOffset, slotSize))
     } else if (card == Water.cards(7)) {
-      panel.addTask(new SpellAnim(lock, new AcidRain))
+      panel addTask new SpellAnim(lock, new AcidRain)
     } else if (card == Earth.cards(8)) {
-      panel.addTask(new SpellAnim(lock, new StoneRain(game.sp)))
+      panel addTask new SpellAnim(lock, new StoneRain(game.sp))
     } else if (card == Air.cards(2)) {
       panel.addTask(
         new SpellAnim(lock,
@@ -104,18 +104,18 @@ class SlotPanel(playerId: PlayerId, val game: Game) {
   }
 
   def listenEvent(slotButton: SlotButton) {
-    slotButton.on {
+    slotButton on {
       case MouseClicked(_) if slotButton.enabled ⇒
-        game.commandRecorder.addInput(new SlotInput(slotButton.num))
+        game.commandRecorder addInput new SlotInput(slotButton.num)
     }
   }
   def setSlotEnabled(s: Traversable[Int]) {
     val nums = s.toSet
-    slots.foreach { slot ⇒ slot.enabled = nums.contains(slot.num) }
+    slots.foreach { slot ⇒ slot.enabled = nums contains slot.num }
   }
-  def disable() { slots.foreach(_.enabled = false) }
+  def disable() { slots foreach (_.enabled = false) }
   def refresh() {
     lifeLabel.life.refresh()
-    slots.foreach(_.refresh())
+    slots foreach (_.refresh())
   }
 }

@@ -11,7 +11,7 @@ class Flame(sp: SpWorld, slotOffset: Coord2i, slotSize: Coord2i) extends TimedEn
   val duration = 1500L
   val fireTex = sp.baseTextures.fire
   val offset = Coord2i(slotOffset.x + slotSize.x / 2, slotSize.y / 2)
-  val partTimeLine = baseSlotRange.toList.flatMap { numSlot ⇒
+  val partTimeLine = baseSlotRange.toList flatMap { numSlot ⇒
     val nbPart = 4 + Random.nextInt(2)
     val slotOffset = offset.xProj + (slotSize.x * numSlot)
     (List.empty[(Int, Coord2i)] /: (0 to nbPart)) { (acc, n) ⇒
@@ -30,7 +30,7 @@ class Flame(sp: SpWorld, slotOffset: Coord2i, slotSize: Coord2i) extends TimedEn
       shownParts = (partTimeLine(currentPart)._2, delta) :: shownParts
       currentPart += 1
     }
-    shownParts.foreach {
+    shownParts foreach {
       case (p, d) ⇒
         val cursor = delta - d
         val fact = (cursor / 20f).intValue
