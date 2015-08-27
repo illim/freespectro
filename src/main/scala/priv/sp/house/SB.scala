@@ -24,11 +24,11 @@ When die deals 15 damage to opposite creature.
 (Replaced by death letter after summoned)""", effects = effects(Direct -> maikoEffect), reaction = new MaikoReaction)
 
   val SB = House("Snowblood", List(
-    new Creature("Tracker", Attack(4), 14, "When alive, next summoned creature is invincible one turn.", reaction = new TrackerReaction, data = java.lang.Boolean.FALSE),
+    new Creature("Tracker", Attack(4), 14, "When alive, next summoned creature is invincible one turn.", reaction = new TrackerReaction, data = java.lang.Boolean.FALSE, effects = effects(Direct -> initTracker)),
     bounty,
     maiko,
     Spell("Echo",
-      "Each owner creature triggers his 'each turn' && 'direct' effects twice", effects = effects(Direct -> echo)),
+      "Each owner creature triggers his 'each turn' && 'direct' effects", effects = effects(Direct -> echo)),
     new Creature("Kojiro", Attack(5), 27,
       """Can only be summoned onto an existing creature.
 Kojiro attack the turn he is summoned
@@ -70,20 +70,22 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     }
   }
 
-  val twice = 1 to 2
   private def echo = { env: Env ⇒
     import env._
     player.slots foreach { s ⇒
       val c = s.get.card
       (c.effects(CardSpec.OnTurn).toList ++ c.effects(CardSpec.Direct)) foreach { f =>
-        twice foreach { _ =>
-          val env = new GameCardEffect.Env(playerId, updater)
-          env.card = Some(c)
-          env.selected = s.num
-          f(env)
-        }
+        val env = new GameCardEffect.Env(playerId, updater)
+        env.card = Some(c)
+        env.selected = s.num
+        f(env)
       }
     }
+  }
+
+  private def initTracker = {env: Env ⇒
+    import env._
+    player.slots(selected) setData java.lang.Boolean.FALSE
   }
 
   def maikoEffect: Effect = { env: Env ⇒
@@ -235,9 +237,9 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
 
   class SBEventListener extends HouseEventListener with OppDeathEventListener {
     def onEnemyAdd(slot: SlotUpdate): Unit = {
-      player.slots.foreach { s ⇒
+      player.slots foreach { s ⇒
         s.get.reaction match {
-          case mk: MaikoReaction ⇒ mk.onAdd(slot)
+          case mk: MaikoReaction ⇒ mk onAdd slot
           case _                 ⇒ ()
         }
       }
@@ -246,7 +248,7 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     def onSummon(slot: SlotUpdate): Unit = {
       player.slots.foreach { s ⇒
         s.get.reaction match {
-          case os: OnSummonable ⇒ os.onSummoned(slot)
+          case os: OnSummonable ⇒ os onSummoned slot
           case _                ⇒ ()
         }
       }
