@@ -31,7 +31,9 @@ object Shaman {
       reaction = new MateReaction,
       effects = effects(Direct -> mate))),
     effects = List(OnStart -> initWolf),
-    data = WolfState(), eventListener = Some(new CustomListener(new ShamanEventListener)))
+    data = WolfState(),
+    eventListener = Some(new CustomListener(new ShamanEventListener)),
+    description = "Spirit of ancestors:\nAt the beginning of the game ghost wolf appears in slot next to the most right.")
 
   val additionalCards = List(wolf)
   wolf.cost = 2
@@ -42,7 +44,7 @@ object Shaman {
   def getData(p: PlayerUpdate) = p.value.data.asInstanceOf[WolfState]
 
   def initWolf = { env: Env ⇒
-    val openSlots = env.player.slots.getOpenSlots
+    val openSlots = env.player.slots.getOpenSlots.take(5)
     val slot = openSlots.last
     slot add wolf
     slot.focus(blocking = false)
@@ -64,7 +66,7 @@ object Shaman {
 
   class ShadowAttack extends AttackStateFunc {
     def apply(attack: Int, player: PlayerUpdate): Int = {
-      player.slots.findCard(wolf) match {
+      player.slots findCard wolf match {
         case Some(s) ⇒ attack + s().get.attack - 2
         case None    ⇒ attack
       }

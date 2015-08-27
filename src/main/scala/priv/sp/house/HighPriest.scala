@@ -53,7 +53,8 @@ object HighPriest {
     dragonOfRa),
     effects = List(OnTurn -> hpTurn, OnStart -> init),
     eventListener = Some(new CustomListener(new HPriestEventListener)),
-    data = HPriestData())
+    data = HPriestData(),
+    description = "Divine path:\nDdepending on whether total level of owner’s fire and earth,\n or water and air creatures is higher,\n his special draw changes becoming Ra’s or Set’s.")
 
   HighPriest initCards Houses.basicCostFunc
   HighPriest.initCards(Houses.basicCostFunc, hpSet)

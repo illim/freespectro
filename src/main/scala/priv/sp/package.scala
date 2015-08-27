@@ -16,4 +16,9 @@ package object sp {
   def other(id: PlayerId) = if (id == owner) opponent else owner
 
   def inSlotRange(n: Int) = n > -1 && n < 6
+
+  trait Described {
+    def name : String
+    def description : String
+  }
 }

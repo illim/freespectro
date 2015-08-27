@@ -29,7 +29,7 @@ Can switch with prisoner to nearest empty slot""",
     effects = effects(Direct -> scare), inputSpec = Some(SelectOwner(openOrPrisoner)), reaction = new ScarecrowReaction)
   val liberator = new Creature("Liberator", Attack(3), liberatorLife, "Turns prisoner into Enraged prisoner.\n When dying inflict " + liberatorLife + " damage to him.", reaction = new LiberatorReaction, effects = effects(Direct -> focus(deliverPrisoner)))
 
-  val LostChurch = new House("Lost Church", List(
+  val LostChurch = new House("Disciples", List(
     Spell("Speed drug", "Add +1 attack to owner creatures, deals to them 4 damage.\nEffect disappear when prisoner die.",
       effects = effects(Direct -> speedDrug)),
     preacher,
@@ -40,7 +40,9 @@ Can switch with prisoner to nearest empty slot""",
     new Creature("Falconer", Attack(6), 35, "Each turns deals (slot distance) damage to opponent creatures.", effects = effects(OnTurn -> focus(falcon))),
     Spell("Madden", "Deals 8 damage to opponent creature \nHeals by 3 for each creature killed and add everyone 1 attack.", effects = effects(Direct -> madden))),
     effects = List(OnEndTurn -> spawnPrisoner, OnTurn -> weaken),
-    eventListener = Some(new CustomListener(new LCEventListener)))
+    eventListener = Some(new CustomListener(new LCEventListener)),
+    description =
+      "When a disciple is low on life(<half), his belief is weakened, and he loose 1/3 attack.\nWhen prisoner die, owner loose 1 mana of 2 highest basic houses and\nearn one special mana.")
 
   val additionalCards = List(windOfOppression, darkMonk)
 

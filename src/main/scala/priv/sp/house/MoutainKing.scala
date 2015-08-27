@@ -28,7 +28,8 @@ class MoutainKing {
     ballista,
     berserker,
     moutainKing),
-    eventListener = Some(new CustomListener(new MKEventListener)))
+    eventListener = Some(new CustomListener(new MKEventListener)),
+    description = "Hird:\nWhile dwarf stands side by side with other dwarf,\nhe gets second ability")
 
   MoutainKing initCards Houses.basicCostFunc
 

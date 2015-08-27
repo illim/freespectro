@@ -105,10 +105,10 @@ class CardButton(getDesc: ⇒ Option[CardDesc], getHouseState: ⇒ HouseState, g
 
   on {
     case MouseMoved(_) ⇒
-      game.descriptionPanel.cardOption = holder.map(_.desc.card)
+      game.descriptionPanel.describedOption = holder.map(_.desc.card)
       hovered = true
     case MouseLeaved(_) ⇒
-      game.descriptionPanel.cardOption = None
+      game.descriptionPanel.describedOption = None
       hovered = false
   }
 

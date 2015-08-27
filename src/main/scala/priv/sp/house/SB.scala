@@ -21,8 +21,7 @@ When die deals 15 damage to opposite creature.
     bounty,
     maiko,
     Spell("Echo",
-      """Each owner creature triggers his 'each turn' effects to both players
-and deals to opposite creature attack/2 damage""", effects = effects(Direct -> echo)),
+      """Each owner creature triggers his 'each turn' && 'direct' effects twice""", effects = effects(Direct -> echo)),
     new Creature("Kojiro", Attack(5), 27,
       """Can only be summoned onto an existing creature.
 Kojiro attack the turn he is summoned
@@ -42,9 +41,9 @@ if air deals 2 damage to opponent
 if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reaction = new AmaterasuReaction)),
     eventListener = Some(new CustomListener(new SBEventListener)))
 
-  SB.initCards(Houses.basicCostFunc)
+  SB initCards Houses.basicCostFunc
   val additionalCards = List(deathLetter)
-  additionalCards.foreach { c ⇒
+  additionalCards foreach { c ⇒
     c.houseIndex = SB.houseIndex
     c.houseId = SB.houseId
   }
@@ -64,25 +63,18 @@ if earth heal 2 life to owner""", effects = effects(Direct -> amaterasu), reacti
     }
   }
 
+  val twice = 1 to 2
   private def echo = { env: Env ⇒
     import env._
-    player.slots.foreach { s ⇒
+    player.slots foreach { s ⇒
       val c = s.get.card
-      c.effects(CardSpec.OnTurn) match {
-        case Some(f) ⇒
+      (c.effects(CardSpec.OnTurn).toList ++ c.effects(CardSpec.Direct)) foreach { f =>
+        twice foreach { _ =>
           val env = new GameCardEffect.Env(playerId, updater)
           env.card = Some(c)
           env.selected = s.num
           f(env)
-
-          val env2 = new GameCardEffect.Env(other(playerId), updater)
-          env2.card = Some(c)
-          env2.selected = s.num
-          f(env2)
-        case None ⇒
-      }
-      s.value foreach { x ⇒
-        s.oppositeSlot inflict Damage(x.attack / 2, Context(playerId, Some(c), s.num), isSpell = true)
+        }
       }
     }
   }

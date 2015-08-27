@@ -13,9 +13,15 @@ class HouseLabel(val mana: DamagableInt, house: House, game: Game, flip: Boolean
   def render() {
     glColor4f(1, 1, 1, 1)
     Fonts.font.draw(offset, 22, legend + mana.current, 'white)
-    mana.getDamageAnimOpt.foreach { anim ⇒
+    mana.getDamageAnimOpt foreach { anim ⇒
       Fonts.font.draw(20, 22 - direction * (10 + anim.delta(world.time)), anim.text, anim.color)
     }
   }
 
+  on {
+    case MouseMoved(_) ⇒
+      if (house.description.nonEmpty) {
+        game.descriptionPanel.describedOption = Some(house)
+      }
+  }
 }

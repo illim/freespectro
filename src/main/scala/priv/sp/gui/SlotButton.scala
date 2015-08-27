@@ -38,9 +38,9 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
       if (slotState.status > 1) {
         decorate = Some(() ⇒ decorateStatus(slotState))
       } else if (card.isInstanceOf[MereMortal]) {
-        decorate = Some(() ⇒ tex.draw(mortalTex))
+        decorate = Some(() ⇒ tex draw mortalTex)
       } else if (card.houseId == game.sp.houses.moutainKing.MoutainKing.houseId && slotState.data == Hird) {
-        decorate = Some(() ⇒ tex.draw(hirdTex))
+        decorate = Some(() ⇒ tex draw hirdTex)
       }
       for {
         before ← old._1
@@ -67,7 +67,7 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
           location.c.x + moveAnim.map(_.getDelta(world.time).floatValue).getOrElse(0f),
           location.c.y,
           0)
-        focusScale.foreach { scale ⇒
+        focusScale foreach { scale ⇒
           glScalef(scale, scale, 1)
           val pos = Coord2i.recenter(cardTex.size * 0.5, cardTex.size * scale)
           glTranslatef(pos.x, pos.y, 0)
@@ -83,7 +83,7 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
         Fonts.font.draw(72, 1, slotState.card.cost, 'blue)
         Fonts.font.draw(4, 80, slotState.attack, 'red)
         Fonts.font.draw(70, 80, slotState.life, 'green)
-        getDamageAnimOpt.foreach { anim ⇒
+        getDamageAnimOpt foreach { anim ⇒
           Fonts.font.draw(70, 65 - anim.delta(world.time), anim.text, anim.color)
         }
         lifeBar(slotState)
@@ -131,14 +131,14 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
   }
 
   def decorateStatus(s: SlotState) {
-    if (s.has(CardSpec.blockedFlag)) {
+    if (s has CardSpec.blockedFlag) {
       tex.drawAt(stunPos, crystalTex.id, crystalTex.size)
-    } else if (s.has(CardSpec.stunFlag)) {
+    } else if (s has CardSpec.stunFlag) {
       tex.drawAt(stunPos, stunTex.id, stunTex.size)
-    } else if (s.has(CardSpec.invincibleFlag)) {
-      tex.draw(shieldTex)
-    } else if (s.has(CardSpec.cursedFlag)) {
-      tex.draw(deathTex)
+    } else if (s has CardSpec.invincibleFlag) {
+      tex draw shieldTex
+    } else if (s has CardSpec.cursedFlag) {
+      tex draw deathTex
     }
   }
 
@@ -200,8 +200,8 @@ class SlotButton(val num: Int, playerId: PlayerId, getInfo: ⇒ (Option[SlotStat
 
   on {
     case MouseMoved(_) ⇒
-      game.descriptionPanel.cardOption = content._1.map(_._1.card)
+      game.descriptionPanel.describedOption = content._1.map(_._1.card)
     case MouseLeaved(_) ⇒
-      game.descriptionPanel.cardOption = None
+      game.descriptionPanel.describedOption = None
   }
 }

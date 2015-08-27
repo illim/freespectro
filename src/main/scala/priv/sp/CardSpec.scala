@@ -8,7 +8,7 @@ object Card {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 
-sealed abstract class Card extends Externalizable {
+sealed abstract class Card extends Externalizable with Described {
   def name: String
   def image: String
   def inputSpec: Option[CardInputSpec]
