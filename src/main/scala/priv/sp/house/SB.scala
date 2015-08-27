@@ -7,9 +7,16 @@ import GameCardEffect._
 
 class SB {
 
-  val bounty = new Creature("Bounty hunter", Attack(5), 16, "when kill opposite creature, get 1/3 mana of his cost round up", reaction = new BountyHunterReaction)
+  val bounty = new Creature("Bounty hunter", Attack(4), 16,
+    """Deals 2 damage to opposite creature when summoned.
+When kill opposite creature, get 1/3 mana of his cost round up""",
+    reaction = new BountyHunterReaction,
+    effects = effects(Direct -> { env: Env ⇒
+      env.focus()
+      env.otherPlayer.slots(env.selected) inflict Damage(2, env, isAbility = true)
+    }))
   val deathLetter = new Creature("Death letter", Attack(0), 3, """
-reduce damage to 1.
+Reduce damage to 1.
 When die deals 15 damage to opposite creature.
 (Can't be healed)""", reaction = new DLReaction)
   val maiko = new Creature("Maiko", Attack(3), 13,
@@ -21,7 +28,7 @@ When die deals 15 damage to opposite creature.
     bounty,
     maiko,
     Spell("Echo",
-      """Each owner creature triggers his 'each turn' && 'direct' effects twice""", effects = effects(Direct -> echo)),
+      "Each owner creature triggers his 'each turn' && 'direct' effects twice", effects = effects(Direct -> echo)),
     new Creature("Kojiro", Attack(5), 27,
       """Can only be summoned onto an existing creature.
 Kojiro attack the turn he is summoned
