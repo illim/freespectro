@@ -276,10 +276,13 @@ trait OnSummonable {
 
 class TrackerReaction extends Reaction with OnSummonable {
   final def onSummoned(slot: SlotUpdate) = {
-    if (!selected.get.data.asInstanceOf[Boolean] && selected != slot) {
-      slot toggle invincibleFlag
-      slot.player addEffect (OnTurn -> RemoveInvincible(slot.get.id))
-      selected setData java.lang.Boolean.TRUE
+    // FIXME weird case where wall of flame kill bennu, and bennu kill wall of flame before this is called
+    selected.value foreach { state =>
+      if (!state.data.asInstanceOf[Boolean] && selected != slot) {
+        slot toggle invincibleFlag
+        slot.player addEffect (OnTurn -> RemoveInvincible(slot.get.id))
+        selected setData java.lang.Boolean.TRUE
+      }
     }
   }
 }
