@@ -97,12 +97,6 @@ object SlotState {
   val currentId = new java.util.concurrent.atomic.AtomicInteger
 }
 
-import scalaz._
-object GameDesc {
-  val playersL = Lens.lensu[GameDesc, Vector[PlayerDesc]]((p, x) ⇒ p.copy(players = x), _.players)
-  def playerLens(id: Int) = Lens.lensu[GameDesc, PlayerDesc]((p, x) ⇒ p.copy(players = p.players.updated(id, x)), _.players(id))
-  val housesL = Lens.lensu[PlayerDesc, Vector[PlayerHouseDesc]]((p, h) ⇒ p.copy(houses = h), _.houses)
-}
 object CardDesc {
   def apply(c: Card): CardDesc = CardDesc(c, c.cost, true)
 }

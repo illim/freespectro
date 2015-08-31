@@ -3,7 +3,6 @@ package priv.sp.update
 import scala.util.Random
 import collection._
 import annotation._
-import scalaz._
 import priv.sp._
 import priv.util.FieldUpdate
 
@@ -26,7 +25,7 @@ class GameStateUpdater(initState: GameState, val desc: GameDesc) extends FieldUp
     initNewUpdate(value)
   }
 
-  def lift[R](f: GameStateUpdater ⇒ R): State[GameState, R] = State { st: GameState ⇒
+  def lift[R](f: GameStateUpdater ⇒ R): GameState => (GameState, R) = { st: GameState ⇒
     val update = apply(st)
     val res = f(update)
     (update.result, res)

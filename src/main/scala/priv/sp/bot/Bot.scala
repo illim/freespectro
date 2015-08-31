@@ -4,7 +4,7 @@ import priv.sp._
 import priv.sp.update._
 
 class Knowledge(gameDesc: GameDesc, botPlayerId: PlayerId, knownCards: Set[(Card, Int)], val otherPlayerDesc: PlayerDesc) {
-  val desc = ripPlayerState.exec(gameDesc)
+  val desc = ripPlayerState(gameDesc)
   /**
    * println("AI K :" + otherPlayerDesc.houses.map{ h =>
    * h.house.name + "/" + h.cards.toList
@@ -17,7 +17,9 @@ class Knowledge(gameDesc: GameDesc, botPlayerId: PlayerId, knownCards: Set[(Card
         p.copy(desc = new DescReader(desc.players(i), p.desc.descMods))
     })
   }
-  private def ripPlayerState = GameDesc.playerLens(other(botPlayerId)) %== (_ ⇒ otherPlayerDesc)
+  private def ripPlayerState(gameDesc : GameDesc) = {
+    gameDesc.copy(players = gameDesc.players.updated(other(botPlayerId), otherPlayerDesc))
+  }
 }
 
 object Bot {
@@ -99,7 +101,7 @@ class BotSimulator(val knowledge: BotKnowledge, val context: BotContext) {
           }
           WaitPlayer(other(playerId))
         }
-      } run state
+      }(state)
     } catch {
       case t: Throwable ⇒
         println("Failed on " + commandOption + "/" + state)

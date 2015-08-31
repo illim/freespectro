@@ -1,7 +1,6 @@
 package priv.sp
 
 import collection._
-import scalaz._
 import CardSpec._
 import priv.sp.update._
 

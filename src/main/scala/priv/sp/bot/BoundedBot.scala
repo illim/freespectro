@@ -4,7 +4,6 @@ import scala.util.Random
 import priv.sp._
 import priv.sp.update._
 import priv.util._
-import scalaz._
 import collection._
 
 // another stupid bot, faster because bounded in time, trying to use uct.

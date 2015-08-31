@@ -2,7 +2,6 @@ package priv.sp
 
 import java.util.concurrent._
 import collection._
-import scalaz._
 import priv._
 import priv.sp.bot._
 import priv.sp.gui._
@@ -113,8 +112,8 @@ class Game(val world: World, resources: GameResources, val server: GameServer) {
     world spawn new EndMessage(msg)
   }
 
-  private def persist[A](stateFunc: State[GameState, A]): A = {
-    val result = stateFunc run state
+  private def persist[A](stateFunc: GameState => (GameState, A)): A = {
+    val result = stateFunc(state)
     state = result._1
     result._2
   }

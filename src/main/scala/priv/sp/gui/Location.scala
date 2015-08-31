@@ -18,8 +18,7 @@ case class Running(location: Location, direction: Int) extends TimedEntity {
   private val amplitude = 2
 
   def render() {
-    location.c = Coord2i.yL.set(
-      location.c,
+    location.c = location.c.copy(y =
       location.init.y + (amplitude * direction * (half - math.abs(half - getDelta())) / 100).toInt)
   }
 
