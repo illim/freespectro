@@ -182,8 +182,8 @@ object DarkPriest {
 }
 
 class BlackMonkReaction extends Reaction {
-  override def onMyDamage(amount: Int) {
-    selected.player heal amount
+  override def onMyDamage(damage: Damage) {
+    selected.player heal damage.amount
   }
 }
 

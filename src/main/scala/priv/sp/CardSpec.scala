@@ -187,7 +187,7 @@ class Reaction extends Actions {
   // used by stone golem and archphoenix where overriding inflict doesn't suffice, because needs to know the context => TODO remove overrided inflict
   def selfProtect(d: Damage) = d
   // used by black monk to heal by the amount even when dying, and by errant to wakeup
-  def onMyDamage(amount: Int) {}
+  def onMyDamage(damage : Damage) {}
   // /!\ the slot is not yet empty but is about to (used for f5, f7, schizo, crossbow)
   def onMyRemove(dead: Option[Dead]) {}
   def onMyDeath(dead: Dead) {}

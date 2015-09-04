@@ -12,12 +12,13 @@ import GameCardEffect._
  */
 // FIXME: schizo when unbridle
 class Warp {
+  val photographer = new Creature("Photographer", Attack(4), 21, "If adjacent creature die, he's replaced by photographer with same life.", reaction = new PhotoReaction)
 
   val Warp = House("Warp", List(
     new Creature("Errant", Attack(4), 19, "Hide in shadow after killing a creature, come back when damaged.", runAttack = new ErrantAttack, reaction = new ErrantReaction),
     Spell("EarthQuake", "Deals to opponent creatures damage equals to\ndifference between owner and opponent mana", effects = effects(Direct -> quake)),
     new Creature("Cloak", Attack(4), 18, "When die restore the creature.", inputSpec = Some(SelectOwnerCreature), reaction = new CloakReaction),
-    new Creature("Photographer", Attack(3), 19, "If adjacent creature die, his shadow remains", reaction = new PhotoReaction),
+    photographer,
     new Creature("Schizo", Attack(5), 22, "When summoned, opposite creature lose his abilities\nuntil schizo die.", reaction = new SchizoReaction),
     new Creature("Ram", Attack(6), 26, "Opposite creature is destroyed and opponent get his mana back -2.", effects = effects(Direct -> ram)),
     new Creature("Stranger", AttackSources().add(new StrangerAttack), 30, "Attack is highest opponent mana.\nWhen summoned, take effects of opposite slot.(at least try to!)\n -immediate effects are not applied\n-can't duplicate effect to attack multiple targets", effects = effects(Direct -> merge)),
@@ -25,10 +26,6 @@ class Warp {
 
   val stranger = Warp.cards(6)
   Warp initCards Houses.basicCostFunc
-
-  val shadow = new Creature("Shadow", Attack(0), 4, status = runFlag)
-  shadow.houseIndex = Warp.houseIndex
-  shadow.houseId = Warp.houseId
 
   def quake = { env: Env ⇒
     import env._
@@ -99,12 +96,14 @@ class Warp {
 
   class PhotoReaction extends Reaction {
     final override def onDeath(dead: Dead) {
-      if (dead.card != shadow
+      if (dead.card != photographer
         && dead.player.id == selected.playerId
         && Math.abs(dead.num - selected.num) == 1) {
-        val slot = dead.player.slots(dead.num)
-        slot add shadow
-        slot.attack forceAdd AttackAdd(dead.card.attack.base getOrElse 0)
+        selected.value.foreach { value =>
+          val slot = dead.player.slots(dead.num)
+          slot add photographer
+          slot.write(Some(slot.get.copy(life = value.life)))
+        }
       }
     }
   }
@@ -171,7 +170,7 @@ class ErrantAttack extends RunAttack {
 }
 
 class ErrantReaction extends Reaction {
-  override def onMyDamage(amount: Int) {
+  override def onMyDamage(damage: Damage) {
     selected.value foreach { s ⇒
       if (s has pausedFlag) {
         selected toggleOff pausedFlag

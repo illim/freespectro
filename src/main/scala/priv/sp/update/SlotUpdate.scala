@@ -73,7 +73,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
           write(Some(newslot))
           slot.life - newslot.life
       }
-      slotState.reaction onMyDamage amount
+      slotState.reaction onMyDamage damage.copy(amount = amount)
       slots.player.updater.houseEventListeners foreach (_.onDamaged(slot.card, amount, this))
     }
   }
@@ -89,7 +89,7 @@ class SlotUpdate(val num: Int, val slots: SlotsUpdate) extends FieldUpdate(Some(
         write(Some(newslot))
         slot.life - newslot.life
       }
-      slot.reaction onMyDamage amount
+      slot.reaction onMyDamage damage.copy(amount = amount)
       slots.player.updater.houseEventListeners foreach (_.onDamaged(slot.card, amount, this))
     }
   }
