@@ -14,7 +14,7 @@ class ZenMage {
 
   val Zen: House = House("Zen", List(
     new Creature("Elementesist", Attack(3), 12, "Deals damage to opposite card, and to all opposite card of same mana.", runAttack = new ElemAttack),
-    new Creature("Redlight bringer", Attack(2), 13, "Attack opposite and adjacent slots.", runAttack = new RedlightAttack),
+    new Creature("Redlight", Attack(2), 13, "Attack opposite and adjacent slots.", runAttack = new RedlightAttack),
     Spell("Focus", "Every owner card dedicate 50% of their attack to the focused creature.",
       inputSpec = Some(SelectTargetCreature),
       effects = effects(Direct -> focusSpell)),
